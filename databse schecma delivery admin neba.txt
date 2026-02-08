@@ -1,0 +1,542 @@
+-- ============================================
+-- ETHIOPIAN FOOD DELIVERY APPLICATION
+-- COMPLETE DATABASE SCHEMA
+-- ============================================
+//// SUGGESTED IMPROVEMENTS////
+
+--USER SESSIONS--
+CREATE TABLE user_sessions (
+    session_id INT PRIMARY KEY AUTO_INCREMENT,
+    user_type ENUM('customer', 'restaurant', 'driver', 'admin') NOT NULL,
+    user_id INT NOT NULL,
+    refresh_token VARCHAR(255) UNIQUE NOT NULL,
+    device_info VARCHAR(255),
+    ip_address VARCHAR(45),
+    expires_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+--ORDER STATUS HISTORY--
+CREATE TABLE order_status_history (
+    history_id INT PRIMARY KEY AUTO_INCREMENT,
+    order_id INT NOT NULL,
+    old_status VARCHAR(50),
+    new_status VARCHAR(50),
+    changed_by_type ENUM('system', 'customer', 'restaurant', 'driver', 'admin'),
+    changed_by_id INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE CASCADE
+);
+--DRIVER ID ASSIGNMENT TABLE--
+CREATE TABLE driver_assignments (
+    assignment_id INT PRIMARY KEY AUTO_INCREMENT,
+    order_id INT NOT NULL,
+    driver_id INT NOT NULL,
+    assignment_status ENUM('offered', 'accepted', 'rejected', 'expired'),
+    offered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    responded_at TIMESTAMP NULL,
+    FOREIGN KEY (order_id) REFERENCES orders(order_id),
+    FOREIGN KEY (driver_id) REFERENCES drivers(driver_id)
+);
+--RESTAURANT COMMISION RATES--
+ALTER TABLE restaurants
+ADD commission_rate DECIMAL(5,2) DEFAULT 15.00;
+--CART PRE ORDER STATES--
+CREATE TABLE carts (
+    cart_id INT PRIMARY KEY AUTO_INCREMENT,
+    customer_id INT NOT NULL,
+    restaurant_id INT NOT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (customer_id) REFERENCES customers(customer_id)
+);
+
+CREATE TABLE cart_items (
+    cart_item_id INT PRIMARY KEY AUTO_INCREMENT,
+    cart_id INT NOT NULL,
+    item_id INT NOT NULL,
+    quantity INT NOT NULL,
+    FOREIGN KEY (cart_id) REFERENCES carts(cart_id)
+);
+--DRIVER LOCATION HISTORY--
+CREATE TABLE driver_location_history (
+    location_id INT PRIMARY KEY AUTO_INCREMENT,
+    driver_id INT NOT NULL,
+    latitude DECIMAL(10,8),
+    longitude DECIMAL(11,8),
+    recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (driver_id) REFERENCES drivers(driver_id)
+);
+////END///
+-- CUSTOMERS TABLE
+CREATE TABLE customers (
+    customer_id INT PRIMARY KEY AUTO_INCREMENT,
+    full_name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE,
+    phone_number VARCHAR(20) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    profile_picture_url VARCHAR(255),
+    is_active BOOLEAN DEFAULT TRUE,
+    email_verified BOOLEAN DEFAULT FALSE,
+    phone_verified BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_phone (phone_number),
+    INDEX idx_email (email)
+);
+
+-- CUSTOMER ADDRESSES TABLE
+CREATE TABLE customer_addresses (
+    address_id INT PRIMARY KEY AUTO_INCREMENT,
+    customer_id INT NOT NULL,
+    address_label VARCHAR(50), -- e.g., 'Home', 'Work', 'Other'
+    street_address VARCHAR(255) NOT NULL,
+    city VARCHAR(100) NOT NULL,
+    sub_city VARCHAR(100), -- For Ethiopian addressing system
+    woreda VARCHAR(100),
+    house_number VARCHAR(50),
+    landmark VARCHAR(255), -- Important for Ethiopian addressing
+    latitude DECIMAL(10, 8),
+    longitude DECIMAL(11, 8),
+    is_default BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (customer_id) REFERENCES customers(customer_id) ON DELETE CASCADE,
+    INDEX idx_customer (customer_id)
+);
+
+-- RESTAURANTS TABLE
+CREATE TABLE restaurants (
+    restaurant_id INT PRIMARY KEY AUTO_INCREMENT,
+    restaurant_name VARCHAR(150) NOT NULL,
+    email VARCHAR(100) UNIQUE,
+    phone_number VARCHAR(20) NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    street_address VARCHAR(255) NOT NULL,
+    city VARCHAR(100) NOT NULL,
+    sub_city VARCHAR(100),
+    landmark VARCHAR(255),
+    latitude DECIMAL(10, 8),
+    longitude DECIMAL(11, 8),
+    cuisine_type VARCHAR(100), -- e.g., 'Ethiopian', 'Italian', 'Fast Food'
+    logo_url VARCHAR(255),
+    cover_image_url VARCHAR(255),
+    description TEXT,
+    average_rating DECIMAL(2, 1) DEFAULT 0.0,
+    total_reviews INT DEFAULT 0,
+    is_active BOOLEAN DEFAULT TRUE,
+    is_verified BOOLEAN DEFAULT FALSE,
+    verification_status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+    verified_by INT, -- Admin who verified
+    verified_at TIMESTAMP NULL,
+    rejection_reason TEXT,
+    minimum_order_amount DECIMAL(10, 2) DEFAULT 0,
+    delivery_fee DECIMAL(10, 2) DEFAULT 0,
+    estimated_delivery_time INT, -- in minutes
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_cuisine (cuisine_type),
+    INDEX idx_city (city),
+    INDEX idx_active (is_active),
+    INDEX idx_verification_status (verification_status)
+);
+
+-- RESTAURANT OPERATING HOURS TABLE
+CREATE TABLE restaurant_hours (
+    hours_id INT PRIMARY KEY AUTO_INCREMENT,
+    restaurant_id INT NOT NULL,
+    day_of_week TINYINT NOT NULL, -- 0=Sunday, 1=Monday, ..., 6=Saturday
+    opening_time TIME NOT NULL,
+    closing_time TIME NOT NULL,
+    is_closed BOOLEAN DEFAULT FALSE,
+    FOREIGN KEY (restaurant_id) REFERENCES restaurants(restaurant_id) ON DELETE CASCADE,
+    UNIQUE KEY unique_restaurant_day (restaurant_id, day_of_week)
+);
+
+-- FOOD MENU TABLE
+CREATE TABLE menu_items (
+    item_id INT PRIMARY KEY AUTO_INCREMENT,
+    restaurant_id INT NOT NULL,
+    item_name VARCHAR(150) NOT NULL,
+    description TEXT,
+    category VARCHAR(100), -- e.g., 'Appetizer', 'Main Course', 'Beverage', 'Dessert'
+    price DECIMAL(10, 2) NOT NULL,
+    image_url VARCHAR(255),
+    is_available BOOLEAN DEFAULT TRUE,
+    is_vegetarian BOOLEAN DEFAULT FALSE,
+    is_spicy BOOLEAN DEFAULT FALSE,
+    preparation_time INT, -- in minutes
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (restaurant_id) REFERENCES restaurants(restaurant_id) ON DELETE CASCADE,
+    INDEX idx_restaurant (restaurant_id),
+    INDEX idx_category (category),
+    INDEX idx_available (is_available)
+);
+
+-- DRIVERS TABLE
+CREATE TABLE drivers (
+    driver_id INT PRIMARY KEY AUTO_INCREMENT,
+    full_name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE,
+    phone_number VARCHAR(20) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    profile_picture_url VARCHAR(255),
+    driver_license_number VARCHAR(50) UNIQUE NOT NULL,
+    driver_license_image_url VARCHAR(255),
+    id_card_number VARCHAR(50) UNIQUE NOT NULL,
+    id_card_image_url VARCHAR(255),
+    vehicle_type VARCHAR(50) NOT NULL, -- e.g., 'Motorcycle', 'Car', 'Bicycle'
+    vehicle_plate_number VARCHAR(20) UNIQUE,
+    vehicle_image_url VARCHAR(255),
+    is_available BOOLEAN DEFAULT TRUE,
+    is_active BOOLEAN DEFAULT TRUE,
+    is_verified BOOLEAN DEFAULT FALSE,
+    verification_status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+    verified_by INT, -- Admin who verified
+    verified_at TIMESTAMP NULL,
+    rejection_reason TEXT,
+    current_latitude DECIMAL(10, 8),
+    current_longitude DECIMAL(11, 8),
+    average_rating DECIMAL(2, 1) DEFAULT 0.0,
+    total_deliveries INT DEFAULT 0,
+    total_earnings DECIMAL(10, 2) DEFAULT 0, -- Total earnings including tips
+    joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_available (is_available),
+    INDEX idx_location (current_latitude, current_longitude),
+    INDEX idx_verification_status (verification_status)
+);
+
+-- ORDERS TABLE
+CREATE TABLE orders (
+    order_id INT PRIMARY KEY AUTO_INCREMENT,
+    customer_id INT NOT NULL,
+    restaurant_id INT NOT NULL,
+    driver_id INT,
+    address_id INT NOT NULL,
+    subtotal DECIMAL(10, 2) NOT NULL,
+    delivery_fee DECIMAL(10, 2) DEFAULT 0,
+    service_fee DECIMAL(10, 2) DEFAULT 0,
+    driver_tip DECIMAL(10, 2) DEFAULT 0, -- Tip amount for driver
+    discount_amount DECIMAL(10, 2) DEFAULT 0,
+    total_amount DECIMAL(10, 2) NOT NULL,
+    order_status ENUM('pending', 'confirmed', 'preparing', 'ready', 'picked_up', 'in_transit', 'delivered', 'cancelled') DEFAULT 'pending',
+    payment_status ENUM('pending', 'paid', 'failed', 'refunded') DEFAULT 'pending',
+    payment_method ENUM('cash', 'telebirr', 'cbebirr', 'card', 'bank_transfer') NOT NULL,
+    special_instructions TEXT,
+    estimated_delivery_time TIMESTAMP,
+    order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    confirmed_at TIMESTAMP NULL,
+    delivered_at TIMESTAMP NULL,
+    cancelled_at TIMESTAMP NULL,
+    cancellation_reason TEXT,
+    FOREIGN KEY (customer_id) REFERENCES customers(customer_id),
+    FOREIGN KEY (restaurant_id) REFERENCES restaurants(restaurant_id),
+    FOREIGN KEY (driver_id) REFERENCES drivers(driver_id),
+    FOREIGN KEY (address_id) REFERENCES customer_addresses(address_id),
+    INDEX idx_customer (customer_id),
+    INDEX idx_restaurant (restaurant_id),
+    INDEX idx_driver (driver_id),
+    INDEX idx_status (order_status),
+    INDEX idx_date (order_date)
+);
+
+-- ORDER ITEMS TABLE
+CREATE TABLE order_items (
+    order_item_id INT PRIMARY KEY AUTO_INCREMENT,
+    order_id INT NOT NULL,
+    item_id INT NOT NULL,
+    item_name VARCHAR(150) NOT NULL, -- Stored for historical record
+    quantity INT NOT NULL DEFAULT 1,
+    unit_price DECIMAL(10, 2) NOT NULL,
+    subtotal DECIMAL(10, 2) NOT NULL, -- quantity * unit_price
+    special_instructions VARCHAR(255),
+    FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE CASCADE,
+    FOREIGN KEY (item_id) REFERENCES menu_items(item_id),
+    INDEX idx_order (order_id)
+);
+
+-- DELIVERIES TABLE
+CREATE TABLE deliveries (
+    delivery_id INT PRIMARY KEY AUTO_INCREMENT,
+    order_id INT UNIQUE NOT NULL,
+    driver_id INT NOT NULL,
+    pickup_address VARCHAR(255) NOT NULL, -- Restaurant address
+    pickup_latitude DECIMAL(10, 8),
+    pickup_longitude DECIMAL(11, 8),
+    delivery_address VARCHAR(255) NOT NULL, -- Customer address
+    delivery_latitude DECIMAL(10, 8),
+    delivery_longitude DECIMAL(11, 8),
+    distance_km DECIMAL(5, 2),
+    assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    picked_up_at TIMESTAMP NULL,
+    delivered_at TIMESTAMP NULL,
+    delivery_status ENUM('assigned', 'heading_to_restaurant', 'at_restaurant', 'picked_up', 'in_transit', 'delivered', 'failed') DEFAULT 'assigned',
+    delivery_proof_url VARCHAR(255), -- Photo proof of delivery
+    FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE CASCADE,
+    FOREIGN KEY (driver_id) REFERENCES drivers(driver_id),
+    INDEX idx_driver (driver_id),
+    INDEX idx_status (delivery_status)
+);
+
+-- PAYMENTS TABLE
+CREATE TABLE payments (
+    payment_id INT PRIMARY KEY AUTO_INCREMENT,
+    order_id INT NOT NULL,
+    amount DECIMAL(10, 2) NOT NULL, -- Total payment amount
+    driver_tip DECIMAL(10, 2) DEFAULT 0, -- Tip amount for driver (stored here too for payment tracking)
+    payment_method ENUM('cash', 'telebirr', 'cbebirr', 'card', 'bank_transfer') NOT NULL,
+    payment_status ENUM('pending', 'completed', 'failed', 'refunded') DEFAULT 'pending',
+    transaction_id VARCHAR(100) UNIQUE, -- External payment gateway transaction ID
+    payment_date TIMESTAMP NULL,
+    refund_amount DECIMAL(10, 2),
+    refund_date TIMESTAMP NULL,
+    tip_paid_to_driver BOOLEAN DEFAULT FALSE, -- Track if tip was transferred to driver
+    tip_paid_date TIMESTAMP NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE CASCADE,
+    INDEX idx_order (order_id),
+    INDEX idx_status (payment_status),
+    INDEX idx_transaction (transaction_id),
+    INDEX idx_tip_status (tip_paid_to_driver)
+);
+
+-- RATINGS AND REVIEWS TABLE
+CREATE TABLE reviews (
+    review_id INT PRIMARY KEY AUTO_INCREMENT,
+    order_id INT NOT NULL,
+    customer_id INT NOT NULL,
+    restaurant_id INT,
+    driver_id INT,
+    review_type ENUM('restaurant', 'driver') NOT NULL,
+    rating TINYINT NOT NULL CHECK (rating BETWEEN 1 AND 5),
+    comment TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE CASCADE,
+    FOREIGN KEY (customer_id) REFERENCES customers(customer_id),
+    FOREIGN KEY (restaurant_id) REFERENCES restaurants(restaurant_id),
+    FOREIGN KEY (driver_id) REFERENCES drivers(driver_id),
+    INDEX idx_restaurant (restaurant_id),
+    INDEX idx_driver (driver_id),
+    INDEX idx_rating (rating),
+    UNIQUE KEY unique_order_type (order_id, review_type)
+);
+
+-- PROMO CODES TABLE
+CREATE TABLE promo_codes (
+    promo_id INT PRIMARY KEY AUTO_INCREMENT,
+    code VARCHAR(50) UNIQUE NOT NULL,
+    description VARCHAR(255),
+    discount_type ENUM('percentage', 'fixed_amount') NOT NULL,
+    discount_value DECIMAL(10, 2) NOT NULL,
+    minimum_order_amount DECIMAL(10, 2) DEFAULT 0,
+    max_discount_amount DECIMAL(10, 2),
+    usage_limit INT, -- Total usage limit
+    usage_per_customer INT DEFAULT 1,
+    valid_from TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    valid_until TIMESTAMP NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_by INT, -- Admin who created this promo
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_code (code),
+    INDEX idx_active (is_active)
+);
+
+-- PROMO CODE USAGE TABLE
+CREATE TABLE promo_code_usage (
+    usage_id INT PRIMARY KEY AUTO_INCREMENT,
+    promo_id INT NOT NULL,
+    customer_id INT NOT NULL,
+    order_id INT NOT NULL,
+    discount_applied DECIMAL(10, 2) NOT NULL,
+    used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (promo_id) REFERENCES promo_codes(promo_id) ON DELETE CASCADE,
+    FOREIGN KEY (customer_id) REFERENCES customers(customer_id),
+    FOREIGN KEY (order_id) REFERENCES orders(order_id),
+    INDEX idx_promo (promo_id),
+    INDEX idx_customer (customer_id)
+);
+
+-- NOTIFICATIONS TABLE
+CREATE TABLE notifications (
+    notification_id INT PRIMARY KEY AUTO_INCREMENT,
+    user_type ENUM('customer', 'restaurant', 'driver', 'admin') NOT NULL,
+    user_id INT NOT NULL,
+    title VARCHAR(150) NOT NULL,
+    message TEXT NOT NULL,
+    notification_type VARCHAR(50), -- e.g., 'order_update', 'promotion', 'payment'
+    is_read BOOLEAN DEFAULT FALSE,
+    related_order_id INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_user (user_type, user_id),
+    INDEX idx_read (is_read)
+);
+
+-- CUSTOMER FAVORITES TABLE
+CREATE TABLE favorites (
+    favorite_id INT PRIMARY KEY AUTO_INCREMENT,
+    customer_id INT NOT NULL,
+    restaurant_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (customer_id) REFERENCES customers(customer_id) ON DELETE CASCADE,
+    FOREIGN KEY (restaurant_id) REFERENCES restaurants(restaurant_id) ON DELETE CASCADE,
+    UNIQUE KEY unique_customer_restaurant (customer_id, restaurant_id),
+    INDEX idx_customer (customer_id)
+);
+
+-- ============================================
+-- ADMIN DASHBOARD SECTION
+-- ============================================
+
+-- ADMINS TABLE
+CREATE TABLE admins (
+    admin_id INT PRIMARY KEY AUTO_INCREMENT,
+    full_name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    phone_number VARCHAR(20) UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    role ENUM('super_admin', 'admin', 'moderator', 'support') DEFAULT 'admin',
+    profile_picture_url VARCHAR(255),
+    is_active BOOLEAN DEFAULT TRUE,
+    last_login TIMESTAMP NULL,
+    created_by INT, -- Which admin created this account
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (created_by) REFERENCES admins(admin_id) ON DELETE SET NULL,
+    INDEX idx_email (email),
+    INDEX idx_role (role),
+    INDEX idx_active (is_active)
+);
+
+-- ADMIN ACTIVITY LOG TABLE
+CREATE TABLE admin_activity_log (
+    log_id INT PRIMARY KEY AUTO_INCREMENT,
+    admin_id INT NOT NULL,
+    action_type VARCHAR(100) NOT NULL, -- e.g., 'approve_restaurant', 'verify_driver', 'resolve_dispute'
+    target_type VARCHAR(50), -- e.g., 'restaurant', 'driver', 'order', 'payment'
+    target_id INT, -- ID of the affected entity
+    description TEXT,
+    ip_address VARCHAR(45),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (admin_id) REFERENCES admins(admin_id) ON DELETE CASCADE,
+    INDEX idx_admin (admin_id),
+    INDEX idx_action (action_type),
+    INDEX idx_created (created_at)
+);
+
+-- DISPUTES TABLE
+CREATE TABLE disputes (
+    dispute_id INT PRIMARY KEY AUTO_INCREMENT,
+    order_id INT NOT NULL,
+    raised_by_type ENUM('customer', 'restaurant', 'driver') NOT NULL,
+    raised_by_id INT NOT NULL, -- customer_id, restaurant_id, or driver_id
+    dispute_type VARCHAR(100) NOT NULL, -- e.g., 'refund_request', 'payment_issue', 'delivery_problem', 'quality_complaint'
+    subject VARCHAR(255) NOT NULL,
+    description TEXT NOT NULL,
+    evidence_url VARCHAR(255), -- Photo/document evidence
+    status ENUM('open', 'in_review', 'resolved', 'rejected') DEFAULT 'open',
+    priority ENUM('low', 'medium', 'high', 'urgent') DEFAULT 'medium',
+    assigned_to_admin INT, -- Admin handling the dispute
+    resolution_notes TEXT,
+    refund_amount DECIMAL(10, 2),
+    resolved_at TIMESTAMP NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE CASCADE,
+    FOREIGN KEY (assigned_to_admin) REFERENCES admins(admin_id) ON DELETE SET NULL,
+    INDEX idx_order (order_id),
+    INDEX idx_status (status),
+    INDEX idx_priority (priority),
+    INDEX idx_assigned (assigned_to_admin),
+    INDEX idx_created (created_at)
+);
+
+-- DISPUTE MESSAGES TABLE (for communication between admin and disputing party)
+CREATE TABLE dispute_messages (
+    message_id INT PRIMARY KEY AUTO_INCREMENT,
+    dispute_id INT NOT NULL,
+    sender_type ENUM('admin', 'customer', 'restaurant', 'driver') NOT NULL,
+    sender_id INT NOT NULL,
+    message TEXT NOT NULL,
+    attachment_url VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (dispute_id) REFERENCES disputes(dispute_id) ON DELETE CASCADE,
+    INDEX idx_dispute (dispute_id),
+    INDEX idx_created (created_at)
+);
+
+-- FINANCIAL REPORTS TABLE (for admin dashboard analytics)
+CREATE TABLE financial_reports (
+    report_id INT PRIMARY KEY AUTO_INCREMENT,
+    report_type ENUM('daily', 'weekly', 'monthly', 'yearly') NOT NULL,
+    report_date DATE NOT NULL,
+    total_orders INT DEFAULT 0,
+    total_revenue DECIMAL(12, 2) DEFAULT 0,
+    total_delivery_fees DECIMAL(12, 2) DEFAULT 0,
+    total_service_fees DECIMAL(12, 2) DEFAULT 0,
+    total_driver_tips DECIMAL(12, 2) DEFAULT 0,
+    total_discounts DECIMAL(12, 2) DEFAULT 0,
+    total_refunds DECIMAL(12, 2) DEFAULT 0,
+    net_revenue DECIMAL(12, 2) DEFAULT 0,
+    commission_to_restaurants DECIMAL(12, 2) DEFAULT 0,
+    payments_to_drivers DECIMAL(12, 2) DEFAULT 0,
+    platform_profit DECIMAL(12, 2) DEFAULT 0,
+    generated_by_admin INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (generated_by_admin) REFERENCES admins(admin_id) ON DELETE SET NULL,
+    INDEX idx_report_date (report_date),
+    INDEX idx_report_type (report_type)
+);
+
+-- PAYMENT SETTLEMENTS TABLE (track payments to restaurants and drivers)
+CREATE TABLE payment_settlements (
+    settlement_id INT PRIMARY KEY AUTO_INCREMENT,
+    recipient_type ENUM('restaurant', 'driver') NOT NULL,
+    recipient_id INT NOT NULL, -- restaurant_id or driver_id
+    settlement_period_start DATE NOT NULL,
+    settlement_period_end DATE NOT NULL,
+    total_orders INT DEFAULT 0,
+    gross_amount DECIMAL(12, 2) NOT NULL, -- Total before deductions
+    commission_amount DECIMAL(12, 2) DEFAULT 0, -- Platform commission
+    net_amount DECIMAL(12, 2) NOT NULL, -- Amount to be paid
+    payment_method ENUM('bank_transfer', 'cash', 'mobile_money') NOT NULL,
+    payment_status ENUM('pending', 'processing', 'completed', 'failed') DEFAULT 'pending',
+    transaction_reference VARCHAR(100),
+    processed_by_admin INT,
+    processed_at TIMESTAMP NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (processed_by_admin) REFERENCES admins(admin_id) ON DELETE SET NULL,
+    INDEX idx_recipient (recipient_type, recipient_id),
+    INDEX idx_status (payment_status),
+    INDEX idx_period (settlement_period_start, settlement_period_end)
+);
+
+-- SYSTEM SETTINGS TABLE (configurable app settings)
+CREATE TABLE system_settings (
+    setting_id INT PRIMARY KEY AUTO_INCREMENT,
+    setting_key VARCHAR(100) UNIQUE NOT NULL,
+    setting_value TEXT NOT NULL,
+    setting_type VARCHAR(50), -- e.g., 'commission_rate', 'service_fee', 'currency'
+    description TEXT,
+    updated_by_admin INT,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (updated_by_admin) REFERENCES admins(admin_id) ON DELETE SET NULL,
+    INDEX idx_key (setting_key)
+);
+
+-- PLATFORM ANNOUNCEMENTS TABLE
+CREATE TABLE announcements (
+    announcement_id INT PRIMARY KEY AUTO_INCREMENT,
+    title VARCHAR(200) NOT NULL,
+    message TEXT NOT NULL,
+    target_audience ENUM('all', 'customers', 'restaurants', 'drivers') NOT NULL,
+    announcement_type ENUM('info', 'warning', 'promotion', 'maintenance') DEFAULT 'info',
+    is_active BOOLEAN DEFAULT TRUE,
+    start_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    end_date TIMESTAMP NULL,
+    created_by_admin INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (created_by_admin) REFERENCES admins(admin_id) ON DELETE SET NULL,
+    INDEX idx_target (target_audience),
+    INDEX idx_active (is_active),
+    INDEX idx_dates (start_date, end_date)
+);
