@@ -36,7 +36,7 @@ This plan covers the essential features for the Minimum Viable Product (MVP) of 
 ### Backend
 - **Runtime**: Node.js v18+
 - **Framework**: Express.js
-- **Database**: MySQL (as per schema)
+- **Database**: PostgreSQL
 - **ORM**: Sequelize / TypeORM
 - **Authentication**: JWT (jsonwebtoken)
 - **Password**: bcryptjs
@@ -175,11 +175,11 @@ NODE_ENV=development
 PORT=5000
 API_VERSION=v1
 
-# Database Configuration
+# Database Configuration (PostgreSQL)
 DB_HOST=localhost
-DB_PORT=3306
+DB_PORT=5432
 DB_NAME=delivery_app_db
-DB_USER=root
+DB_USER=postgres
 DB_PASSWORD=your_password
 
 # JWT Configuration
@@ -212,18 +212,32 @@ DEFAULT_COMMISSION_RATE=15.00
 
 ---
 
-## STEP 2: Database Setup
+## STEP 2: Database Setup (PostgreSQL)
 
 ### 2.1 Create Database
-```sql
-CREATE DATABASE delivery_app_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```bash
+# Option 1: Using psql
+psql -U postgres -f scripts/init-db.sql
+
+# Option 2: Using createdb command
+createdb delivery_app_db
+
+# Option 3: Using psql interactively
+psql -U postgres
+CREATE DATABASE delivery_app_db;
+\q
 ```
 
 ### 2.2 Run Schema
-Execute the provided database schema file to create all tables.
+Execute the provided database schema file to create all tables:
+```bash
+psql -U postgres -d delivery_app_db -f schema.sql
+```
+
+**Note:** The `schema.sql` file is valid PostgreSQL syntax. Alternatively, the app uses Sequelize `sync({ alter: true })` on startup—tables are created/updated from models when you run the server.
 
 ### 2.3 Create Sequelize Models
-Set up Sequelize models matching the database schema (customer, restaurant, driver, menu_items, orders, etc.)
+Sequelize models are set up in `src/models/` matching the database schema: Customer, Restaurant, Driver, MenuItem, Order, OrderItem, Address, Cart, CartItem, Delivery, Payment, and associations.
 
 ---
 
