@@ -1,12 +1,15 @@
 const { MenuItem } = require('../models');
 
-// @desc    Get menu for a restaurant
+// @desc    Get menu for a restaurant (available items only, filter by category)
 // @route   GET /api/v1/menu/restaurant/:restaurantId
 // @access  Public
 exports.getMenuByRestaurant = async (req, res, next) => {
     try {
         const { category } = req.query;
-        let whereClause = { restaurant_id: req.params.restaurantId };
+        const whereClause = {
+            restaurant_id: req.params.restaurantId,
+            is_available: true
+        };
 
         if (category) {
             whereClause.category = category;

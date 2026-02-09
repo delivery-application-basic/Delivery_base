@@ -10,6 +10,7 @@ const {
 } = require('../controllers/menuController');
 const { protect, authorize } = require('../middleware/auth');
 const { USER_TYPES } = require('../utils/constants');
+const { validateAddMenuItem, validateUpdateMenuItem } = require('../middleware/validators/menuValidator');
 
 // Public routes
 router.get('/restaurant/:restaurantId', getMenuByRestaurant);
@@ -19,8 +20,8 @@ router.get('/items/:id', getItemDetails);
 router.use(protect);
 router.use(authorize(USER_TYPES.RESTAURANT));
 
-router.post('/items', addMenuItem);
-router.put('/items/:id', updateMenuItem);
+router.post('/items', validateAddMenuItem, addMenuItem);
+router.put('/items/:id', validateUpdateMenuItem, updateMenuItem);
 router.delete('/items/:id', deleteMenuItem);
 router.patch('/items/:id/availability', toggleAvailability);
 
