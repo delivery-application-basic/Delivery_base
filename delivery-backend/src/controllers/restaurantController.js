@@ -1,4 +1,4 @@
-const { Restaurant, MenuItem } = require('../models');
+const { Restaurant, MenuItem, RestaurantHours } = require('../models');
 const { Op } = require('sequelize');
 
 // @desc    Get all active restaurants
@@ -31,13 +31,16 @@ exports.getRestaurants = async (req, res, next) => {
     }
 };
 
-// @desc    Get single restaurant & its menu
+// @desc    Get single restaurant with full info, menu, ratings, hours
 // @route   GET /api/v1/restaurants/:id
 // @access  Public
 exports.getRestaurant = async (req, res, next) => {
     try {
         const restaurant = await Restaurant.findByPk(req.params.id, {
-            include: [{ model: MenuItem, as: 'menu_items', where: { is_available: true }, required: false }]
+            include: [
+                { model: MenuItem, as: 'menu_items', where: { is_available: true }, required: false },
+                { model: RestaurantHours, as: 'operating_hours', required: false }
+            ]
         });
 
         if (!restaurant) {
@@ -58,9 +61,12 @@ exports.getRestaurant = async (req, res, next) => {
 // @access  Private (Restaurant Owner)
 exports.updateProfile = async (req, res, next) => {
     try {
-        const id = req.params.id || req.user.restaurant_id;
-        let restaurant = await Restaurant.findByPk(id);
+        const id = req.params.id;
+        if (parseInt(id) !== req.user.restaurant_id) {
+            return res.status(403).json({ success: false, message: 'Not authorized to update this restaurant' });
+        }
 
+        let restaurant = await Restaurant.findByPk(id);
         if (!restaurant) {
             return res.status(404).json({ success: false, message: 'Restaurant not found' });
         }
@@ -84,11 +90,14 @@ exports.updateHours = async (req, res, next) => {
         const { id } = req.params;
         const { hours } = req.body; // Array of { day_of_week, opening_time, closing_time, is_closed }
 
-        // In a real app, verify req.user.id == id or handle ownership
+        if (parseInt(id) !== req.user.restaurant_id) {
+            return res.status(403).json({ success: false, message: 'Not authorized to update this restaurant' });
+        }
 
-        const { RestaurantHours } = require('../models');
+        if (!hours || !Array.isArray(hours)) {
+            return res.status(400).json({ success: false, message: 'Hours array is required' });
+        }
 
-        // Delete existing hours and add new ones (simple implementation)
         await RestaurantHours.destroy({ where: { restaurant_id: id } });
 
         const createdHours = await RestaurantHours.bulkCreate(
