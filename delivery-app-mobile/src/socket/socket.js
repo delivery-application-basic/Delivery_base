@@ -104,6 +104,34 @@ export const socketHelpers = {
     }
   },
 
+  // Join restaurant room (receive order:created)
+  joinRestaurantRoom: (restaurantId) => {
+    if (socket && restaurantId != null) {
+      socket.emit('join:restaurant', { restaurantId });
+    }
+  },
+
+  // Leave restaurant room
+  leaveRestaurantRoom: (restaurantId) => {
+    if (socket && restaurantId != null) {
+      socket.emit('leave:restaurant', { restaurantId });
+    }
+  },
+
+  // Join driver room (receive driver:assignment)
+  joinDriverRoom: (driverId) => {
+    if (socket && driverId != null) {
+      socket.emit('join:driver', { driverId });
+    }
+  },
+
+  // Leave driver room
+  leaveDriverRoom: (driverId) => {
+    if (socket && driverId != null) {
+      socket.emit('leave:driver', { driverId });
+    }
+  },
+
   // Update driver location (for drivers)
   updateDriverLocation: (orderId, latitude, longitude) => {
     if (socket) {
@@ -115,10 +143,10 @@ export const socketHelpers = {
     }
   },
 
-  // Update driver status (for drivers)
-  updateDriverStatus: (status) => {
+  // Update driver status (for drivers) — backend expects orderId and status
+  updateDriverStatus: (orderId, status) => {
     if (socket) {
-      socket.emit('driver:status-update', { status });
+      socket.emit('driver:status-update', { orderId, status });
     }
   },
 };

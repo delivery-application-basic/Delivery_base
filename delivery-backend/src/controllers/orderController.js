@@ -1,6 +1,7 @@
 const { Order, OrderItem, Address, Restaurant, Customer, Driver } = require('../models');
 const orderService = require('../services/orderService');
 const { getOrderTracking, getTrackingStage, emitTrackingUpdate } = require('../services/orderTrackingService');
+const { emitOrderStatusEvent, emitOrderCancelled } = require('../services/socketEventService');
 const { USER_TYPES, ORDER_STATUS } = require('../utils/constants');
 
 const orderIncludeCommon = [
@@ -216,6 +217,12 @@ exports.updateOrderStatus = async (req, res, next) => {
         // Emit simplified tracking update
         const trackingStage = getTrackingStage(updated);
         emitTrackingUpdate(orderId, trackingStage, updated);
+        // Emit Step 13 status events for real-time UI
+        try {
+            emitOrderStatusEvent(orderId, order_status);
+        } catch (e) {
+            console.error('Socket emit order status:', e.message);
+        }
         
         return res.status(200).json({ success: true, data: updated });
     } catch (error) {
@@ -271,6 +278,12 @@ exports.cancelOrder = async (req, res, next) => {
             req.userType,
             req.userType === USER_TYPES.CUSTOMER ? req.user.customer_id : req.user.restaurant_id
         );
+
+        try {
+            emitOrderCancelled(orderId, cancellation_reason || null);
+        } catch (e) {
+            console.error('Socket emit order cancelled:', e.message);
+        }
 
         const updated = await Order.findByPk(orderId, { include: orderIncludeCommon });
         return res.status(200).json({ success: true, data: updated, message: 'Order cancelled' });

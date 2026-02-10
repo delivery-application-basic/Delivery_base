@@ -1,5 +1,5 @@
 /**
- * OrderDetailsScreen - Order info, update status. Backend: GET /orders/:id, PATCH /orders/:id/status
+ * OrderDetailsScreen - Order info, update status. Real-time status updates via socket.
  */
 
 import React, { useEffect } from 'react';
@@ -7,6 +7,7 @@ import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { useRoute } from '@react-navigation/native';
 import { fetchOrderById } from '../../store/slices/orderSlice';
+import { useSocket } from '../../hooks/useSocket';
 import { orderService } from '../../api/services/orderService';
 import { OrderStatusBadge } from '../../components/order/OrderStatusBadge';
 import { Button } from '../../components/common/Button';
@@ -21,10 +22,19 @@ export default function OrderDetailsScreen() {
   const route = useRoute();
   const orderId = route.params?.orderId;
   const { selectedOrder, isLoading } = useSelector((state) => state.order);
+  const { subscribeToOrderTracking } = useSocket();
 
   useEffect(() => {
     if (orderId) dispatch(fetchOrderById(orderId));
   }, [dispatch, orderId]);
+
+  useEffect(() => {
+    if (!orderId) return;
+    const unsubscribe = subscribeToOrderTracking(orderId, () => {
+      dispatch(fetchOrderById(orderId));
+    });
+    return unsubscribe;
+  }, [orderId, subscribeToOrderTracking, dispatch]);
 
   const handleUpdateStatus = async () => {
     const next = NEXT_STATUS[selectedOrder?.order_status];

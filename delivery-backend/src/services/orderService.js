@@ -364,6 +364,14 @@ async function createOrderFromCart(customerId, { address_id, payment_method, spe
         console.error(`Failed to emit tracking update for order ${order.order_id}:`, error.message);
     }
 
+    // Notify restaurant of new order (real-time)
+    try {
+        const { emitOrderCreated } = require('./socketEventService');
+        emitOrderCreated(order, order.restaurant_id);
+    } catch (error) {
+        console.error(`Failed to emit order:created for order ${order.order_id}:`, error.message);
+    }
+
     // For non-partnered orders, auto-assign driver immediately
     // For partnered orders, wait until restaurant marks as 'ready'
     if (orderFlowType === 'non_partnered') {

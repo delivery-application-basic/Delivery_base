@@ -263,7 +263,7 @@ async function autoAssignDriver(orderId, excludeDriverIds = []) {
         offered_at: new Date()
     });
 
-    return {
+    const result = {
         assignment_id: assignment.assignment_id,
         order_id: orderId,
         driver_id: driver.driver_id,
@@ -275,6 +275,20 @@ async function autoAssignDriver(orderId, excludeDriverIds = []) {
         timeout_seconds: ASSIGNMENT_TIMEOUT_SECONDS,
         message: 'Assignment offer sent to nearest driver. Waiting for response...'
     };
+
+    try {
+        const { emitDriverAssignment } = require('./socketEventService');
+        emitDriverAssignment(driver.driver_id, {
+            assignment_id: assignment.assignment_id,
+            order_id: orderId,
+            distance_km: driver.distance_km,
+            timeout_seconds: ASSIGNMENT_TIMEOUT_SECONDS
+        });
+    } catch (error) {
+        console.error(`Failed to emit driver:assignment for order ${orderId}:`, error.message);
+    }
+
+    return result;
 }
 
 /**
@@ -385,6 +399,18 @@ async function manualAssignDriver(orderId, driverId) {
         changed_by_type: 'admin',
         changed_by_id: null // Admin ID would be passed if available
     });
+
+    try {
+        const { emitOrderAssigned } = require('./socketEventService');
+        emitOrderAssigned(orderId, {
+            driver_id: driverId,
+            driver_name: driver.full_name,
+            driver_phone: driver.phone_number,
+            order_status: newStatus
+        });
+    } catch (error) {
+        console.error(`Failed to emit order:assigned for order ${orderId}:`, error.message);
+    }
 
     return {
         assignment_id: assignment.assignment_id,
@@ -546,6 +572,19 @@ async function acceptAssignment(orderId, driverId) {
         changed_by_type: 'driver',
         changed_by_id: driverId
     });
+
+    try {
+        const { emitOrderAssigned } = require('./socketEventService');
+        const driver = await Driver.findByPk(driverId, { attributes: ['driver_id', 'full_name', 'phone_number'] });
+        emitOrderAssigned(orderId, {
+            driver_id: driverId,
+            driver_name: driver?.full_name,
+            driver_phone: driver?.phone_number,
+            order_status: newStatus
+        });
+    } catch (error) {
+        console.error(`Failed to emit order:assigned for order ${orderId}:`, error.message);
+    }
 
     return {
         assignment_id: assignment.assignment_id,

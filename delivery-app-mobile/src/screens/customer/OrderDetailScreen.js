@@ -1,5 +1,5 @@
 /**
- * OrderDetailScreen - Full order info. Backend: GET /orders/:id
+ * OrderDetailScreen - Full order info. Real-time status updates via socket.
  */
 
 import React, { useEffect } from 'react';
@@ -7,6 +7,7 @@ import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { fetchOrderById, cancelOrder } from '../../store/slices/orderSlice';
+import { useSocket } from '../../hooks/useSocket';
 import { OrderStatusBadge } from '../../components/order/OrderStatusBadge';
 import { OrderSummary } from '../../components/order/OrderSummary';
 import { Button } from '../../components/common/Button';
@@ -22,10 +23,19 @@ export default function OrderDetailScreen() {
   const route = useRoute();
   const orderId = route.params?.orderId;
   const { selectedOrder, isLoading } = useSelector((state) => state.order);
+  const { subscribeToOrderTracking } = useSocket();
 
   useEffect(() => {
     if (orderId) dispatch(fetchOrderById(orderId));
   }, [dispatch, orderId]);
+
+  useEffect(() => {
+    if (!orderId) return;
+    const unsubscribe = subscribeToOrderTracking(orderId, () => {
+      dispatch(fetchOrderById(orderId));
+    });
+    return unsubscribe;
+  }, [orderId, subscribeToOrderTracking, dispatch]);
 
   if (isLoading && !selectedOrder) return <Loader fullScreen />;
   if (!selectedOrder) return null;

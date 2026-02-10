@@ -1,5 +1,5 @@
 /**
- * TrackOrderScreen - 5-stage tracking. Backend: GET /orders/:id/tracking
+ * TrackOrderScreen - 5-stage tracking. Real-time: order:tracking-update, delivery:location-update
  */
 
 import React, { useEffect } from 'react';
@@ -7,6 +7,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { useRoute } from '@react-navigation/native';
 import { fetchOrderTracking } from '../../store/slices/orderSlice';
+import { useSocket } from '../../hooks/useSocket';
 import { OrderTimeline } from '../../components/order/OrderTimeline';
 import { DeliveryMap } from '../../components/map/DeliveryMap';
 import { Loader } from '../../components/common/Loader';
@@ -19,10 +20,19 @@ export default function TrackOrderScreen() {
   const route = useRoute();
   const orderId = route.params?.orderId;
   const { orderTracking, isLoading } = useSelector((state) => state.order);
+  const { subscribeToOrderTracking } = useSocket();
 
   useEffect(() => {
     if (orderId) dispatch(fetchOrderTracking(orderId));
   }, [dispatch, orderId]);
+
+  useEffect(() => {
+    if (!orderId) return;
+    const unsubscribe = subscribeToOrderTracking(orderId, () => {
+      dispatch(fetchOrderTracking(orderId));
+    });
+    return unsubscribe;
+  }, [orderId, subscribeToOrderTracking, dispatch]);
 
   if (isLoading && !orderTracking) return <Loader fullScreen />;
   if (!orderTracking) return null;
