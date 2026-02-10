@@ -344,6 +344,17 @@ async function createOrderFromCart(customerId, { address_id, payment_method, spe
     await CartItem.destroy({ where: { cart_id: cart.cart_id } });
     await cart.destroy();
 
+    // Generate verification code for delivery
+    try {
+        const { generateOrderVerificationCode, sendVerificationCode } = require('./verificationCodeService');
+        await generateOrderVerificationCode(order.order_id);
+        // Send code to customer immediately
+        await sendVerificationCode(order.order_id);
+    } catch (error) {
+        console.error(`Failed to generate/send verification code for order ${order.order_id}:`, error.message);
+        // Don't fail order creation if code generation fails
+    }
+
     // Emit initial tracking update (Stage 1: Order Issued)
     try {
         const { emitTrackingUpdate, getTrackingStage } = require('./orderTrackingService');
@@ -359,6 +370,9 @@ async function createOrderFromCart(customerId, { address_id, payment_method, spe
         try {
             const { autoAssignDriver } = require('./driverAssignmentService');
             await autoAssignDriver(order.order_id);
+            // Send verification code to driver when assigned
+            const { sendVerificationCode } = require('./verificationCodeService');
+            await sendVerificationCode(order.order_id);
         } catch (error) {
             // Log but don't fail order creation
             console.error(`Auto-assignment failed for non-partnered order ${order.order_id}:`, error.message);

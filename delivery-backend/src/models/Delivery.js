@@ -55,6 +55,14 @@ const Delivery = sequelize.define('Delivery', {
     },
     delivery_proof_url: {
         type: DataTypes.STRING(255)
+    },
+    verification_code_used: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false
+    },
+    verification_attempts: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0
     }
 }, {
     tableName: 'deliveries'

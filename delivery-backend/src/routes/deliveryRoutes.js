@@ -113,4 +113,49 @@ router.post(
     uploadProof
 );
 
+/**
+ * Verify delivery code (driver enters code shown by customer)
+ * POST /api/v1/deliveries/:orderId/verify
+ * Body: { verification_code }
+ * Access: Driver only
+ */
+const deliveryVerificationController = require('../controllers/deliveryVerificationController');
+const validateVerificationCode = [
+    body('verification_code').isLength({ min: 6, max: 6 }).isNumeric().withMessage('Valid 6-digit verification code is required'),
+    validationHandler
+];
+
+router.post(
+    '/:orderId/verify',
+    protect,
+    authorize(USER_TYPES.DRIVER),
+    validateOrderId,
+    validateVerificationCode,
+    deliveryVerificationController.verifyDeliveryCode
+);
+
+/**
+ * Get verification code for an order
+ * GET /api/v1/deliveries/:orderId/verification-code
+ * Access: Customer, Driver (for their own orders)
+ */
+router.get(
+    '/:orderId/verification-code',
+    protect,
+    validateOrderId,
+    deliveryVerificationController.getVerificationCode
+);
+
+/**
+ * Regenerate verification code (if expired)
+ * POST /api/v1/deliveries/:orderId/regenerate-code
+ * Access: Customer, Driver (for their own orders)
+ */
+router.post(
+    '/:orderId/regenerate-code',
+    protect,
+    validateOrderId,
+    deliveryVerificationController.regenerateVerificationCode
+);
+
 module.exports = router;

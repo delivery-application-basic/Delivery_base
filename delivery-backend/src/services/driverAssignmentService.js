@@ -367,6 +367,15 @@ async function manualAssignDriver(orderId, driverId) {
         delivery_status: DELIVERY_STATUS.ASSIGNED
     });
 
+    // Send verification code to driver when manually assigned
+    try {
+        const { sendVerificationCode } = require('./verificationCodeService');
+        await sendVerificationCode(orderId);
+    } catch (error) {
+        console.error(`Failed to send verification code to driver for order ${orderId}:`, error.message);
+        // Don't fail assignment if code sending fails
+    }
+
     // Record status change
     const oldStatus = isNonPartnered ? ORDER_STATUS.PENDING : ORDER_STATUS.READY;
     await OrderStatusHistory.create({
@@ -518,6 +527,15 @@ async function acceptAssignment(orderId, driverId) {
         assigned_at: now,
         delivery_status: DELIVERY_STATUS.ASSIGNED
     });
+
+    // Send verification code to driver when assigned
+    try {
+        const { sendVerificationCode } = require('./verificationCodeService');
+        await sendVerificationCode(orderId);
+    } catch (error) {
+        console.error(`Failed to send verification code to driver for order ${orderId}:`, error.message);
+        // Don't fail assignment if code sending fails
+    }
 
     // Record status change
     const oldStatus = isNonPartnered ? ORDER_STATUS.PENDING : ORDER_STATUS.READY;

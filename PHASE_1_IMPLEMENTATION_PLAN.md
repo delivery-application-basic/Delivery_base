@@ -948,27 +948,331 @@ However, the current 5-stage system is recommended as the primary tracking metho
 
 ---
 
-## STEP 10: Payment Module (Cash Only)
+## STEP 10: Payment Module (Cash & Telebirr) + Verification Code System
 
-### 10.1 Cash Payment Features
-- **Cash on Delivery**: Default payment method
-- **Payment Confirmation**: Driver confirms cash received
-- **Payment Record**: Create payment record
-- **Order Completion**: Mark order as paid
+**Implementation Status**: ✅ **COMPLETED**
 
-### 10.2 API Endpoints
+### 10.1 Payment Methods
+
+The system now supports two payment methods:
+
+1. **Cash on Delivery** - Traditional cash payment
+2. **Telebirr** - Ethiopian mobile money payment service
+
+### 10.2 Telebirr Payment Integration
+
+#### 10.2.1 Features
+- **Payment Initiation**: Customer initiates Telebirr payment via API
+- **Payment Gateway Integration**: Redirects to Telebirr payment gateway
+- **Webhook Callback**: Handles Telebirr payment callbacks
+- **Payment Status Checking**: Real-time payment status verification
+- **Automatic Order Confirmation**: Order automatically confirmed on successful payment
+
+#### 10.2.2 Telebirr Payment Flow
+
+**Step-by-Step Flow**:
+1. Customer selects `payment_method: 'telebirr'` during checkout
+2. Order created with `payment_status: 'pending'`
+3. Customer calls `POST /api/v1/payments/telebirr/initiate` with `order_id` and `customer_phone`
+4. System generates unique `transaction_id` and returns `payment_url`
+5. Customer redirected to Telebirr app/gateway to complete payment
+6. Telebirr sends webhook callback to `/api/v1/payments/telebirr/callback`
+7. System verifies payment and updates order status
+8. Order `payment_status` updated to `'paid'`
+9. Order `order_status` updated to `'confirmed'` (if auto-confirm enabled)
+10. Restaurant notified of new order
+11. Tracking update emitted (Stage 2: Payment Verified)
+
+#### 10.2.3 Telebirr API Endpoints
+
 ```
-POST   /api/v1/payments/confirm/:orderId       # Confirm cash payment
-GET    /api/v1/payments/:orderId                # Get payment details
+POST   /api/v1/payments/telebirr/initiate        # Initiate Telebirr payment
+POST   /api/v1/payments/telebirr/callback        # Telebirr webhook callback
+GET    /api/v1/payments/telebirr/status/:txId   # Check payment status
 ```
 
-### 10.3 Payment Flow
-1. Customer selects "Cash" payment method
-2. Order is placed with payment_status: "pending"
+**Request Example** (`POST /api/v1/payments/telebirr/initiate`):
+```json
+{
+  "order_id": 123,
+  "customer_phone": "+251911234567"
+}
+```
+
+**Response Example**:
+```json
+{
+  "success": true,
+  "data": {
+    "payment_id": 45,
+    "transaction_id": "TX1234567890123456",
+    "order_id": 123,
+    "amount": 250.00,
+    "payment_url": "telebirr://pay?transaction_id=TX1234567890123456&amount=250.00&merchant_id=...",
+    "expires_at": "2024-01-15T10:30:00Z",
+    "status": "pending"
+  }
+}
+```
+
+**Callback Example** (from Telebirr):
+```json
+{
+  "transaction_id": "TX1234567890123456",
+  "status": "success",
+  "amount": 250.00,
+  "timestamp": "2024-01-15T10:05:00Z"
+}
+```
+
+### 10.3 Cash Payment
+
+#### 10.3.1 Cash Payment Flow
+
+1. Customer selects `payment_method: 'cash'` during checkout
+2. Order created with `payment_status: 'pending'`
 3. Driver delivers order
-4. Driver confirms cash received
-5. Payment status updated to "paid"
-6. Order marked as completed
+4. Driver confirms cash received via `POST /api/v1/payments/cash/confirm/:orderId`
+5. Payment record created with `payment_status: 'completed'`
+6. Order `payment_status` updated to `'paid'`
+7. Payment processed for partnered restaurants (commission calculated)
+
+#### 10.3.2 Cash Payment Endpoint
+
+```
+POST   /api/v1/payments/cash/confirm/:orderId   # Confirm cash payment (Driver only)
+```
+
+**Request Example**:
+```json
+POST /api/v1/payments/cash/confirm/123
+Authorization: Bearer <driver_token>
+```
+
+**Response Example**:
+```json
+{
+  "success": true,
+  "data": {
+    "payment_id": 46,
+    "order_id": 123,
+    "amount": 250.00,
+    "payment_method": "cash",
+    "payment_status": "completed",
+    "confirmed_at": "2024-01-15T10:30:00Z"
+  },
+  "message": "Cash payment confirmed successfully"
+}
+```
+
+### 10.4 Verification Code System
+
+#### 10.4.1 Overview
+
+A secure 6-digit verification code system ensures correct delivery and builds trust between customers and drivers.
+
+#### 10.4.2 Features
+
+- **6-Digit Numeric Code**: Easy to read and share verbally
+- **Unique per Order**: Each order has its own code
+- **Time-Limited**: Expires after 24 hours (configurable)
+- **Attempt Limiting**: Max 3 verification attempts per order
+- **Automatic Distribution**: Codes sent to both customer and driver
+- **Delivery Verification**: Driver enters code to confirm delivery
+
+#### 10.4.3 Verification Code Flow
+
+**Step-by-Step Flow**:
+1. **Order Created** → System generates unique 6-digit code (e.g., `456789`)
+2. **Code Stored** → Code stored in `Order.delivery_verification_code` with expiry time
+3. **Code Sent to Customer** → SMS/Push notification sent immediately
+4. **Driver Assigned** → Code sent to driver via SMS/Push notification
+5. **Driver Arrives** → Customer shows verification code to driver
+6. **Driver Verifies** → Driver enters code via `POST /api/v1/deliveries/:orderId/verify`
+7. **Code Validated** → System verifies code:
+   - ✅ Code matches → Delivery confirmed
+   - ❌ Code mismatch → Error, retry allowed (max 3 attempts)
+   - ❌ Code expired → Error, regenerate code
+8. **Delivery Completed** → Order status updated to `'delivered'`, payment confirmed (if cash)
+
+#### 10.4.4 Verification Code Endpoints
+
+```
+POST   /api/v1/deliveries/:orderId/verify              # Verify delivery code (Driver)
+GET    /api/v1/deliveries/:orderId/verification-code   # Get verification code (Customer/Driver)
+POST   /api/v1/deliveries/:orderId/regenerate-code    # Regenerate expired code
+```
+
+**Verify Code Request** (`POST /api/v1/deliveries/:orderId/verify`):
+```json
+{
+  "verification_code": "456789"
+}
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "data": {
+    "verified": true,
+    "message": "Delivery verified successfully",
+    "verified_at": "2024-01-15T10:30:00Z",
+    "order_id": 123
+  },
+  "message": "Delivery verified successfully"
+}
+```
+
+**Get Code Request** (`GET /api/v1/deliveries/:orderId/verification-code`):
+```json
+{
+  "success": true,
+  "data": {
+    "order_id": 123,
+    "code": "456789",
+    "expires_at": "2024-01-16T10:00:00Z",
+    "verified": false,
+    "verified_at": null,
+    "attempts_remaining": 3
+  }
+}
+```
+
+#### 10.4.5 SMS/Push Notification Messages
+
+**Customer SMS**:
+```
+Your order #123 verification code is: 456789. Show this code to the driver when your order arrives. Code expires at 2024-01-16 10:00 AM.
+```
+
+**Driver SMS**:
+```
+Order #123 assigned. Verification code: 456789. Enter this code when customer shows it to confirm delivery.
+```
+
+### 10.5 Payment Details Endpoint
+
+```
+GET    /api/v1/payments/:orderId   # Get payment details (Customer/Driver/Restaurant)
+```
+
+**Response Example**:
+```json
+{
+  "success": true,
+  "data": {
+    "order_id": 123,
+    "payment_method": "telebirr",
+    "payment_status": "paid",
+    "total_amount": 250.00,
+    "driver_tip": 10.00,
+    "transaction_id": "TX1234567890123456",
+    "payment_date": "2024-01-15T10:05:00Z",
+    "payment_id": 45
+  }
+}
+```
+
+### 10.6 Database Changes
+
+#### 10.6.1 Order Model - New Fields
+
+```javascript
+delivery_verification_code: STRING(6)        // 6-digit verification code
+verification_code_expires_at: DATE           // Code expiration time
+verification_code_attempts: INTEGER          // Number of failed attempts
+verification_code_verified_at: DATE          // When code was verified
+telebirr_transaction_id: STRING(100)         // Telebirr transaction ID
+```
+
+#### 10.6.2 Delivery Model - New Fields
+
+```javascript
+verification_code_used: BOOLEAN              // Whether code was used
+verification_attempts: INTEGER               // Number of verification attempts
+```
+
+### 10.7 Implementation Files
+
+**New Files Created**:
+- `src/services/verificationCodeService.js` - Verification code generation and validation
+- `src/services/paymentService.js` - Telebirr and cash payment handling
+- `src/controllers/paymentController.js` - Payment API endpoints
+- `src/controllers/deliveryVerificationController.js` - Verification endpoints
+
+**Modified Files**:
+- `src/models/Order.js` - Added verification code and Telebirr fields
+- `src/models/Delivery.js` - Added verification code fields
+- `src/routes/paymentRoutes.js` - Added Telebirr and cash payment routes
+- `src/routes/deliveryRoutes.js` - Added verification code routes
+- `src/services/orderService.js` - Generate verification codes on order creation
+- `src/services/driverAssignmentService.js` - Send verification codes when driver assigned
+
+### 10.8 Configuration
+
+**Environment Variables**:
+```env
+# Telebirr Configuration
+TELEBIRR_API_KEY=your_api_key
+TELEBIRR_API_SECRET=your_api_secret
+TELEBIRR_MERCHANT_ID=your_merchant_id
+TELEBIRR_CALLBACK_URL=https://your-domain.com/api/v1/payments/telebirr/callback
+TELEBIRR_SANDBOX_MODE=true  # Set to false for production
+
+# Verification Code Configuration
+VERIFICATION_CODE_LENGTH=6
+VERIFICATION_CODE_EXPIRY_HOURS=24
+VERIFICATION_CODE_MAX_ATTEMPTS=3
+
+# SMS Configuration (for sending codes)
+SMS_PROVIDER=twilio  # or ethiopian_sms_gateway
+SMS_API_KEY=your_sms_api_key
+SMS_API_SECRET=your_sms_api_secret
+```
+
+### 10.9 Security Considerations
+
+1. **Verification Code Security**:
+   - Codes expire after 24 hours
+   - Max 3 verification attempts
+   - Codes are unique per order
+   - Only assigned driver can verify codes
+
+2. **Telebirr Payment Security**:
+   - Verify webhook signatures from Telebirr (TODO: implement)
+   - Validate transaction amounts match order amount
+   - Store transaction IDs for audit trail
+   - Handle payment failures gracefully
+
+3. **Authorization**:
+   - Only drivers can verify codes for their assigned orders
+   - Only customers/drivers can view their verification codes
+   - Payment endpoints require authentication
+
+### 10.10 Benefits for Ethiopian Market
+
+1. **Telebirr Integration**:
+   - Most popular mobile money service in Ethiopia
+   - Supports USSD, App, and Web payments
+   - Widely accepted by merchants
+   - Reduces cash handling
+
+2. **Verification Code System**:
+   - Works offline (driver can enter code without internet)
+   - Easy to communicate verbally
+   - Reduces fraud and ensures correct delivery
+   - Builds trust between customer and driver
+   - Prevents wrong deliveries
+
+### 10.11 Future Enhancements
+
+- Integrate with actual Telebirr API (currently mock implementation)
+- Add webhook signature verification
+- SMS gateway integration for sending codes
+- Push notification integration
+- Code hashing in database (optional security enhancement)
+- Support for other payment methods (CBE Birr, M-Pesa, etc.)
 
 ---
 

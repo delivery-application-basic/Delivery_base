@@ -107,6 +107,28 @@ const Order = sequelize.define('Order', {
     estimated_total_amount: {
         type: DataTypes.DECIMAL(10, 2),
         allowNull: true
+    },
+    delivery_verification_code: {
+        type: DataTypes.STRING(6),
+        allowNull: true,
+        unique: true
+    },
+    verification_code_expires_at: {
+        type: DataTypes.DATE,
+        allowNull: true
+    },
+    verification_code_attempts: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0
+    },
+    verification_code_verified_at: {
+        type: DataTypes.DATE,
+        allowNull: true
+    },
+    telebirr_transaction_id: {
+        type: DataTypes.STRING(100),
+        allowNull: true,
+        unique: true
     }
 }, {
     tableName: 'orders',
