@@ -7,6 +7,7 @@ import LoginScreen from '../screens/auth/LoginScreen';
 import CustomerRegisterScreen from '../screens/auth/CustomerRegisterScreen';
 import RestaurantRegisterScreen from '../screens/auth/RestaurantRegisterScreen';
 import DriverRegisterScreen from '../screens/auth/DriverRegisterScreen';
+import RegisterScreen from '../screens/auth/RegisterScreen';
 import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
 import ResetPasswordScreen from '../screens/auth/ResetPasswordScreen';
 
@@ -25,6 +26,7 @@ const AuthNavigator = () => {
       <Stack.Screen name="Onboarding" component={OnboardingScreen} />
       <Stack.Screen name="UserTypeSelect" component={UserTypeSelectScreen} />
       <Stack.Screen name="Login" component={LoginScreen} />
+      <Stack.Screen name="Register" component={RegisterScreen} />
       <Stack.Screen name="CustomerRegister" component={CustomerRegisterScreen} />
       <Stack.Screen name="RestaurantRegister" component={RestaurantRegisterScreen} />
       <Stack.Screen name="DriverRegister" component={DriverRegisterScreen} />
