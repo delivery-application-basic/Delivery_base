@@ -99,6 +99,35 @@ const Restaurant = sequelize.define('Restaurant', {
     commission_rate: {
         type: DataTypes.DECIMAL(5, 2),
         defaultValue: 15.00
+    },
+    happy_hour_enabled: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false
+    },
+    happy_hour_start_time: {
+        type: DataTypes.STRING(5), // Format: "HH:MM" e.g., "14:00"
+        defaultValue: null
+    },
+    happy_hour_end_time: {
+        type: DataTypes.STRING(5), // Format: "HH:MM" e.g., "17:00"
+        defaultValue: null
+    },
+    happy_hour_discount_percent: {
+        type: DataTypes.DECIMAL(5, 2), // e.g., 10.00 for 10%, 30.00 for 30%
+        defaultValue: 0
+    },
+    happy_hour_days: {
+        type: DataTypes.JSON, // Array of day numbers: [0,1,2,3,4] for Sun-Thu, [1,2,3,4,5] for Mon-Fri, etc.
+        // 0 = Sunday, 1 = Monday, 2 = Tuesday, 3 = Wednesday, 4 = Thursday, 5 = Friday, 6 = Saturday
+        defaultValue: null // null means applies to all days if enabled
+    },
+    happy_hour_start_date: {
+        type: DataTypes.DATE, // Optional: when happy hour promotion starts (null = no start date limit)
+        defaultValue: null
+    },
+    happy_hour_end_date: {
+        type: DataTypes.DATE, // Optional: when happy hour promotion ends (null = no end date limit)
+        defaultValue: null
     }
 }, {
     tableName: 'restaurants',

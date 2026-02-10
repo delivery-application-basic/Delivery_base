@@ -104,6 +104,7 @@ const setupAssociations = (models) => {
     Cart.hasMany(CartItem, { foreignKey: 'cart_id', as: 'items' });
     CartItem.belongsTo(Cart, { foreignKey: 'cart_id' });
 
+    Cart.belongsTo(Restaurant, { foreignKey: 'restaurant_id', as: 'restaurant' });
     CartItem.belongsTo(MenuItem, { foreignKey: 'item_id', as: 'product' });
 
     // PromoCode Associations
