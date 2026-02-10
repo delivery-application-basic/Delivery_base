@@ -1,0 +1,58 @@
+import React, { useEffect } from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { useDispatch, useSelector } from 'react-redux';
+import { ActivityIndicator, View } from 'react-native';
+import { loadUserFromStorage } from '../store/slices/authSlice';
+import { colors } from '../theme/colors';
+import { USER_TYPES } from '../utils/constants';
+
+// Navigators
+import AuthNavigator from './AuthNavigator';
+import CustomerNavigator from './CustomerNavigator';
+import RestaurantNavigator from './RestaurantNavigator';
+import DriverNavigator from './DriverNavigator';
+
+const AppNavigator = () => {
+  const dispatch = useDispatch();
+  const { isAuthenticated, userType, isLoading } = useSelector((state) => state.auth);
+
+  useEffect(() => {
+    // Load user data from storage on app start
+    dispatch(loadUserFromStorage());
+  }, [dispatch]);
+
+  // Show loading screen while checking auth state
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.white }}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
+  // Determine which navigator to show based on auth state and user type
+  const getNavigator = () => {
+    if (!isAuthenticated) {
+      return <AuthNavigator />;
+    }
+
+    switch (userType) {
+      case USER_TYPES.CUSTOMER:
+        return <CustomerNavigator />;
+      case USER_TYPES.RESTAURANT:
+        return <RestaurantNavigator />;
+      case USER_TYPES.DRIVER:
+        return <DriverNavigator />;
+      default:
+        return <AuthNavigator />;
+    }
+  };
+
+  return (
+    <NavigationContainer>
+      {getNavigator()}
+    </NavigationContainer>
+  );
+};
+
+export default AppNavigator;
