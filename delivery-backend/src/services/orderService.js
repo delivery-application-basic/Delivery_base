@@ -344,6 +344,15 @@ async function createOrderFromCart(customerId, { address_id, payment_method, spe
     await CartItem.destroy({ where: { cart_id: cart.cart_id } });
     await cart.destroy();
 
+    // Emit initial tracking update (Stage 1: Order Issued)
+    try {
+        const { emitTrackingUpdate, getTrackingStage } = require('./orderTrackingService');
+        const trackingStage = getTrackingStage(order);
+        emitTrackingUpdate(order.order_id, trackingStage, order);
+    } catch (error) {
+        console.error(`Failed to emit tracking update for order ${order.order_id}:`, error.message);
+    }
+
     // For non-partnered orders, auto-assign driver immediately
     // For partnered orders, wait until restaurant marks as 'ready'
     if (orderFlowType === 'non_partnered') {

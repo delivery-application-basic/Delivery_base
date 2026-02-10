@@ -1,5 +1,6 @@
 const { Order, OrderItem, Address, Restaurant, Customer, Driver } = require('../models');
 const orderService = require('../services/orderService');
+const { getOrderTracking, getTrackingStage, emitTrackingUpdate } = require('../services/orderTrackingService');
 const { USER_TYPES, ORDER_STATUS } = require('../utils/constants');
 
 const orderIncludeCommon = [
@@ -211,6 +212,11 @@ exports.updateOrderStatus = async (req, res, next) => {
         }
 
         const updated = await Order.findByPk(orderId, { include: orderIncludeCommon });
+        
+        // Emit simplified tracking update
+        const trackingStage = getTrackingStage(updated);
+        emitTrackingUpdate(orderId, trackingStage, updated);
+        
         return res.status(200).json({ success: true, data: updated });
     } catch (error) {
         next(error);
@@ -316,6 +322,38 @@ exports.getDriverOrders = async (req, res, next) => {
         });
 
         return res.status(200).json({ success: true, data: orders });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * Get order tracking information (simplified 5-stage system).
+ * GET /api/v1/orders/:id/tracking
+ */
+exports.getOrderTracking = async (req, res, next) => {
+    try {
+        const orderId = parseInt(req.params.id, 10);
+        
+        // Check authorization
+        const order = await Order.findByPk(orderId);
+        if (!order) {
+            return res.status(404).json({ success: false, message: 'Order not found' });
+        }
+
+        // Verify user has access to this order
+        if (req.userType === USER_TYPES.CUSTOMER && order.customer_id !== req.user.customer_id) {
+            return res.status(403).json({ success: false, message: 'Not authorized to view this order tracking' });
+        }
+        if (req.userType === USER_TYPES.RESTAURANT && order.restaurant_id !== req.user.restaurant_id) {
+            return res.status(403).json({ success: false, message: 'Not authorized to view this order tracking' });
+        }
+        if (req.userType === USER_TYPES.DRIVER && order.driver_id !== req.user.driver_id) {
+            return res.status(403).json({ success: false, message: 'Not authorized to view this order tracking' });
+        }
+
+        const tracking = await getOrderTracking(orderId);
+        return res.status(200).json({ success: true, data: tracking });
     } catch (error) {
         next(error);
     }

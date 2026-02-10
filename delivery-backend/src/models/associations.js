@@ -88,7 +88,7 @@ const setupAssociations = (models) => {
     OrderItem.belongsTo(Order, { foreignKey: 'order_id' });
 
     Order.hasOne(Delivery, { foreignKey: 'order_id', as: 'delivery' });
-    Delivery.belongsTo(Order, { foreignKey: 'order_id' });
+    Delivery.belongsTo(Order, { foreignKey: 'order_id', as: 'Order' });
 
     Order.hasMany(Payment, { foreignKey: 'order_id', as: 'payments' });
     Payment.belongsTo(Order, { foreignKey: 'order_id' });

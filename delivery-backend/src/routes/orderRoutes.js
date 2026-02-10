@@ -18,6 +18,7 @@ router.get('/', orderController.getMyOrders);
 router.get('/restaurant/:restaurantId', validateRestaurantId, orderController.getRestaurantOrders);
 router.get('/driver/:driverId', validateDriverId, orderController.getDriverOrders);
 router.get('/:id', validateOrderId, orderController.getOrderById);
+router.get('/:id/tracking', validateOrderId, orderController.getOrderTracking);
 router.patch('/:id/status', validateUpdateStatus, orderController.updateOrderStatus);
 router.post('/:id/cancel', validateCancelOrder, orderController.cancelOrder);
 
