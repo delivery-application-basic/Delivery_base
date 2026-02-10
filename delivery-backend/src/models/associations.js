@@ -28,7 +28,8 @@ const setupAssociations = (models) => {
         FinancialReport,
         PaymentSettlement,
         SystemSetting,
-        Announcement
+        Announcement,
+        DriverWallet
     } = models;
 
     // Customer Associations
@@ -78,6 +79,9 @@ const setupAssociations = (models) => {
 
     Driver.hasMany(DriverLocationHistory, { foreignKey: 'driver_id', as: 'location_history' });
     DriverLocationHistory.belongsTo(Driver, { foreignKey: 'driver_id' });
+
+    Driver.hasOne(DriverWallet, { foreignKey: 'driver_id', as: 'wallet' });
+    DriverWallet.belongsTo(Driver, { foreignKey: 'driver_id', as: 'driver' });
 
     // Order Associations
     Order.hasMany(OrderItem, { foreignKey: 'order_id', as: 'items' });

@@ -1,5 +1,6 @@
 const { Cart, CartItem, MenuItem, Order, OrderItem, Address, OrderStatusHistory, Restaurant, Driver } = require('../models');
 const { ORDER_STATUS, USER_TYPES } = require('../utils/constants');
+const { determineOrderFlowType } = require('./paymentFlowService');
 const {
     DEFAULT_SERVICE_FEE,
     DEFAULT_DELIVERY_FEE_FLAT,
@@ -299,6 +300,9 @@ async function createOrderFromCart(customerId, { address_id, payment_method, spe
     const serviceFee = calculateServiceFee();
     const totalAmount = Math.round((discountedSubtotal + deliveryFee + serviceFee) * 100) / 100;
 
+    // Determine order flow type based on restaurant partnership status
+    const orderFlowType = await determineOrderFlowType(cart.restaurant_id);
+
     const order = await Order.create({
         customer_id: customerId,
         restaurant_id: cart.restaurant_id,
@@ -312,7 +316,9 @@ async function createOrderFromCart(customerId, { address_id, payment_method, spe
         order_status: ORDER_STATUS.PENDING,
         payment_status: 'pending',
         payment_method,
-        special_instructions: special_instructions || null
+        special_instructions: special_instructions || null,
+        order_flow_type: orderFlowType,
+        estimated_total_amount: orderFlowType === 'non_partnered' ? totalAmount : null // For non-partnered orders
     });
 
     for (const item of orderItemsPayload) {
@@ -337,6 +343,18 @@ async function createOrderFromCart(customerId, { address_id, payment_method, spe
 
     await CartItem.destroy({ where: { cart_id: cart.cart_id } });
     await cart.destroy();
+
+    // For non-partnered orders, auto-assign driver immediately
+    // For partnered orders, wait until restaurant marks as 'ready'
+    if (orderFlowType === 'non_partnered') {
+        try {
+            const { autoAssignDriver } = require('./driverAssignmentService');
+            await autoAssignDriver(order.order_id);
+        } catch (error) {
+            // Log but don't fail order creation
+            console.error(`Auto-assignment failed for non-partnered order ${order.order_id}:`, error.message);
+        }
+    }
 
     return order;
 }

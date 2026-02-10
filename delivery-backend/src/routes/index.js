@@ -9,6 +9,8 @@ const menuRoutes = require('./menuRoutes');
 const cartRoutes = require('./cartRoutes');
 const orderRoutes = require('./orderRoutes');
 const deliveryRoutes = require('./deliveryRoutes');
+const receiptRoutes = require('./receiptRoutes');
+const walletRoutes = require('./walletRoutes');
 
 router.use('/auth', authRoutes);
 router.use('/customers', customerRoutes);
@@ -17,6 +19,8 @@ router.use('/drivers', driverRoutes);
 router.use('/menu', menuRoutes);
 router.use('/cart', cartRoutes);
 router.use('/orders', orderRoutes);
+router.use('/orders', receiptRoutes); // Receipt routes also use /orders prefix
 router.use('/deliveries', deliveryRoutes);
+router.use('/drivers', walletRoutes); // Wallet routes use /drivers prefix
 
 module.exports = router;

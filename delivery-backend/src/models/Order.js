@@ -79,6 +79,34 @@ const Order = sequelize.define('Order', {
     },
     cancellation_reason: {
         type: DataTypes.TEXT
+    },
+    order_flow_type: {
+        type: DataTypes.ENUM('partnered', 'non_partnered'),
+        defaultValue: 'partnered'
+    },
+    restaurant_receipt_url: {
+        type: DataTypes.STRING(255),
+        allowNull: true
+    },
+    actual_total_amount: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: true
+    },
+    driver_paid_amount: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: true
+    },
+    driver_paid_at: {
+        type: DataTypes.DATE,
+        allowNull: true
+    },
+    reimbursement_status: {
+        type: DataTypes.ENUM('pending', 'approved', 'rejected', 'completed'),
+        allowNull: true
+    },
+    estimated_total_amount: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: true
     }
 }, {
     tableName: 'orders',

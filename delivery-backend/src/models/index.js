@@ -30,6 +30,7 @@ const FinancialReport = require('./FinancialReport');
 const PaymentSettlement = require('./PaymentSettlement');
 const SystemSetting = require('./SystemSetting');
 const Announcement = require('./Announcement');
+const DriverWallet = require('./DriverWallet');
 
 const models = {
     Customer,
@@ -60,7 +61,8 @@ const models = {
     FinancialReport,
     PaymentSettlement,
     SystemSetting,
-    Announcement
+    Announcement,
+    DriverWallet
 };
 
 // Run associations with the model object to ensure all models are loaded

@@ -46,6 +46,18 @@ const Payment = sequelize.define('Payment', {
     },
     tip_paid_date: {
         type: DataTypes.DATE
+    },
+    payment_type: {
+        type: DataTypes.ENUM('customer_to_platform', 'platform_to_restaurant', 'platform_to_driver', 'driver_to_restaurant'),
+        allowNull: true
+    },
+    recipient_type: {
+        type: DataTypes.ENUM('restaurant', 'driver', 'platform'),
+        allowNull: true
+    },
+    recipient_id: {
+        type: DataTypes.INTEGER,
+        allowNull: true
     }
 }, {
     tableName: 'payments'

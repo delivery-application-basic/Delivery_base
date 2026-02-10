@@ -188,6 +188,28 @@ exports.updateOrderStatus = async (req, res, next) => {
             req.userType === USER_TYPES.CUSTOMER ? req.user.customer_id : req.userType === USER_TYPES.RESTAURANT ? req.user.restaurant_id : req.user.driver_id
         );
 
+        // Auto-assign driver based on order flow type
+        const isPartnered = order.order_flow_type === 'partnered';
+        const isNonPartnered = order.order_flow_type === 'non_partnered';
+
+        if (isPartnered && order_status === ORDER_STATUS.READY && !order.driver_id) {
+            // Partnered: Assign when order is ready
+            try {
+                const { autoAssignDriver } = require('../services/driverAssignmentService');
+                await autoAssignDriver(orderId);
+            } catch (error) {
+                console.error(`Auto-assignment failed for order ${orderId}:`, error.message);
+            }
+        } else if (isNonPartnered && order_status === ORDER_STATUS.PENDING && !order.driver_id) {
+            // Non-Partnered: Assign immediately (driver will place order at restaurant)
+            try {
+                const { autoAssignDriver } = require('../services/driverAssignmentService');
+                await autoAssignDriver(orderId);
+            } catch (error) {
+                console.error(`Auto-assignment failed for order ${orderId}:`, error.message);
+            }
+        }
+
         const updated = await Order.findByPk(orderId, { include: orderIncludeCommon });
         return res.status(200).json({ success: true, data: updated });
     } catch (error) {
