@@ -73,7 +73,7 @@ async function findNearestAvailableDrivers(orderId, maxDrivers = 5) {
     }
 
     // Calculate distance from restaurant to each driver
-    // Also calculate priority score based on distance, vehicle type, and rating (Ethiopian market optimization)
+    // Calculate priority score based on distance and rating (all drivers use bicycles)
     const driversWithDistance = availableDrivers
         .map(driver => {
             const driverLat = parseFloat(driver.current_latitude);
@@ -90,26 +90,15 @@ async function findNearestAvailableDrivers(orderId, maxDrivers = 5) {
                 return null; // Driver is too far from restaurant
             }
 
-            // Vehicle type priority (for Ethiopian market: motorcycles are fastest in traffic)
-            // Lower priority number = higher priority
-            const vehiclePriority = {
-                'motorcycle': 1,    // Fastest in Ethiopian traffic
-                'bike': 2,         // Good for short distances
-                'bicycle': 2,       // Good for short distances
-                'car': 3,          // Slower in traffic but good for large orders
-                'auto': 3          // Similar to car
-            };
-            const priority = vehiclePriority[driver.vehicle_type?.toLowerCase()] || 3;
-
             // Rating score (0-5, higher is better)
             const rating = parseFloat(driver.average_rating) || 0;
 
-            // Calculate priority score: 60% distance, 30% vehicle type, 10% rating
+            // Calculate priority score: 80% distance, 20% rating
+            // All drivers use bicycles, so vehicle type is not considered
             // Lower score = higher priority
-            const distanceScore = distanceToRestaurant * 0.6;
-            const vehicleScore = priority * 0.3;
-            const ratingScore = (5 - rating) * 0.1; // Invert rating so lower is better
-            const priorityScore = distanceScore + vehicleScore + ratingScore;
+            const distanceScore = distanceToRestaurant * 0.8;
+            const ratingScore = (5 - rating) * 0.2; // Invert rating so lower is better
+            const priorityScore = distanceScore + ratingScore;
 
             return {
                 driver_id: driver.driver_id,

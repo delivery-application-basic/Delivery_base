@@ -41,9 +41,9 @@ System finds available drivers:
 ├─ Within delivery radius (default: 10km from restaurant)
 ├─ Calculates distance from restaurant to each driver
 ├─ Prioritizes by:
-│   ├─ 60% Distance (nearest first)
-│   ├─ 30% Vehicle type (motorcycle > bike > car)
-│   └─ 10% Rating (higher rating preferred)
+│   ├─ 80% Distance (nearest first)
+│   └─ 20% Rating (higher rating preferred)
+│   └─ All drivers use bicycles (vehicle type not considered)
 └─ Sorts by priority score (lower = higher priority)
 ```
 
@@ -241,18 +241,18 @@ After Receipt Approval:
 3. Calculate distance from restaurant to each driver
 4. Filter drivers within delivery radius (10km default)
 5. Calculate priority score for each driver:
-   Priority Score = (Distance × 0.6) + (Vehicle Priority × 0.3) + (Rating Penalty × 0.1)
+   Priority Score = (Distance × 0.8) + (Rating Penalty × 0.2)
+   - All drivers use bicycles (vehicle type not considered)
    - Lower score = Higher priority
 6. Sort by priority score (ascending)
 7. Exclude drivers already offered/rejected for this order
 8. Offer to top driver
 ```
 
-### Vehicle Type Priority
+### Vehicle Type
 ```
-motorcycle = 1 (highest priority - fastest in Ethiopian traffic)
-bike/bicycle = 2
-car = 3 (lowest priority - slower in traffic)
+All drivers use bicycles only - vehicle type is not used in prioritization
+Priority is based on distance (80%) and rating (20%)
 ```
 
 ### Automatic Retry on Rejection
