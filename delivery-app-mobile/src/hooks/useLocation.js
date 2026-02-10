@@ -1,10 +1,10 @@
 /**
  * useLocation - Get current position and handle permissions
+ * Uses expo-location for Expo Go compatibility; works in bare React Native with expo-location installed.
  */
 
 import { useState, useCallback } from 'react';
-import { Platform, PermissionsAndroid } from 'react-native';
-import Geolocation from 'react-native-geolocation-service';
+import * as Location from 'expo-location';
 import { MAP_CONFIG } from '../utils/constants';
 
 export const useLocation = () => {
@@ -13,58 +13,32 @@ export const useLocation = () => {
   const [error, setError] = useState(null);
 
   const requestPermissions = useCallback(async () => {
-    if (Platform.OS === 'ios') {
-      const status = await Geolocation.requestAuthorization('whenInUse');
-      return status === 'granted';
-    }
-    if (Platform.OS === 'android') {
-      const granted = await PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-        {
-          title: 'Location Permission',
-          message: 'This app needs access to your location for delivery and nearby restaurants.',
-          buttonNeutral: 'Ask Me Later',
-          buttonNegative: 'Cancel',
-          buttonPositive: 'OK',
-        }
-      );
-      return granted === PermissionsAndroid.RESULTS.GRANTED;
-    }
-    return false;
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    return status === 'granted';
   }, []);
 
-  const getCurrentPosition = useCallback(
-    (options = {}) => {
-      return new Promise((resolve, reject) => {
-        setLoading(true);
-        setError(null);
-        Geolocation.getCurrentPosition(
-          (position) => {
-            const coords = {
-              latitude: position.coords.latitude,
-              longitude: position.coords.longitude,
-            };
-            setLocation(coords);
-            setLoading(false);
-            resolve(coords);
-          },
-          (err) => {
-            setError(err.message);
-            setLoading(false);
-            setLocation(null);
-            reject(err);
-          },
-          {
-            enableHighAccuracy: true,
-            timeout: 15000,
-            maximumAge: 10000,
-            ...options,
-          }
-        );
+  const getCurrentPosition = useCallback(async (options = {}) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const position = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+        ...options,
       });
-    },
-    []
-  );
+      const coords = {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+      };
+      setLocation(coords);
+      setLoading(false);
+      return coords;
+    } catch (err) {
+      setError(err.message);
+      setLoading(false);
+      setLocation(null);
+      throw err;
+    }
+  }, []);
 
   const getLocationWithPermission = useCallback(async () => {
     const hasPermission = await requestPermissions();

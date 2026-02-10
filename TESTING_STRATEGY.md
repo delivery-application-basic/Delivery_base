@@ -6,6 +6,7 @@ This document follows **Step 14** of the Phase 1 Implementation Plan. It gives y
 
 ## Table of Contents
 
+0. [Quick start: Run on your Android phone](#0-quick-start-run-on-your-android-phone) ← **Start here**
 1. [Prerequisites](#1-prerequisites)
 2. [Environment Setup](#2-environment-setup)
 3. [Starting the Backend](#3-starting-the-backend)
@@ -14,6 +15,106 @@ This document follows **Step 14** of the Phase 1 Implementation Plan. It gives y
 6. [Frontend Testing (14.2)](#6-frontend-testing-142)
 7. [End-to-End Testing (14.3)](#7-end-to-end-testing-143)
 8. [What to Check & Important Notes](#8-what-to-check--important-notes)
+
+---
+
+## 0. Quick start: Run on your Android phone
+
+Use this section to get the app running on your **physical Android phone** in the simplest way. You can use **Expo Go** (scan QR code) or **USB** (phone connected by cable).
+
+### What you need first
+
+- **PC:** Node.js 20+, PostgreSQL installed and running.
+- **Phone:** Same Wi‑Fi as your PC (for Expo Go) or USB cable (for USB method).
+- **For Expo Go:** Install the **Expo Go** app from the Google Play Store on your phone.
+
+---
+
+### Option A: Run with Expo Go (scan QR code)
+
+1. **Install backend and start it**
+   - Open a terminal (e.g. PowerShell or Command Prompt).
+   - Go to backend folder and install dependencies, create `.env`, then start the server:
+   ```bash
+   cd delivery-backend
+   npm install
+   ```
+   - Copy `.env.example` to `.env` and set at least: `DB_*`, `JWT_SECRET`, `JWT_REFRESH_SECRET`, `PORT=5000`. Create the database if needed (e.g. `createdb delivery_app_db`).
+   ```bash
+   npm run dev
+   ```
+   - Leave this terminal open. You should see: `PostgreSQL Connected...` and `Server running... on port 5000`.
+
+2. **Set your PC’s IP in the app**
+   - On your PC: find your IP (e.g. Windows: `ipconfig` → IPv4 Address; macOS/Linux: `ifconfig` or `ip addr`).
+   - Open `delivery-app-mobile/src/utils/constants.js`.
+   - Replace `localhost` with your PC’s IP in both URLs, for example:
+   ```javascript
+   export const API_BASE_URL = __DEV__
+     ? 'http://192.168.1.100:5000/api/v1'
+     : 'https://your-production-api.com/api/v1';
+   export const SOCKET_URL = __DEV__
+     ? 'http://192.168.1.100:5000'
+     : 'https://your-production-api.com';
+   ```
+   (Use your actual IP instead of `192.168.1.100`.)
+
+3. **Install frontend and start Expo**
+   - Open a **new** terminal.
+   ```bash
+   cd delivery-app-mobile
+   npm install
+   npx expo start
+   ```
+   - A QR code will appear in the terminal (or in the browser tab that opens).
+
+4. **Open the app on your phone**
+   - On your **Android phone**, open the **Expo Go** app.
+   - Tap **“Scan QR code”** and scan the QR code from the PC.
+   - The app will load in Expo Go. Allow location if prompted.
+
+5. **Checkout**
+   - You should see the app (splash / onboarding or login).
+   - Try logging in or registering as a customer and browsing. The app talks to your backend at the IP you set.
+
+**If `npx expo start` fails** (e.g. version or module errors), use **Option B (USB)** below.
+
+---
+
+### Option B: Run with USB (no Expo Go)
+
+1. **Backend:** Same as Option A step 1 (install, `.env`, `npm run dev`). Leave it running.
+
+2. **Set your PC’s IP:** Same as Option A step 2 in `delivery-app-mobile/src/utils/constants.js`.
+
+3. **Enable USB debugging on your phone**
+   - **Settings → About phone** → tap **Build number** 7 times (Developer options enabled).
+   - **Settings → Developer options** → turn on **USB debugging**.
+   - Connect the phone to the PC with a USB cable. Allow USB debugging when prompted on the phone.
+
+4. **Install frontend and run on device**
+   ```bash
+   cd delivery-app-mobile
+   npm install
+   npm run android
+   ```
+   - The app will build and install on the connected phone and then open.
+
+5. **Checkout**
+   - The app should open on your phone. Use login/register and browse; backend is at the IP you set.
+
+---
+
+### Quick checklist
+
+| Step | What to do | What to check |
+|------|------------|----------------|
+| 1 | Install backend deps, create `.env`, start backend | Terminal shows “Server running on port 5000” |
+| 2 | Set `API_BASE_URL` and `SOCKET_URL` to your PC IP in `constants.js` | Same IP as your computer on Wi‑Fi |
+| 3a (Expo) | `npm install` + `npx expo start` in `delivery-app-mobile` | QR code appears |
+| 3b (USB) | `npm install` + `npm run android` with phone connected | App installs and opens on phone |
+| 4 | Open app in Expo Go (scan QR) or use app launched via USB | Splash / login screen appears |
+| 5 | Login or register and use the app | Can browse, no “network error” (if you see that, check IP and backend) |
 
 ---
 

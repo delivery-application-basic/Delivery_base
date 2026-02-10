@@ -1,4 +1,19 @@
 {
   "name": "Front",
-  "displayName": "Front"
+  "displayName": "Front",
+  "expo": {
+    "name": "Front",
+    "slug": "delivery-app",
+    "version": "0.0.1",
+    "scheme": "delivery-app",
+    "platforms": ["ios", "android"],
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "This app uses your location for delivery and nearby restaurants."
+        }
+      ]
+    ]
+  }
 }
