@@ -60,11 +60,13 @@ const menuSlice = createSlice({
         state.error = null;
       })
       .addCase(fetchMenu.fulfilled, (state, action) => {
+        const p = action.payload;
+        const items = p.data ?? p.items ?? p.menu ?? [];
         state.isLoading = false;
-        state.menu = action.payload.menu || [];
-        state.menuItems = action.payload.items || [];
-        state.categories = action.payload.categories || [];
-        state.restaurantId = action.payload.restaurant_id;
+        state.menu = Array.isArray(p.menu) ? p.menu : [];
+        state.menuItems = Array.isArray(items) ? items : [];
+        state.categories = p.categories ?? [];
+        state.restaurantId = p.restaurant_id ?? null;
       })
       .addCase(fetchMenu.rejected, (state, action) => {
         state.isLoading = false;
@@ -77,8 +79,9 @@ const menuSlice = createSlice({
         state.error = null;
       })
       .addCase(fetchMenuItemById.fulfilled, (state, action) => {
+        const p = action.payload;
         state.isLoading = false;
-        state.selectedMenuItem = action.payload.menu_item;
+        state.selectedMenuItem = p.data ?? p.menu_item ?? p;
       })
       .addCase(fetchMenuItemById.rejected, (state, action) => {
         state.isLoading = false;

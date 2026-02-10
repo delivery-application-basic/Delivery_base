@@ -120,10 +120,10 @@ const orderSlice = createSlice({
         state.error = null;
       })
       .addCase(createOrder.fulfilled, (state, action) => {
+        const order = action.payload.data ?? action.payload.order;
         state.isLoading = false;
-        state.selectedOrder = action.payload.order;
-        // Add to orders list
-        state.orders.unshift(action.payload.order);
+        state.selectedOrder = order;
+        if (order) state.orders.unshift(order);
       })
       .addCase(createOrder.rejected, (state, action) => {
         state.isLoading = false;
@@ -136,11 +136,12 @@ const orderSlice = createSlice({
         state.error = null;
       })
       .addCase(fetchOrders.fulfilled, (state, action) => {
+        const p = action.payload;
         state.isLoading = false;
-        state.orders = action.payload.orders || [];
-        state.currentPage = action.payload.current_page || 1;
-        state.totalPages = action.payload.total_pages || 1;
-        state.totalCount = action.payload.total_count || 0;
+        state.orders = p.data ?? p.orders ?? [];
+        state.currentPage = p.current_page ?? 1;
+        state.totalPages = p.total_pages ?? 1;
+        state.totalCount = p.total_count ?? p.count ?? 0;
       })
       .addCase(fetchOrders.rejected, (state, action) => {
         state.isLoading = false;
@@ -153,8 +154,9 @@ const orderSlice = createSlice({
         state.error = null;
       })
       .addCase(fetchOrderById.fulfilled, (state, action) => {
+        const p = action.payload;
         state.isLoading = false;
-        state.selectedOrder = action.payload.order;
+        state.selectedOrder = p.data ?? p.order;
       })
       .addCase(fetchOrderById.rejected, (state, action) => {
         state.isLoading = false;
@@ -167,8 +169,9 @@ const orderSlice = createSlice({
         state.error = null;
       })
       .addCase(fetchOrderTracking.fulfilled, (state, action) => {
+        const p = action.payload;
         state.isLoading = false;
-        state.orderTracking = action.payload;
+        state.orderTracking = p.data ?? p;
       })
       .addCase(fetchOrderTracking.rejected, (state, action) => {
         state.isLoading = false;
@@ -181,14 +184,12 @@ const orderSlice = createSlice({
         state.error = null;
       })
       .addCase(cancelOrder.fulfilled, (state, action) => {
+        const order = action.payload.data ?? action.payload.order;
         state.isLoading = false;
-        const order = state.orders.find(o => o.order_id === action.payload.order.order_id);
-        if (order) {
-          order.order_status = 'cancelled';
-        }
-        if (state.selectedOrder?.order_id === action.payload.order.order_id) {
-          state.selectedOrder.order_status = 'cancelled';
-        }
+        const id = order?.order_id;
+        const o = state.orders.find((x) => x.order_id === id);
+        if (o) o.order_status = 'cancelled';
+        if (state.selectedOrder?.order_id === id) state.selectedOrder.order_status = 'cancelled';
       })
       .addCase(cancelOrder.rejected, (state, action) => {
         state.isLoading = false;

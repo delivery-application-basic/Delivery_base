@@ -1,9 +1,13 @@
 import apiClient from '../axios';
 
 export const driverService = {
-  // Get available orders for driver
-  async getAvailableOrders() {
-    return apiClient.get('/drivers/available');
+  // Get available drivers (Admin/Restaurant) - not for driver
+  async getAvailableDrivers(params) {
+    return apiClient.get('/drivers/available', { params });
+  },
+  // Get driver's pending assignment offers (orders offered to this driver)
+  async getPendingAssignments() {
+    return apiClient.get('/drivers/assignments/pending');
   },
   
   // Accept order

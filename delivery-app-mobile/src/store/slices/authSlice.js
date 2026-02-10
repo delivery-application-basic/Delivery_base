@@ -9,15 +9,17 @@ export const login = createAsyncThunk(
   async ({ phone, email, password, userType }, { rejectWithValue }) => {
     try {
       const response = await authService.login(phone, email, password, userType);
-      const { token, refresh_token, user } = response.data;
-      
-      // Store tokens and user data
+      const data = response.data;
+      // Backend: { token, refreshToken, user: { id, type, name } }
+      const token = data.token;
+      const refreshToken = data.refreshToken ?? data.refresh_token;
+      const user = data.user ? { ...data.user, user_type: data.user.type || userType } : null;
+
       await storage.setAuthToken(token);
-      await storage.setRefreshToken(refresh_token);
+      if (refreshToken) await storage.setRefreshToken(refreshToken);
       await storage.setUserData(user);
-      await storage.setUserType(user.user_type);
-      
-      return { token, refresh_token, user };
+      await storage.setUserType(user?.user_type);
+      return { token, refresh_token: refreshToken, user };
     } catch (error) {
       return rejectWithValue(error.message || 'Login failed');
     }
@@ -29,15 +31,17 @@ export const register = createAsyncThunk(
   async ({ userType, registrationData }, { rejectWithValue }) => {
     try {
       const response = await authService.register(userType, registrationData);
-      const { token, refresh_token, user } = response.data;
-      
-      // Store tokens and user data
+      const data = response.data;
+      // Backend: { token, user } (no refreshToken on register)
+      const token = data.token;
+      const refreshToken = data.refreshToken ?? data.refresh_token;
+      const user = data.user ? { ...data.user, user_type: data.user.type || userType } : null;
+
       await storage.setAuthToken(token);
-      await storage.setRefreshToken(refresh_token);
+      if (refreshToken) await storage.setRefreshToken(refreshToken);
       await storage.setUserData(user);
-      await storage.setUserType(user.user_type);
-      
-      return { token, refresh_token, user };
+      await storage.setUserType(user?.user_type);
+      return { token, refresh_token: refreshToken, user };
     } catch (error) {
       return rejectWithValue(error.message || 'Registration failed');
     }
@@ -141,7 +145,7 @@ const authSlice = createSlice({
         state.user = action.payload.user;
         state.token = action.payload.token;
         state.refreshToken = action.payload.refresh_token;
-        state.userType = action.payload.user.user_type;
+        state.userType = action.payload.user?.user_type ?? action.payload.user?.type;
         state.isAuthenticated = true;
         state.error = null;
       })
@@ -161,7 +165,7 @@ const authSlice = createSlice({
         state.user = action.payload.user;
         state.token = action.payload.token;
         state.refreshToken = action.payload.refresh_token;
-        state.userType = action.payload.user.user_type;
+        state.userType = action.payload.user?.user_type ?? action.payload.user?.type;
         state.isAuthenticated = true;
         state.error = null;
       })

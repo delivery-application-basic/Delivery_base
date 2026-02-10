@@ -88,11 +88,12 @@ const restaurantSlice = createSlice({
         state.error = null;
       })
       .addCase(fetchRestaurants.fulfilled, (state, action) => {
+        const p = action.payload;
         state.isLoading = false;
-        state.restaurants = action.payload.restaurants || [];
-        state.currentPage = action.payload.current_page || 1;
-        state.totalPages = action.payload.total_pages || 1;
-        state.totalCount = action.payload.total_count || 0;
+        state.restaurants = p.restaurants ?? p.data ?? [];
+        state.currentPage = p.current_page ?? 1;
+        state.totalPages = p.total_pages ?? 1;
+        state.totalCount = p.total_count ?? p.count ?? 0;
       })
       .addCase(fetchRestaurants.rejected, (state, action) => {
         state.isLoading = false;
@@ -105,8 +106,9 @@ const restaurantSlice = createSlice({
         state.error = null;
       })
       .addCase(fetchRestaurantById.fulfilled, (state, action) => {
+        const p = action.payload;
         state.isLoading = false;
-        state.selectedRestaurant = action.payload.restaurant;
+        state.selectedRestaurant = p.restaurant ?? p.data;
       })
       .addCase(fetchRestaurantById.rejected, (state, action) => {
         state.isLoading = false;
@@ -119,11 +121,12 @@ const restaurantSlice = createSlice({
         state.error = null;
       })
       .addCase(searchRestaurants.fulfilled, (state, action) => {
+        const p = action.payload;
         state.isLoading = false;
-        state.restaurants = action.payload.restaurants || [];
-        state.currentPage = action.payload.current_page || 1;
-        state.totalPages = action.payload.total_pages || 1;
-        state.totalCount = action.payload.total_count || 0;
+        state.restaurants = p.restaurants ?? p.data ?? [];
+        state.currentPage = p.current_page ?? 1;
+        state.totalPages = p.total_pages ?? 1;
+        state.totalCount = p.total_count ?? p.count ?? 0;
       })
       .addCase(searchRestaurants.rejected, (state, action) => {
         state.isLoading = false;

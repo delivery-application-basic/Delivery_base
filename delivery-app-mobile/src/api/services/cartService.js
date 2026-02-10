@@ -6,10 +6,10 @@ export const cartService = {
     return apiClient.get('/cart');
   },
   
-  // Add item to cart
+  // Add item to cart (backend expects item_id)
   async addItem(menuItemId, quantity = 1) {
     return apiClient.post('/cart/items', {
-      menu_item_id: menuItemId,
+      item_id: menuItemId,
       quantity,
     });
   },

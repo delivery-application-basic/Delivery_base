@@ -100,12 +100,13 @@ const cartSlice = createSlice({
         state.error = null;
       })
       .addCase(fetchCart.fulfilled, (state, action) => {
+        const d = action.payload.data ?? action.payload;
         state.isLoading = false;
-        state.cart = action.payload.cart;
-        state.items = action.payload.items || [];
-        state.restaurantId = action.payload.restaurant_id;
-        state.restaurantName = action.payload.restaurant_name;
-        state.subtotal = action.payload.subtotal || 0;
+        state.cart = d.cart ?? d;
+        state.items = d.items ?? [];
+        state.restaurantId = d.restaurant_id ?? null;
+        state.restaurantName = d.restaurant?.restaurant_name ?? d.restaurant_name ?? null;
+        state.subtotal = d.subtotal ?? 0;
       })
       .addCase(fetchCart.rejected, (state, action) => {
         state.isLoading = false;
@@ -118,12 +119,15 @@ const cartSlice = createSlice({
         state.error = null;
       })
       .addCase(addToCart.fulfilled, (state, action) => {
+        const d = action.payload.data ?? action.payload;
         state.isLoading = false;
-        state.cart = action.payload.cart;
-        state.items = action.payload.items || [];
-        state.restaurantId = action.payload.restaurant_id;
-        state.restaurantName = action.payload.restaurant_name;
-        state.subtotal = action.payload.subtotal || 0;
+        if (d.items) {
+          state.cart = d.cart ?? state.cart;
+          state.items = d.items;
+          state.restaurantId = d.restaurant_id ?? state.restaurantId;
+          state.restaurantName = d.restaurant?.restaurant_name ?? d.restaurant_name ?? state.restaurantName;
+          state.subtotal = d.subtotal ?? 0;
+        }
       })
       .addCase(addToCart.rejected, (state, action) => {
         state.isLoading = false;
@@ -152,12 +156,11 @@ const cartSlice = createSlice({
       })
       .addCase(removeFromCart.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.items = state.items.filter(item => item.cart_item_id !== action.payload);
+        state.items = state.items.filter((item) => item.cart_item_id !== action.payload);
         state.subtotal = state.items.reduce((total, item) => {
-          return total + item.menu_item.price * item.quantity;
+          const p = item.product || item.menu_item;
+          return total + (p?.price ?? 0) * (item.quantity ?? 0);
         }, 0);
-        
-        // Clear cart if no items
         if (state.items.length === 0) {
           state.cart = null;
           state.restaurantId = null;

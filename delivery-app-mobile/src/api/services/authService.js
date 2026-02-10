@@ -53,10 +53,10 @@ export const authService = {
     return apiClient.post('/auth/logout');
   },
   
-  // Refresh token
+  // Refresh token (backend expects refreshToken in body)
   async refreshToken(refreshToken) {
     return apiClient.post('/auth/refresh-token', {
-      refresh_token: refreshToken,
+      refreshToken,
     });
   },
   

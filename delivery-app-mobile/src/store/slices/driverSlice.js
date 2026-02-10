@@ -6,10 +6,13 @@ export const fetchAvailableOrders = createAsyncThunk(
   'driver/fetchAvailableOrders',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await driverService.getAvailableOrders();
-      return response.data;
+      const response = await driverService.getPendingAssignments();
+      const data = response.data?.data ?? response.data;
+      const list = Array.isArray(data) ? data : data?.assignments ?? [];
+      const orders = list.map((a) => a.order || a).filter(Boolean);
+      return { orders };
     } catch (error) {
-      return rejectWithValue(error.message || 'Failed to fetch available orders');
+      return rejectWithValue(error.message || 'Failed to fetch pending assignments');
     }
   }
 );
