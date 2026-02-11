@@ -17,6 +17,9 @@ import RestaurantProfileScreen from '../screens/restaurant/RestaurantProfileScre
 import OperatingHoursScreen from '../screens/restaurant/OperatingHoursScreen';
 import SettingsScreen from '../screens/restaurant/SettingsScreen';
 
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { shadows } from '../theme/shadows';
+
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
@@ -63,6 +66,10 @@ const ProfileStack = () => (
 
 // Main Restaurant Tab Navigator
 const RestaurantNavigator = () => {
+  const insets = useSafeAreaInsets();
+  const bottomPadding = insets.bottom > 0 ? insets.bottom : 10;
+  const tabBarHeight = 55 + bottomPadding;
+
   return (
     <Tab.Navigator
       screenOptions={{
@@ -70,15 +77,24 @@ const RestaurantNavigator = () => {
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.gray[500],
         tabBarStyle: {
-          borderTopWidth: 1,
-          borderTopColor: colors.border,
-          paddingBottom: 5,
-          paddingTop: 5,
-          height: 60,
+          borderTopWidth: 0,
+          paddingBottom: bottomPadding,
+          paddingTop: 8,
+          height: tabBarHeight,
+          backgroundColor: colors.white,
+          ...shadows.medium,
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
         },
         tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '500',
+          fontSize: 11,
+          fontWeight: '600',
+          marginBottom: insets.bottom > 0 ? 0 : 4,
+        },
+        tabBarIconStyle: {
+          marginBottom: -2,
         },
       }}
     >

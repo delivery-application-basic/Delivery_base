@@ -1,5 +1,6 @@
 import apiClient from '../axios';
 import { USER_TYPES } from '../../utils/constants';
+import storage from '../../utils/storage';
 
 export const authService = {
   // Login
@@ -50,7 +51,11 @@ export const authService = {
   
   // Logout
   async logout() {
-    return apiClient.post('/auth/logout');
+    // Get refreshToken from storage if available
+    const refreshToken = await storage.getRefreshToken();
+    
+    // Send refreshToken in body if available, otherwise send empty object
+    return apiClient.post('/auth/logout', refreshToken ? { refreshToken } : {});
   },
   
   // Refresh token (backend expects refreshToken in body)

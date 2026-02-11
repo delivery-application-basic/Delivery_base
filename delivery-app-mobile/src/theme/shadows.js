@@ -1,52 +1,28 @@
 // Shadow styles for iOS and Android
 import { Platform } from 'react-native';
 
+const androidShadow = (elevation) => ({ elevation });
+const iosShadow = (opacity, radius, offset = 2) => ({
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: offset },
+  shadowOpacity: opacity,
+  shadowRadius: radius,
+});
+
 export const shadows = {
-  small: Platform.select({
-    ios: {
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.1,
-      shadowRadius: 2,
-    },
-    android: {
-      elevation: 2,
-    },
-  }),
+  small: Platform.OS === 'ios' 
+    ? iosShadow(0.1, 2, 1)
+    : androidShadow(2),
   
-  medium: Platform.select({
-    ios: {
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.15,
-      shadowRadius: 4,
-    },
-    android: {
-      elevation: 4,
-    },
-  }),
+  medium: Platform.OS === 'ios'
+    ? iosShadow(0.15, 4, 2)
+    : androidShadow(4),
   
-  large: Platform.select({
-    ios: {
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.2,
-      shadowRadius: 8,
-    },
-    android: {
-      elevation: 8,
-    },
-  }),
+  large: Platform.OS === 'ios'
+    ? iosShadow(0.2, 8, 4)
+    : androidShadow(8),
   
-  xlarge: Platform.select({
-    ios: {
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.25,
-      shadowRadius: 16,
-    },
-    android: {
-      elevation: 16,
-    },
-  }),
+  xlarge: Platform.OS === 'ios'
+    ? iosShadow(0.25, 16, 8)
+    : androidShadow(16),
 };

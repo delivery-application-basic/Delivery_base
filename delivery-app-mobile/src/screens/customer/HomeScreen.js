@@ -17,11 +17,16 @@ import { Button } from '../../components/common/Button';
 import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
 import { layout, spacing } from '../../theme/spacing';
+import { shadows } from '../../theme/shadows';
+
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function HomeScreen() {
   const dispatch = useDispatch();
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const { restaurants, isLoading, error, searchQuery } = useSelector((state) => state.restaurant);
+  const { user } = useSelector((state) => state.auth);
 
   useEffect(() => {
     dispatch(fetchRestaurants({ filters: { search: searchQuery } }));
@@ -29,68 +34,85 @@ export default function HomeScreen() {
 
   const onSearch = (q) => dispatch(setSearchQuery(q));
 
+  const categories = [
+    { id: '1', name: 'Pizza', icon: 'pizza' },
+    { id: '2', name: 'Burgers', icon: 'food-burger' },
+    { id: '3', name: 'Sushi', icon: 'food-croissant' },
+    { id: '4', name: 'Ethiopian', icon: 'pot' },
+    { id: '5', name: 'Coffee', icon: 'coffee' },
+    { id: '6', name: 'More', icon: 'dots-horizontal' },
+  ];
+
   const renderItem = ({ item }) => (
     <RestaurantCard
       name={item.restaurant_name}
       cuisine={item.cuisine_type}
       imageUrl={item.logo_url}
-      rating={item.rating}
+      rating={item.rating || 4.5}
       deliveryFee={item.delivery_fee}
       onPress={() => navigation.navigate('RestaurantDetail', { restaurantId: item.restaurant_id })}
     />
   );
 
-  if (isLoading && restaurants.length === 0) return <Loader fullScreen />;
-
-  return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+  const renderHeader = () => (
+    <View>
       <View style={styles.header}>
-        <Text style={styles.title}>Restaurants</Text>
+        <View>
+          <Text style={styles.deliveryLabel}>Delivery to</Text>
+          <TouchableOpacity style={styles.locationSelector}>
+            <Text style={styles.locationText}>{user?.address || 'Current Location'}</Text>
+            <Icon source="chevron-down" size={20} color={colors.primary} />
+          </TouchableOpacity>
+        </View>
         <View style={styles.headerActions}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.iconButton}
             onPress={() => navigation.navigate('Cart')}
           >
-            <Icon source="cart" size={24} color={colors.primary} />
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.iconButton}
-            onPress={() => navigation.navigate('Profile')}
-          >
-            <Icon source="account" size={24} color={colors.text} />
+            <View style={styles.cartBadgeContainer}>
+              <Icon source="cart-outline" size={26} color={colors.text} />
+            </View>
           </TouchableOpacity>
         </View>
       </View>
+
       <View style={styles.searchContainer}>
-        <SearchBar value={searchQuery} onChangeText={onSearch} placeholder="Search restaurants..." />
+        <SearchBar value={searchQuery} onChangeText={onSearch} placeholder="Search restaurants, dishes..." />
       </View>
-      <View style={styles.quickNav}>
-        <TouchableOpacity 
-          style={styles.quickNavButton}
-          onPress={() => navigation.navigate('RestaurantList')}
-        >
-          <Icon source="store" size={20} color={colors.primary} />
-          <Text style={styles.quickNavText}>Browse All</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={styles.quickNavButton}
-          onPress={() => navigation.navigate('Orders')}
-        >
-          <Icon source="clipboard-list" size={20} color={colors.primary} />
-          <Text style={styles.quickNavText}>My Orders</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={styles.quickNavButton}
-          onPress={() => navigation.navigate('Favorites')}
-        >
-          <Icon source="heart" size={20} color={colors.primary} />
-          <Text style={styles.quickNavText}>Favorites</Text>
+
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.categoryList}
+      >
+        {categories.map((cat) => (
+          <TouchableOpacity key={cat.id} style={styles.categoryItem}>
+            <View style={styles.categoryIconContainer}>
+              <Icon source={cat.icon} size={24} color={colors.primary} />
+            </View>
+            <Text style={styles.categoryText}>{cat.name}</Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Featured Restaurants</Text>
+        <TouchableOpacity onPress={() => navigation.navigate('RestaurantList')}>
+          <Text style={styles.seeAllText}>See all</Text>
         </TouchableOpacity>
       </View>
+    </View>
+  );
+
+  if (isLoading && restaurants.length === 0) return <Loader fullScreen />;
+
+  return (
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <FlatList
         data={restaurants}
         keyExtractor={(r) => String(r.restaurant_id)}
         renderItem={renderItem}
+        ListHeaderComponent={renderHeader}
         contentContainerStyle={styles.list}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
@@ -102,84 +124,108 @@ export default function HomeScreen() {
             />
           </View>
         }
-        showsVerticalScrollIndicator={true}
+        showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: colors.backgroundDark,
+  container: {
+    flex: 1,
+    backgroundColor: colors.white,
   },
   header: {
-    backgroundColor: colors.background,
     paddingHorizontal: layout.screenPadding,
-    paddingTop: 16,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.sm,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    backgroundColor: colors.white,
   },
-  title: { 
-    ...typography.h1, 
-    color: colors.text,
+  deliveryLabel: {
+    fontSize: 12,
+    color: colors.textLight,
+    fontWeight: '500',
+    textTransform: 'uppercase',
+  },
+  locationSelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  locationText: {
+    fontSize: 16,
     fontWeight: '700',
-    fontSize: 28,
-    flex: 1,
+    color: colors.text,
   },
   headerActions: {
     flexDirection: 'row',
-    gap: spacing.md,
     alignItems: 'center',
   },
   iconButton: {
     padding: spacing.xs,
+    backgroundColor: colors.gray[50],
+    borderRadius: 12,
   },
   searchContainer: {
     paddingHorizontal: layout.screenPadding,
-    paddingTop: 16,
-    paddingBottom: 12,
-    backgroundColor: colors.background,
-  },
-  quickNav: {
-    flexDirection: 'row',
-    paddingHorizontal: layout.screenPadding,
     paddingVertical: spacing.md,
-    backgroundColor: colors.background,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
-    gap: spacing.sm,
+    backgroundColor: colors.white,
   },
-  quickNavButton: {
-    flex: 1,
-    flexDirection: 'row',
+  categoryList: {
+    paddingHorizontal: layout.screenPadding,
+    paddingBottom: spacing.lg,
+    gap: spacing.md,
+  },
+  categoryItem: {
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.gray[50],
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.xs,
-    borderRadius: 8,
-    gap: spacing.xs,
+    width: 70,
   },
-  quickNavText: {
-    fontSize: typography.fontSize.sm,
+  categoryIconContainer: {
+    width: 60,
+    height: 60,
+    backgroundColor: colors.gray[50],
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+    ...shadows.small,
+  },
+  categoryText: {
+    fontSize: 12,
+    fontWeight: '600',
     color: colors.text,
+    textAlign: 'center',
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: layout.screenPadding,
+    marginBottom: spacing.md,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  seeAllText: {
+    fontSize: 14,
+    color: colors.primary,
     fontWeight: '600',
   },
-  list: { 
-    padding: layout.screenPadding, 
-    paddingTop: 8,
-    paddingBottom: 100, // Extra padding so content isn't hidden behind tab bar
+  list: {
+    paddingBottom: 100, // Account for floating tab bar
   },
   emptyContainer: {
     paddingVertical: spacing.xxl,
+    alignItems: 'center',
   },
   browseButton: {
     marginTop: spacing.lg,
+    width: '80%',
   },
 });

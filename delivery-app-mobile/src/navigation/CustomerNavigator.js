@@ -21,6 +21,9 @@ import AddressManagementScreen from '../screens/customer/AddressManagementScreen
 import FavoritesScreen from '../screens/customer/FavoritesScreen';
 import SettingsScreen from '../screens/customer/SettingsScreen';
 
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { shadows } from '../theme/shadows';
+
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
@@ -71,6 +74,10 @@ const ProfileStack = () => (
 
 // Main Customer Tab Navigator
 const CustomerNavigator = () => {
+  const insets = useSafeAreaInsets();
+  const bottomPadding = insets.bottom > 0 ? insets.bottom : 10;
+  const tabBarHeight = 55 + bottomPadding;
+
   return (
     <Tab.Navigator
       screenOptions={{
@@ -80,9 +87,9 @@ const CustomerNavigator = () => {
         tabBarStyle: {
           borderTopWidth: 1,
           borderTopColor: colors.borderLight,
-          paddingBottom: 16, // Extra padding to avoid system navigation
-          paddingTop: 10,
-          height: 72, // Increased height for better spacing
+          paddingBottom: bottomPadding,
+          paddingTop: 8,
+          height: tabBarHeight,
           backgroundColor: colors.white,
           elevation: 8,
           shadowColor: colors.black,
@@ -91,12 +98,12 @@ const CustomerNavigator = () => {
           shadowRadius: 4,
         },
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: 11,
           fontWeight: '600',
-          marginTop: 4,
+          marginBottom: insets.bottom > 0 ? 0 : 4,
         },
         tabBarIconStyle: {
-          marginTop: 2,
+          marginBottom: -2,
         },
         tabBarItemStyle: {
           paddingVertical: 4,

@@ -18,9 +18,13 @@ import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
 import { layout, spacing } from '../../theme/spacing';
 
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { shadows } from '../../theme/shadows';
+
 export default function CartScreen() {
   const dispatch = useDispatch();
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const { items, subtotal, restaurantName, isLoading } = useSelector((state) => state.cart);
 
   useEffect(() => {
@@ -48,78 +52,103 @@ export default function CartScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
           <Icon source="arrow-left" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.title}>Cart</Text>
-        <View style={styles.placeholder} />
+        <Text style={styles.title}>Your Cart</Text>
       </View>
-      {restaurantName && <Text style={styles.restaurant}>{restaurantName}</Text>}
-      <FlatList 
-        data={items} 
-        keyExtractor={(i) => String(i.cart_item_id)} 
+
+      {restaurantName && (
+        <View style={styles.restaurantContainer}>
+          <Icon source="store-outline" size={20} color={colors.primary} />
+          <Text style={styles.restaurant}>{restaurantName}</Text>
+        </View>
+      )}
+
+      <FlatList
+        data={items}
+        keyExtractor={(i) => String(i.cart_item_id)}
         renderItem={renderItem}
         contentContainerStyle={styles.list}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       />
-      <View style={styles.footer}>
+
+      <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
         <CartSummary subtotal={subtotal} />
-        <Button title="Proceed to checkout" onPress={() => navigation.navigate('Checkout')} style={styles.btn} />
+        <Button
+          title="Proceed to checkout"
+          onPress={() => navigation.navigate('Checkout')}
+          style={styles.btn}
+          contentStyle={{ height: 50 }}
+        />
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: colors.backgroundDark,
+  container: {
+    flex: 1,
+    backgroundColor: colors.white,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: layout.screenPadding,
     paddingVertical: spacing.md,
-    backgroundColor: colors.background,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
+    backgroundColor: colors.white,
   },
   backButton: {
     padding: spacing.xs,
     marginRight: spacing.sm,
+    backgroundColor: colors.gray[50],
+    borderRadius: 12,
   },
   title: {
     ...typography.h2,
     color: colors.text,
     fontWeight: '700',
-    flex: 1,
+    fontSize: 22,
   },
-  placeholder: {
-    width: 40,
-  },
-  restaurant: { 
-    ...typography.h4, 
-    marginBottom: 8,
+  restaurantContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: layout.screenPadding,
-    paddingTop: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.gray[50],
+    marginHorizontal: layout.screenPadding,
+    borderRadius: 12,
+    gap: 8,
+    marginBottom: spacing.md,
+  },
+  restaurant: {
+    fontSize: 16,
+    fontWeight: '600',
     color: colors.textSecondary,
   },
   list: {
-    padding: layout.screenPadding,
-    paddingTop: spacing.sm,
+    paddingHorizontal: layout.screenPadding,
+    paddingBottom: 200,
   },
   footer: {
-    backgroundColor: colors.background,
-    padding: layout.screenPadding,
-    borderTopWidth: 1,
-    borderTopColor: colors.borderLight,
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: colors.white,
+    paddingHorizontal: layout.screenPadding,
+    paddingTop: spacing.md,
+    ...shadows.large,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
   },
-  btn: { 
+  btn: {
     marginTop: spacing.md,
   },
 });

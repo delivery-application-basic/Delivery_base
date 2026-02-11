@@ -15,9 +15,17 @@ import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
 import { layout } from '../../theme/spacing';
 
+import { TouchableOpacity } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import { Icon } from 'react-native-paper';
+import { spacing as spacingTheme } from '../../theme/spacing';
+
 export default function TrackOrderScreen() {
   const dispatch = useDispatch();
+  const navigation = useNavigation();
   const route = useRoute();
+  const insets = useSafeAreaInsets();
   const orderId = route.params?.orderId;
   const { orderTracking, isLoading } = useSelector((state) => state.order);
   const { subscribeToOrderTracking } = useSocket();
@@ -42,23 +50,106 @@ export default function TrackOrderScreen() {
   const restaurantLocation = t.restaurant?.latitude != null ? { latitude: t.restaurant.latitude, longitude: t.restaurant.longitude } : null;
   const deliveryAddress = t.delivery_address?.latitude != null ? { latitude: t.delivery_address.latitude, longitude: t.delivery_address.longitude } : null;
 
+  const renderHeader = () => (
+    <View style={styles.header}>
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={() => navigation.goBack()}
+      >
+        <Icon source="arrow-left" size={24} color={colors.text} />
+      </TouchableOpacity>
+      <Text style={styles.title}>Track Order</Text>
+    </View>
+  );
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>{t.current_stage_label ?? 'Tracking'}</Text>
-      <OrderTimeline timeline={timeline} />
-      {(restaurantLocation || deliveryAddress) && (
-        <DeliveryMap restaurantLocation={restaurantLocation} deliveryLocation={deliveryAddress} style={styles.map} />
-      )}
-      {t.estimated_delivery_at && (
-        <Text style={styles.eta}>Estimated: {new Date(t.estimated_delivery_at).toLocaleString()}</Text>
-      )}
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      {renderHeader()}
+
+      <View style={styles.content}>
+        <View style={styles.statusCard}>
+          <Text style={styles.stageLabel}>{t.current_stage_label ?? 'Tracking Order'}</Text>
+          {t.estimated_delivery_at && (
+            <Text style={styles.eta}>
+              Estimated Delivery: {new Date(t.estimated_delivery_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </Text>
+          )}
+        </View>
+
+        <View style={styles.timelineSection}>
+          <OrderTimeline timeline={timeline} />
+        </View>
+
+        {(restaurantLocation || deliveryAddress) && (
+          <View style={styles.mapContainer}>
+            <DeliveryMap
+              restaurantLocation={restaurantLocation}
+              deliveryLocation={deliveryAddress}
+              style={styles.map}
+            />
+          </View>
+        )}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: layout.screenPadding, backgroundColor: colors.background },
-  title: { ...typography.h2, marginBottom: 16 },
-  map: { marginTop: 16, height: 200 },
-  eta: { ...typography.bodySmall, color: colors.textSecondary, marginTop: 16 },
+  container: {
+    flex: 1,
+    backgroundColor: colors.white
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: layout.screenPadding,
+    paddingVertical: spacingTheme.md,
+  },
+  backButton: {
+    padding: spacingTheme.xs,
+    marginRight: spacingTheme.sm,
+    backgroundColor: colors.gray[50],
+    borderRadius: 12,
+  },
+  title: {
+    ...typography.h2,
+    color: colors.text,
+    fontWeight: '700',
+    fontSize: 22,
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: layout.screenPadding,
+  },
+  statusCard: {
+    backgroundColor: colors.primary + '10',
+    padding: spacingTheme.lg,
+    borderRadius: 20,
+    marginBottom: spacingTheme.xl,
+    alignItems: 'center',
+  },
+  stageLabel: {
+    ...typography.h3,
+    color: colors.primary,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  eta: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+    fontWeight: '500',
+  },
+  timelineSection: {
+    marginBottom: spacingTheme.xl,
+  },
+  mapContainer: {
+    flex: 1,
+    borderRadius: 24,
+    overflow: 'hidden',
+    backgroundColor: colors.gray[100],
+    marginBottom: layout.screenPadding,
+  },
+  map: {
+    flex: 1,
+  },
 });

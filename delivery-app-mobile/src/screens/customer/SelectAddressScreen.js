@@ -4,9 +4,11 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { useDispatch, useSelector } from 'react-redux';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { Icon } from 'react-native-paper';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { customerService } from '../../api/services/customerService';
 import { AddressCard } from '../../components/address/AddressCard';
 import { Button } from '../../components/common/Button';
@@ -19,6 +21,7 @@ import { layout, spacing } from '../../theme/spacing';
 export default function SelectAddressScreen() {
   const navigation = useNavigation();
   const route = useRoute();
+  const insets = useSafeAreaInsets();
   const [addresses, setAddresses] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedAddressId, setSelectedAddressId] = useState(null);
@@ -62,9 +65,15 @@ export default function SelectAddressScreen() {
   if (isLoading) return <Loader fullScreen />;
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <Text style={styles.title}>Select Delivery Address</Text>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Icon source="arrow-left" size={24} color={colors.text} />
+        </TouchableOpacity>
+        <Text style={styles.title}>Delivery Address</Text>
       </View>
       <FlatList
         data={addresses}
@@ -72,14 +81,14 @@ export default function SelectAddressScreen() {
         renderItem={renderItem}
         contentContainerStyle={styles.list}
         ListEmptyComponent={
-          <EmptyState 
-            message="No addresses saved. Add an address to continue." 
+          <EmptyState
+            message="No addresses saved. Add an address to continue."
             icon="map-marker-off"
           />
         }
-        showsVerticalScrollIndicator={true}
+        showsVerticalScrollIndicator={false}
       />
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
         <Button
           title="Add New Address"
           onPress={() => navigation.navigate('AddressManagement')}
@@ -93,25 +102,33 @@ export default function SelectAddressScreen() {
           style={styles.selectButton}
         />
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.white,
   },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: layout.screenPadding,
-    paddingTop: 8,
-    paddingBottom: 16,
-    backgroundColor: colors.background,
+    paddingVertical: spacing.md,
+    backgroundColor: colors.white,
+  },
+  backButton: {
+    padding: spacing.xs,
+    marginRight: spacing.sm,
+    backgroundColor: colors.gray[50],
+    borderRadius: 12,
   },
   title: {
     ...typography.h2,
     color: colors.text,
     fontWeight: '700',
+    fontSize: 22,
   },
   list: {
     padding: layout.screenPadding,
@@ -121,8 +138,8 @@ const styles = StyleSheet.create({
     padding: layout.screenPadding,
     paddingTop: spacing.md,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
-    backgroundColor: colors.background,
+    borderTopColor: colors.borderLight,
+    backgroundColor: colors.white,
   },
   addButton: {
     marginBottom: spacing.sm,

@@ -188,10 +188,32 @@ exports.refreshToken = async (req, res, next) => {
 // @access  Private
 exports.logout = async (req, res, next) => {
     try {
-        const { refreshToken } = req.body;
+        // Handle case where req.body might be undefined or empty
+        const refreshToken = req.body?.refreshToken;
 
         if (refreshToken) {
             await UserSession.destroy({ where: { refresh_token: refreshToken } });
+        }
+
+        // Also try to destroy session by user_id if available from token
+        if (req.user && req.userType) {
+            let userId;
+            if (req.userType === 'customer') {
+                userId = req.user.customer_id;
+            } else if (req.userType === 'restaurant') {
+                userId = req.user.restaurant_id;
+            } else if (req.userType === 'driver') {
+                userId = req.user.driver_id;
+            }
+
+            if (userId) {
+                await UserSession.destroy({ 
+                    where: { 
+                        user_type: req.userType,
+                        user_id: userId 
+                    } 
+                });
+            }
         }
 
         res.status(200).json({
