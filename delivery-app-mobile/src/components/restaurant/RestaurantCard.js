@@ -18,8 +18,14 @@ export const RestaurantCard = ({
   deliveryFee,
   onPress,
 }) => {
+  const handlePress = () => {
+    if (onPress) {
+      onPress();
+    }
+  };
+
   return (
-    <Card onPress={onPress}>
+    <Card onPress={handlePress}>
       <View style={styles.content}>
         <View style={styles.imageWrap}>
           {imageUrl ? (
@@ -35,7 +41,9 @@ export const RestaurantCard = ({
           )}
           <View style={styles.meta}>
             {rating != null && (
-              <Text style={styles.rating}>★ {Number(rating).toFixed(1)}</Text>
+              <View style={styles.ratingContainer}>
+                <Text style={styles.rating}>★ {Number(rating).toFixed(1)}</Text>
+              </View>
             )}
             {deliveryFee != null && (
               <Text style={styles.fee}>{formatCurrency(deliveryFee)} delivery</Text>
@@ -48,16 +56,68 @@ export const RestaurantCard = ({
 };
 
 const styles = StyleSheet.create({
-  content: { flexDirection: 'row' },
-  imageWrap: { marginRight: layout.cardPadding },
-  image: { width: 80, height: 80, borderRadius: 8 },
-  placeholder: { backgroundColor: colors.gray[200] },
-  info: { flex: 1, justifyContent: 'center' },
-  name: { ...typography.h4, color: colors.text, marginBottom: 2 },
-  cuisine: { fontSize: typography.fontSize.sm, color: colors.textSecondary, marginBottom: 4 },
-  meta: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  rating: { fontSize: typography.fontSize.sm, color: colors.warning },
-  fee: { fontSize: typography.fontSize.sm, color: colors.textSecondary },
+  content: { 
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  imageWrap: { 
+    marginRight: layout.cardPadding,
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  image: { 
+    width: 90, 
+    height: 90, 
+    borderRadius: 12,
+    backgroundColor: colors.gray[100],
+  },
+  placeholder: { 
+    backgroundColor: colors.gray[200],
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  info: { 
+    flex: 1, 
+    justifyContent: 'center',
+    paddingVertical: 4,
+  },
+  name: { 
+    ...typography.h4, 
+    color: colors.text, 
+    marginBottom: 6,
+    fontWeight: '600',
+    fontSize: 18,
+  },
+  cuisine: { 
+    fontSize: typography.fontSize.sm, 
+    color: colors.textSecondary, 
+    marginBottom: 8,
+    fontWeight: '400',
+  },
+  meta: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    gap: spacing.md,
+  },
+  ratingContainer: {
+    backgroundColor: colors.warningLight,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  rating: { 
+    fontSize: typography.fontSize.sm, 
+    color: colors.warning,
+    fontWeight: '700',
+  },
+  fee: { 
+    fontSize: typography.fontSize.sm, 
+    color: colors.textSecondary,
+    fontWeight: '500',
+  },
 });
 
 export default RestaurantCard;

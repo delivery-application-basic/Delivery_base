@@ -3,9 +3,11 @@
  */
 
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
+import { Icon } from 'react-native-paper';
 import { fetchRestaurants, setFilters } from '../../store/slices/restaurantSlice';
 import { RestaurantCard } from '../../components/restaurant/RestaurantCard';
 import { RestaurantFilter } from '../../components/restaurant/RestaurantFilter';
@@ -13,7 +15,7 @@ import { Loader } from '../../components/common/Loader';
 import { EmptyState } from '../../components/common/EmptyState';
 import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
-import { layout } from '../../theme/spacing';
+import { layout, spacing } from '../../theme/spacing';
 
 export default function RestaurantListScreen() {
   const dispatch = useDispatch();
@@ -35,7 +37,17 @@ export default function RestaurantListScreen() {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <View style={styles.header}>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Icon source="arrow-left" size={24} color={colors.text} />
+        </TouchableOpacity>
+        <Text style={styles.title}>All Restaurants</Text>
+        <View style={styles.placeholder} />
+      </View>
       <RestaurantFilter
         selectedCuisine={filters.cuisine}
         onCuisineChange={(c) => dispatch(setFilters({ cuisine: c === 'All' ? null : c }))}
@@ -48,14 +60,43 @@ export default function RestaurantListScreen() {
           keyExtractor={(r) => String(r.restaurant_id)}
           renderItem={renderItem}
           contentContainerStyle={styles.list}
-          ListEmptyComponent={<EmptyState message="No restaurants found" />}
+          ListEmptyComponent={<EmptyState message="No restaurants found" icon="store-off-outline" />}
+          keyboardShouldPersistTaps="handled"
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  list: { padding: layout.screenPadding },
+  container: { 
+    flex: 1, 
+    backgroundColor: colors.backgroundDark,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: layout.screenPadding,
+    paddingVertical: spacing.md,
+    backgroundColor: colors.background,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderLight,
+  },
+  backButton: {
+    padding: spacing.xs,
+    marginRight: spacing.sm,
+  },
+  title: {
+    ...typography.h2,
+    color: colors.text,
+    fontWeight: '700',
+    flex: 1,
+  },
+  placeholder: {
+    width: 40,
+  },
+  list: { 
+    padding: layout.screenPadding,
+    paddingTop: spacing.md,
+  },
 });

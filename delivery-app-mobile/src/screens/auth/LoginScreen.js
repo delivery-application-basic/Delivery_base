@@ -4,6 +4,7 @@
 
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { login, clearError } from '../../store/slices/authSlice';
@@ -46,41 +47,84 @@ export default function LoginScreen() {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Login</Text>
-      <Text style={styles.subtitle}>Sign in as {userType}</Text>
-      <Input
-        label="Phone number"
-        value={phone}
-        onChangeText={setPhone}
-        error={errors.phone}
-        placeholder="+251911234567"
-        keyboardType="phone-pad"
-      />
-      <Input
-        label="Password"
-        value={password}
-        onChangeText={setPassword}
-        error={errors.password}
-        secureTextEntry
-        placeholder="••••••••"
-      />
-      {errors.form ? <Text style={styles.formError}>{errors.form}</Text> : null}
-      {error ? <Text style={styles.formError}>{error}</Text> : null}
-      <Button title="Sign in" onPress={handleLogin} loading={isLoading} style={styles.btn} />
-      <Button
-        title="Forgot password?"
-        onPress={() => navigation.navigate('ForgotPassword', { userType })}
-        mode="text"
-      />
-    </ScrollView>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+      <ScrollView 
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={true}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.header}>
+          <Text style={styles.title}>Login</Text>
+          <Text style={styles.subtitle}>Sign in as {userType}</Text>
+        </View>
+        <View style={styles.form}>
+          <Input
+            label="Phone number"
+            value={phone}
+            onChangeText={setPhone}
+            error={errors.phone}
+            placeholder="+251911234567"
+            keyboardType="phone-pad"
+          />
+          <Input
+            label="Password"
+            value={password}
+            onChangeText={setPassword}
+            error={errors.password}
+            secureTextEntry
+            placeholder="••••••••"
+          />
+          {errors.form ? <Text style={styles.formError}>{errors.form}</Text> : null}
+          {error ? <Text style={styles.formError}>{error}</Text> : null}
+          <Button title="Sign in" onPress={handleLogin} loading={isLoading} style={styles.btn} />
+          <Button
+            title="Forgot password?"
+            onPress={() => navigation.navigate('ForgotPassword', { userType })}
+            mode="text"
+          />
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: spacing.xl, paddingTop: 48, backgroundColor: colors.background },
-  title: { ...typography.h2, marginBottom: 4 },
-  subtitle: { ...typography.bodySmall, color: colors.textSecondary, marginBottom: spacing.lg },
-  formError: { color: colors.error, marginBottom: spacing.sm },
-  btn: { marginTop: spacing.sm, marginBottom: spacing.sm },
+  safeArea: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  container: { 
+    flexGrow: 1,
+    padding: spacing.xl, 
+    paddingTop: 24,
+    backgroundColor: colors.background,
+  },
+  header: {
+    marginBottom: spacing.xl,
+  },
+  title: { 
+    ...typography.h2, 
+    color: colors.text,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  subtitle: { 
+    ...typography.bodySmall, 
+    color: colors.textSecondary,
+    marginTop: 4,
+  },
+  form: {
+    flex: 1,
+  },
+  formError: { 
+    color: colors.error, 
+    fontSize: 14,
+    fontWeight: '500',
+    marginBottom: spacing.sm,
+    marginTop: -spacing.sm,
+  },
+  btn: { 
+    marginTop: spacing.md, 
+    marginBottom: spacing.sm,
+  },
 });

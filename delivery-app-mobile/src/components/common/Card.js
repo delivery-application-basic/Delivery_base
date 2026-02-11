@@ -3,8 +3,7 @@
  */
 
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import { Card as PaperCard } from 'react-native-paper';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { colors } from '../../theme/colors';
 import { layout, spacing } from '../../theme/spacing';
 import { shadows } from '../../theme/shadows';
@@ -23,25 +22,53 @@ export const Card = ({
     contentStyle,
   ];
 
+  const cardStyle = [
+    styles.card,
+    shadows.medium,
+    style,
+  ];
+
+  if (onPress) {
+    return (
+      <TouchableOpacity 
+        activeOpacity={0.7}
+        onPress={onPress}
+        style={styles.touchable}
+        {...rest}
+      >
+        <View style={cardStyle}>
+          <View style={cardContentStyle}>
+            {children}
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  }
+
   return (
-    <PaperCard
-      onPress={onPress}
-      style={[styles.card, shadows.medium, style]}
-      contentStyle={cardContentStyle}
-      elevation={elevation}
-      {...rest}
-    >
-      {children}
-    </PaperCard>
+    <View style={cardStyle} {...rest}>
+      <View style={cardContentStyle}>
+        {children}
+      </View>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  touchable: {
+    marginBottom: spacing.md,
+  },
   card: {
     backgroundColor: colors.surface,
-    borderRadius: 12,
-    marginBottom: spacing.sm,
+    borderRadius: 16,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
 });
 

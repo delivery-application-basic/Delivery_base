@@ -11,13 +11,15 @@ import { typography } from '../../theme/typography';
 
 export const EmptyState = ({
   message = 'No items to show',
-  icon = 'inbox',
-  iconSize = 48,
+  icon = 'inbox-outline',
+  iconSize = 64,
   action,
 }) => {
   return (
     <View style={styles.container}>
-      <Icon source={icon} size={iconSize} color={colors.gray[400]} />
+      <View style={styles.iconContainer}>
+        <Icon source={icon} size={iconSize} color={colors.gray[300]} />
+      </View>
       <Text style={styles.message}>{message}</Text>
       {action && <View style={styles.action}>{action}</View>}
     </View>
@@ -30,16 +32,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: spacing.xl,
-    minHeight: 200,
+    minHeight: 300,
+    paddingVertical: spacing.xxl,
+  },
+  iconContainer: {
+    marginBottom: spacing.lg,
   },
   message: {
-    marginTop: spacing.md,
-    fontSize: typography.fontSize.md,
+    fontSize: typography.fontSize.lg,
     color: colors.textSecondary,
+    fontWeight: '600',
     textAlign: 'center',
+    maxWidth: 280,
+    lineHeight: 24,
   },
   action: {
-    marginTop: spacing.lg,
+    marginTop: spacing.xl,
   },
 });
 
