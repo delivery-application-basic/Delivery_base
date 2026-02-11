@@ -15,12 +15,18 @@ import { typography } from '../../theme/typography';
 import { layout } from '../../theme/spacing';
 import { formatCurrency } from '../../utils/helpers';
 
+import { TouchableOpacity, Image } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Icon } from 'react-native-paper';
+import { shadows } from '../../theme/shadows';
+import { spacing as spacingTheme } from '../../theme/spacing';
+
 export default function MenuItemDetailScreen() {
   const dispatch = useDispatch();
   const navigation = useNavigation();
   const route = useRoute();
+  const insets = useSafeAreaInsets();
   const menuItemId = route.params?.menuItemId;
-  const restaurantId = route.params?.restaurantId;
   const { selectedMenuItem, isLoading } = useSelector((state) => state.menu);
   const { isLoading: cartLoading } = useSelector((state) => state.cart);
 
@@ -43,18 +49,106 @@ export default function MenuItemDetailScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.name}>{name}</Text>
-      {item.description && <Text style={styles.desc}>{item.description}</Text>}
-      <Text style={styles.price}>{formatCurrency(price)}</Text>
-      <Button title="Add to cart" onPress={handleAddToCart} loading={cartLoading} style={styles.btn} />
+      <TouchableOpacity
+        style={[styles.backButton, { top: insets.top + 10 }]}
+        onPress={() => navigation.goBack()}
+      >
+        <Icon source="arrow-left" size={24} color={colors.text} />
+      </TouchableOpacity>
+
+      <View style={styles.imageContainer}>
+        {item.image_url ? (
+          <Image source={{ uri: item.image_url }} style={styles.image} resizeMode="cover" />
+        ) : (
+          <View style={[styles.image, styles.placeholder]}>
+            <Icon source="food" size={80} color={colors.gray[200]} />
+          </View>
+        )}
+      </View>
+
+      <View style={styles.content}>
+        <View style={styles.headerRow}>
+          <Text style={styles.name}>{name}</Text>
+          <Text style={styles.price}>{formatCurrency(price)}</Text>
+        </View>
+
+        {item.description && <Text style={styles.desc}>{item.description}</Text>}
+      </View>
+
+      <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
+        <Button
+          title="Add to Cart"
+          onPress={handleAddToCart}
+          loading={cartLoading}
+          style={styles.btnAdd}
+        />
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: layout.screenPadding, backgroundColor: colors.background },
-  name: { ...typography.h2, marginBottom: 8 },
-  desc: { ...typography.body, color: colors.textSecondary, marginBottom: 8 },
-  price: { ...typography.h3, color: colors.primary, marginBottom: 24 },
-  btn: {},
+  container: {
+    flex: 1,
+    backgroundColor: colors.white
+  },
+  backButton: {
+    position: 'absolute',
+    left: 16,
+    zIndex: 10,
+    backgroundColor: colors.white,
+    padding: 8,
+    borderRadius: 20,
+    ...shadows.medium,
+  },
+  imageContainer: {
+    width: '100%',
+    height: 300,
+  },
+  image: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: colors.gray[100],
+  },
+  placeholder: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  content: {
+    padding: layout.screenPadding,
+    flex: 1,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: spacingTheme.md,
+  },
+  name: {
+    ...typography.h2,
+    fontSize: 28,
+    fontWeight: '700',
+    color: colors.text,
+    flex: 1,
+    marginRight: spacingTheme.md,
+  },
+  price: {
+    ...typography.h2,
+    color: colors.primary,
+    fontWeight: '700',
+  },
+  desc: {
+    ...typography.body,
+    color: colors.textSecondary,
+    lineHeight: 24,
+  },
+  footer: {
+    padding: layout.screenPadding,
+    borderTopWidth: 1,
+    borderTopColor: colors.borderLight,
+    backgroundColor: colors.white,
+  },
+  btnAdd: {
+    height: 56,
+  },
 });

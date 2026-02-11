@@ -19,7 +19,14 @@ export const SearchBar = ({ value, onChangeText, placeholder = 'Search...', ...r
 );
 
 const styles = StyleSheet.create({
-  bar: { marginBottom: 8, elevation: 0, backgroundColor: colors.gray[100] },
+  bar: { 
+    marginBottom: 0, 
+    elevation: 0,
+    shadowOpacity: 0,
+    backgroundColor: colors.gray[50],
+    borderRadius: 12,
+    height: 48,
+  },
 });
 
 export default SearchBar;

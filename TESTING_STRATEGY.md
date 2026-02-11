@@ -20,13 +20,35 @@ This document follows **Step 14** of the Phase 1 Implementation Plan. It gives y
 
 ## 0. Quick start: Run on your Android phone
 
-Use this section to get the app running on your **physical Android phone** in the simplest way. You can use **Expo Go** (scan QR code) or **USB** (phone connected by cable).
+Use this section to get the app running on your **physical Android phone**. **Recommended:** Option B (USB) — it works with this project. Option A (Expo Go) often fails due to version mismatch.
 
 ### What you need first
 
-- **PC:** Node.js 20+, PostgreSQL installed and running.
-- **Phone:** Same Wi‑Fi as your PC (for Expo Go) or USB cable (for USB method).
-- **For Expo Go:** Install the **Expo Go** app from the Google Play Store on your phone.
+- **PC:** Node.js 20+, PostgreSQL installed and running. Backend already running (see step 1 below).
+- **Phone:** USB cable to connect to the PC.
+- **Android Studio** (or at least Android SDK) installed so you have `adb` and build tools.
+
+---
+
+### Run on your Android device (USB) — recommended
+
+Do these in order. Backend must be running first.
+
+| Step | Action | Check |
+|------|--------|--------|
+| **1** | **Start backend** (if not already): `cd delivery-backend` → `npm run dev`. Leave this terminal open. | You see `Server running... on port 5000` (or 5001 if 5000 was in use). |
+| **2** | **Set your PC’s IP** in `delivery-app-mobile/src/utils/constants.js`: replace `localhost` with your PC’s IPv4 address in both `API_BASE_URL` and `SOCKET_URL` (e.g. `http://192.168.1.100:5000/api/v1` and `http://192.168.1.100:5000`). Save the file. | Phone will use this IP to talk to the backend. Find IP: Windows `ipconfig`, Mac/Linux `ifconfig` or `ip addr`. |
+| **3** | **Add adb to PATH** (fixes “adb is not recognized”): Add the Android SDK **platform-tools** folder to your system PATH. Typical path: `C:\Users\<You>\AppData\Local\Android\Sdk\platform-tools`. Windows: Settings → System → About → Advanced system settings → Environment Variables → Path → Edit → New → paste path → OK. Restart the terminal. | Run `adb devices` in a new terminal; you should see a device after connecting the phone. |
+| **4** | **On the phone:** Enable **Developer options** (tap Build number 7 times in About phone), then turn on **USB debugging**. Connect the phone with a USB cable. When prompted on the phone, allow USB debugging. | `adb devices` shows your device. |
+| **5** | **Terminal 1 — Metro:** `cd delivery-app-mobile` → `npm start`. Wait until you see “Welcome to Metro” / dev server ready. Leave this terminal open. | Metro runs on port 8081 (or 8082/8083 if 8081 is busy). |
+| **6** | **Terminal 2 — Build and install:** Open a **new** terminal. `cd delivery-app-mobile` → `npm run android`. First time may take several minutes (Gradle download + build). Optional: run `npm run android:check` first to verify adb and a connected device. | App installs on the phone and opens. If Metro is on 8082, run `npm run android -- --port 8082` instead. |
+| **7** | **Test:** On the phone, use the app (login/register, browse). If you see “network error”, check that backend is running and that the IP in `constants.js` matches your PC and that the phone is on the same Wi‑Fi (or USB reverse works). | App loads and can reach the API. |
+
+**If Gradle fails with “Could not reserve enough space”:** The project is set to use a 1024m heap. If it still fails, close other apps and try again, or install 64-bit JDK 17 and set `JAVA_HOME` to it.
+
+**If "No Java compiler found, please ensure you are running Gradle with a JDK":** Gradle needs a **JDK** (not just a JRE). Install **JDK 17** (e.g. [Eclipse Temurin](https://adoptium.net/) or Oracle JDK), then set **JAVA_HOME** in System Environment Variables to the JDK folder (e.g. `C:\Program Files\Eclipse Adoptium\jdk-17.0.x`). Restart the terminal. Run `npm run android:env-check` to verify JDK and adb.
+
+**If “adb is not recognized”:** You must add Android SDK **platform-tools** to your system PATH (step 3). Typical path: `C:\Users\<You>\AppData\Local\Android\Sdk\platform-tools`. Restart the terminal. Run `npm run android:env-check` to verify. There is no way to run on a physical device without `adb`.
 
 ---
 

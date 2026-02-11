@@ -355,7 +355,6 @@ async function manualAssignDriver(orderId, driverId) {
     // Update order with driver
     // For non-partnered orders, status changes to 'confirmed' (driver will place order)
     // For partnered orders, status changes to 'picked_up' (food already ready)
-    const isNonPartnered = order.order_flow_type === 'non_partnered';
     const newStatus = isNonPartnered ? ORDER_STATUS.CONFIRMED : ORDER_STATUS.PICKED_UP;
 
     await order.update({
@@ -528,7 +527,6 @@ async function acceptAssignment(orderId, driverId) {
     // Update order with driver
     // For non-partnered orders, status changes to 'confirmed' (driver will place order)
     // For partnered orders, status changes to 'picked_up' (food already ready)
-    const isNonPartnered = order.order_flow_type === 'non_partnered';
     const newStatus = isNonPartnered ? ORDER_STATUS.CONFIRMED : ORDER_STATUS.PICKED_UP;
 
     await order.update({

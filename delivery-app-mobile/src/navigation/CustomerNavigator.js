@@ -21,6 +21,9 @@ import AddressManagementScreen from '../screens/customer/AddressManagementScreen
 import FavoritesScreen from '../screens/customer/FavoritesScreen';
 import SettingsScreen from '../screens/customer/SettingsScreen';
 
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { shadows } from '../theme/shadows';
+
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
@@ -71,6 +74,10 @@ const ProfileStack = () => (
 
 // Main Customer Tab Navigator
 const CustomerNavigator = () => {
+  const insets = useSafeAreaInsets();
+  const bottomPadding = insets.bottom > 0 ? insets.bottom : 10;
+  const tabBarHeight = 55 + bottomPadding;
+
   return (
     <Tab.Navigator
       screenOptions={{
@@ -79,14 +86,27 @@ const CustomerNavigator = () => {
         tabBarInactiveTintColor: colors.gray[500],
         tabBarStyle: {
           borderTopWidth: 1,
-          borderTopColor: colors.border,
-          paddingBottom: 5,
-          paddingTop: 5,
-          height: 60,
+          borderTopColor: colors.borderLight,
+          paddingBottom: bottomPadding,
+          paddingTop: 8,
+          height: tabBarHeight,
+          backgroundColor: colors.white,
+          elevation: 8,
+          shadowColor: colors.black,
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
         },
         tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '500',
+          fontSize: 11,
+          fontWeight: '600',
+          marginBottom: insets.bottom > 0 ? 0 : 4,
+        },
+        tabBarIconStyle: {
+          marginBottom: -2,
+        },
+        tabBarItemStyle: {
+          paddingVertical: 4,
         },
       }}
     >
@@ -94,7 +114,7 @@ const CustomerNavigator = () => {
         name="Home"
         component={HomeStack}
         options={{
-          tabBarIcon: ({ color, size }) => (
+          tabBarIcon: ({ color, size = 26 }) => (
             <Icon source="home" size={size} color={color} />
           ),
           tabBarLabel: 'Home',
@@ -104,7 +124,7 @@ const CustomerNavigator = () => {
         name="Orders"
         component={OrdersStack}
         options={{
-          tabBarIcon: ({ color, size }) => (
+          tabBarIcon: ({ color, size = 26 }) => (
             <Icon source="clipboard-list" size={size} color={color} />
           ),
           tabBarLabel: 'Orders',
@@ -114,7 +134,7 @@ const CustomerNavigator = () => {
         name="Profile"
         component={ProfileStack}
         options={{
-          tabBarIcon: ({ color, size }) => (
+          tabBarIcon: ({ color, size = 26 }) => (
             <Icon source="account" size={size} color={color} />
           ),
           tabBarLabel: 'Profile',

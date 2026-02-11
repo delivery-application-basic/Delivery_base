@@ -47,10 +47,10 @@ export const colors = {
   surface: '#FFFFFF',
   surfaceDark: '#F3F4F6',
   
-  // Text colors
-  text: '#111827',
-  textSecondary: '#6B7280',
-  textLight: '#9CA3AF',
+  // Text colors - improved contrast for visibility
+  text: '#1F2937', // Darker for better contrast
+  textSecondary: '#4B5563', // Darker for better visibility
+  textLight: '#6B7280', // Still readable
   textInverse: '#FFFFFF',
   
   // Border colors

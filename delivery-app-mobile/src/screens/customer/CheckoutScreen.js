@@ -1,11 +1,9 @@
-/**
- * CheckoutScreen - Select address, payment method, confirm order. Backend: POST /orders { address_id, payment_method, special_instructions }
- */
-
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { Icon } from 'react-native-paper';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createOrder } from '../../store/slices/orderSlice';
 import { clearCart } from '../../store/slices/cartSlice';
 import { Button } from '../../components/common/Button';
@@ -14,17 +12,26 @@ import { CartSummary } from '../../components/cart/CartSummary';
 import { PAYMENT_METHODS } from '../../utils/constants';
 import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
-import { layout } from '../../theme/spacing';
+import { layout, spacing } from '../../theme/spacing';
+import { shadows } from '../../theme/shadows';
 
 export default function CheckoutScreen() {
   const dispatch = useDispatch();
   const navigation = useNavigation();
+  const route = useRoute();
+  const insets = useSafeAreaInsets();
   const { subtotal, items } = useSelector((state) => state.cart);
   const { isLoading, error } = useSelector((state) => state.order);
 
-  const [addressId, setAddressId] = useState('');
+  const [addressId, setAddressId] = useState(route.params?.addressId || '');
   const [paymentMethod, setPaymentMethod] = useState(PAYMENT_METHODS.CASH);
   const [specialInstructions, setSpecialInstructions] = useState('');
+
+  useEffect(() => {
+    if (route.params?.addressId) {
+      setAddressId(route.params.addressId);
+    }
+  }, [route.params?.addressId]);
 
   const handlePlaceOrder = async () => {
     const numAddressId = parseInt(addressId, 10);
@@ -45,27 +52,197 @@ export default function CheckoutScreen() {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>Checkout</Text>
-      <Input label="Address ID" value={addressId} onChangeText={setAddressId} keyboardType="number-pad" placeholder="1" />
-      <Text style={styles.section}>Payment</Text>
-      <View style={styles.radioRow}>
-        <Button title="Cash" mode={paymentMethod === PAYMENT_METHODS.CASH ? 'contained' : 'outlined'} onPress={() => setPaymentMethod(PAYMENT_METHODS.CASH)} />
-        <Button title="Telebirr" mode={paymentMethod === PAYMENT_METHODS.TELEBIRR ? 'contained' : 'outlined'} onPress={() => setPaymentMethod(PAYMENT_METHODS.TELEBIRR)} />
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Icon source="arrow-left" size={24} color={colors.text} />
+        </TouchableOpacity>
+        <Text style={styles.title}>Checkout</Text>
       </View>
-      <Input label="Special instructions" value={specialInstructions} onChangeText={setSpecialInstructions} placeholder="Optional" />
-      <CartSummary subtotal={subtotal} />
-      {error && <Text style={styles.err}>{error}</Text>}
-      <Button title="Place order" onPress={handlePlaceOrder} loading={isLoading} style={styles.btn} />
-    </ScrollView>
+
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Delivery Address</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('SelectAddress')}>
+              <Text style={styles.changeText}>Change</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.addressCard}>
+            <Icon source="map-marker-outline" size={24} color={colors.primary} />
+            <View style={styles.addressInfo}>
+              <Text style={styles.addressText}>
+                {addressId ? `Address ID: ${addressId}` : 'No address selected'}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Payment Method</Text>
+          <View style={styles.paymentOptions}>
+            <TouchableOpacity
+              style={[styles.paymentOption, paymentMethod === PAYMENT_METHODS.CASH && styles.paymentOptionSelected]}
+              onPress={() => setPaymentMethod(PAYMENT_METHODS.CASH)}
+            >
+              <Icon source="cash" size={24} color={paymentMethod === PAYMENT_METHODS.CASH ? colors.primary : colors.textLight} />
+              <Text style={[styles.paymentText, paymentMethod === PAYMENT_METHODS.CASH && styles.paymentTextSelected]}>Cash on Delivery</Text>
+              {paymentMethod === PAYMENT_METHODS.CASH && <Icon source="check-circle" size={20} color={colors.primary} />}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.paymentOption, paymentMethod === PAYMENT_METHODS.TELEBIRR && styles.paymentOptionSelected]}
+              onPress={() => setPaymentMethod(PAYMENT_METHODS.TELEBIRR)}
+            >
+              <Icon source="wallet-outline" size={24} color={paymentMethod === PAYMENT_METHODS.TELEBIRR ? colors.primary : colors.textLight} />
+              <Text style={[styles.paymentText, paymentMethod === PAYMENT_METHODS.TELEBIRR && styles.paymentTextSelected]}>Telebirr</Text>
+              {paymentMethod === PAYMENT_METHODS.TELEBIRR && <Icon source="check-circle" size={20} color={colors.primary} />}
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Order Summary</Text>
+          <CartSummary subtotal={subtotal} />
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Special Instructions</Text>
+          <Input
+            value={specialInstructions}
+            onChangeText={setSpecialInstructions}
+            placeholder="Add a note (e.g. door code, landmarks)"
+            multiline
+            numberOfLines={2}
+          />
+        </View>
+
+        {error && <View style={styles.errorContainer}><Text style={styles.err}>{error}</Text></View>}
+      </ScrollView>
+
+      <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
+        <Button
+          title="Place Order"
+          onPress={handlePlaceOrder}
+          loading={isLoading}
+          disabled={!addressId}
+          style={styles.placeOrderBtn}
+          contentStyle={{ height: 50 }}
+        />
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: layout.screenPadding, backgroundColor: colors.background },
-  title: { ...typography.h2, marginBottom: 16 },
-  section: { ...typography.h4, marginTop: 8, marginBottom: 8 },
-  radioRow: { flexDirection: 'row', gap: 8, marginBottom: 8 },
-  err: { color: colors.error, marginBottom: 8 },
-  btn: { marginTop: 16 },
+  container: { flex: 1, backgroundColor: colors.white },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: layout.screenPadding,
+    paddingVertical: spacing.md,
+    backgroundColor: colors.white,
+  },
+  backButton: {
+    padding: spacing.xs,
+    marginRight: spacing.sm,
+    backgroundColor: colors.gray[50],
+    borderRadius: 12,
+  },
+  title: {
+    ...typography.h2,
+    color: colors.text,
+    fontWeight: '700',
+    fontSize: 22,
+  },
+  scrollContent: {
+    padding: layout.screenPadding,
+    paddingBottom: 150,
+  },
+  section: {
+    marginBottom: spacing.xl,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  sectionTitle: {
+    ...typography.h4,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: spacing.sm,
+  },
+  changeText: {
+    color: colors.primary,
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  addressCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.md,
+    backgroundColor: colors.gray[50],
+    borderRadius: 16,
+    gap: spacing.md,
+  },
+  addressInfo: {
+    flex: 1,
+  },
+  addressText: {
+    fontSize: 16,
+    color: colors.text,
+    fontWeight: '500',
+  },
+  paymentOptions: {
+    gap: spacing.sm,
+  },
+  paymentOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.md,
+    backgroundColor: colors.white,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: colors.borderLight,
+    gap: spacing.md,
+  },
+  paymentOptionSelected: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primary + '08',
+  },
+  paymentText: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  paymentTextSelected: {
+    color: colors.text,
+  },
+  errorContainer: {
+    padding: spacing.md,
+    backgroundColor: colors.errorLight + '20',
+    borderRadius: 12,
+    marginBottom: spacing.md,
+  },
+  err: { color: colors.error, fontWeight: '600' },
+  footer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: colors.white,
+    paddingHorizontal: layout.screenPadding,
+    paddingTop: spacing.md,
+    ...shadows.large,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+  },
+  placeOrderBtn: {
+  },
 });

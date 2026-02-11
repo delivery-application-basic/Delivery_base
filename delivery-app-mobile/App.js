@@ -7,16 +7,17 @@ import React, { useEffect } from 'react';
 import { StatusBar, StyleSheet, useColorScheme, View, ActivityIndicator } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Provider } from 'react-redux';
-import { PaperProvider } from 'react-native-paper';
+import { PaperProvider, configureFonts, DefaultTheme } from 'react-native-paper';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { store } from './src/store';
 import AppNavigator from './src/navigation/AppNavigator';
-import { theme } from './src/theme';
+import { paperLightTheme, paperDarkTheme } from './src/theme/paperTheme';
 import { initializeSocket } from './src/socket/socket';
 import { colors } from './src/theme/colors';
 
 function App() {
   const isDarkMode = useColorScheme() === 'dark';
+  const paperTheme = isDarkMode ? paperDarkTheme : paperLightTheme;
 
   useEffect(() => {
     // Initialize socket connection when app starts
@@ -28,7 +29,7 @@ function App() {
     <Provider store={store}>
       <GestureHandlerRootView style={styles.container}>
         <SafeAreaProvider>
-          <PaperProvider theme={theme}>
+          <PaperProvider theme={paperTheme}>
             <StatusBar
               barStyle={isDarkMode ? 'light-content' : 'dark-content'}
               backgroundColor={colors.primary}
