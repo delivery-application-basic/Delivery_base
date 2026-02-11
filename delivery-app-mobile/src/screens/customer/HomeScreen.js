@@ -2,8 +2,8 @@
  * HomeScreen - Featured restaurants, search. Backend: GET /restaurants
  */
 
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, FlatList, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
@@ -27,10 +27,17 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { restaurants, isLoading, error, searchQuery } = useSelector((state) => state.restaurant);
   const { user } = useSelector((state) => state.auth);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     dispatch(fetchRestaurants({ filters: { search: searchQuery } }));
   }, [dispatch, searchQuery]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await dispatch(fetchRestaurants({ filters: { search: searchQuery } }));
+    setRefreshing(false);
+  };
 
   const onSearch = (q) => dispatch(setSearchQuery(q));
 
@@ -125,6 +132,14 @@ export default function HomeScreen() {
           </View>
         }
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
+          />
+        }
         keyboardShouldPersistTaps="handled"
       />
     </View>

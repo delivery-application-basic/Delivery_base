@@ -7,7 +7,9 @@ const { Op } = require('sequelize');
 exports.getRestaurants = async (req, res, next) => {
     try {
         const { search, cuisine, city } = req.query;
-        let query = { where: { is_active: true, verification_status: 'approved' } };
+        // For testing: Show all active restaurants regardless of verification status
+        // In production, you might want to add: verification_status: 'approved'
+        let query = { where: { is_active: true } };
 
         if (search) {
             query.where.restaurant_name = { [Op.like]: `%${search}%` };
