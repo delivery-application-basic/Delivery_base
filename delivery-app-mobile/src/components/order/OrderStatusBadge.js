@@ -1,10 +1,5 @@
-/**
- * OrderStatusBadge - Status chip for order
- */
-
 import React from 'react';
-import { StyleSheet } from 'react-native';
-import { Chip } from 'react-native-paper';
+import { View, Text, StyleSheet } from 'react-native';
 import { colors } from '../../theme/colors';
 import { ORDER_STATUS } from '../../utils/constants';
 
@@ -20,34 +15,46 @@ const STATUS_LABELS = {
 };
 
 const STATUS_COLORS = {
-  [ORDER_STATUS.PENDING]: colors.orderPending,
-  [ORDER_STATUS.CONFIRMED]: colors.orderConfirmed,
-  [ORDER_STATUS.PREPARING]: colors.orderPreparing,
-  [ORDER_STATUS.READY]: colors.success,
-  [ORDER_STATUS.PICKED_UP]: colors.info,
-  [ORDER_STATUS.IN_TRANSIT]: colors.primary,
-  [ORDER_STATUS.DELIVERED]: colors.orderDelivered,
-  [ORDER_STATUS.CANCELLED]: colors.orderCancelled,
+  [ORDER_STATUS.PENDING]: '#F57C00', // Deep Orange
+  [ORDER_STATUS.CONFIRMED]: '#1976D2', // Blue
+  [ORDER_STATUS.PREPARING]: '#7B1FA2', // Purple
+  [ORDER_STATUS.READY]: '#388E3C', // Green
+  [ORDER_STATUS.PICKED_UP]: '#0097A7', // Cyan
+  [ORDER_STATUS.IN_TRANSIT]: '#546E7A', // Blue Gray
+  [ORDER_STATUS.DELIVERED]: '#43A047', // Green
+  [ORDER_STATUS.CANCELLED]: '#D32F2F', // Red
 };
 
 export const OrderStatusBadge = ({ status }) => {
   const label = STATUS_LABELS[status] || status;
-  const color = STATUS_COLORS[status] || colors.gray[500];
+  const color = STATUS_COLORS[status] || '#757575';
 
   return (
-    <Chip
-      style={[styles.chip, { backgroundColor: color }]}
-      textStyle={styles.text}
-      compact
-    >
-      {label}
-    </Chip>
+    <View style={[styles.badge, { backgroundColor: color + '15' }]}>
+      <View style={[styles.dot, { backgroundColor: color }]} />
+      <Text style={[styles.text, { color: color }]}>{label}</Text>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  chip: { height: 28 },
-  text: { color: colors.white, fontSize: 12, fontWeight: '600' },
+  badge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    gap: 6,
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  text: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
 });
 
 export default OrderStatusBadge;

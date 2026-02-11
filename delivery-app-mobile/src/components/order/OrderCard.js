@@ -1,14 +1,11 @@
-/**
- * OrderCard - Order summary for list
- */
-
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { Card } from '../common/Card';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Icon } from 'react-native-paper';
 import { OrderStatusBadge } from './OrderStatusBadge';
 import { colors } from '../../theme/colors';
-import { layout } from '../../theme/spacing';
+import { layout, spacing } from '../../theme/spacing';
 import { typography } from '../../theme/typography';
+import { shadows } from '../../theme/shadows';
 import { formatCurrency, formatDateTime } from '../../utils/helpers';
 
 export const OrderCard = ({
@@ -17,32 +14,127 @@ export const OrderCard = ({
   totalAmount,
   createdAt,
   restaurantName,
+  customerName,
   onPress,
 }) => {
   return (
-    <Card onPress={onPress}>
+    <TouchableOpacity
+      style={styles.container}
+      onPress={onPress}
+      activeOpacity={0.8}
+    >
       <View style={styles.header}>
-        <Text style={styles.orderId}>Order #{orderId}</Text>
+        <View style={styles.idContainer}>
+          <Text style={styles.orderId}>#{orderId}</Text>
+        </View>
         <OrderStatusBadge status={status} />
       </View>
-      {restaurantName && (
-        <Text style={styles.restaurant} numberOfLines={1}>{restaurantName}</Text>
-      )}
-      <View style={styles.footer}>
-        <Text style={styles.date}>{formatDateTime(createdAt)}</Text>
-        <Text style={styles.total}>{formatCurrency(totalAmount)}</Text>
+
+      <View style={styles.content}>
+        {(restaurantName || customerName) && (
+          <View style={styles.infoRow}>
+            <Icon source={customerName ? "account-outline" : "store-outline"} size={18} color={colors.textLight} />
+            <Text style={styles.infoText} numberOfLines={1}>
+              {customerName || restaurantName}
+            </Text>
+          </View>
+        )}
+        <View style={styles.infoRow}>
+          <Icon source="clock-outline" size={18} color={colors.textLight} />
+          <Text style={styles.infoText}>{formatDateTime(createdAt)}</Text>
+        </View>
       </View>
-    </Card>
+
+      <View style={styles.footer}>
+        <View style={styles.amountContainer}>
+          <Text style={styles.amountLabel}>Total Amount</Text>
+          <Text style={styles.total}>{formatCurrency(totalAmount)}</Text>
+        </View>
+        <View style={styles.actionLink}>
+          <Text style={styles.actionText}>Details</Text>
+          <Icon source="chevron-right" size={16} color={colors.primary} />
+        </View>
+      </View>
+    </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-  orderId: { ...typography.h4, color: colors.text },
-  restaurant: { fontSize: typography.fontSize.sm, color: colors.textSecondary, marginBottom: 4 },
-  footer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  date: { fontSize: typography.fontSize.sm, color: colors.textSecondary },
-  total: { fontSize: typography.fontSize.md, fontWeight: '600', color: colors.primary },
+  container: {
+    backgroundColor: colors.white,
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 16,
+    ...shadows.medium,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16
+  },
+  idContainer: {
+    backgroundColor: '#F5F5F5',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  orderId: {
+    fontSize: 16,
+    color: colors.text,
+    fontWeight: '800',
+  },
+  content: {
+    marginBottom: 16,
+    gap: 8,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  infoText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    fontWeight: '500',
+  },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#F5F5F5',
+  },
+  amountContainer: {
+    gap: 4,
+  },
+  amountLabel: {
+    fontSize: 11,
+    color: colors.textLight,
+    fontWeight: '700',
+  },
+  total: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: colors.text
+  },
+  actionLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.primary + '10',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+  },
+  actionText: {
+    fontSize: 14,
+    color: colors.primary,
+    fontWeight: '700',
+  },
 });
 
 export default OrderCard;
