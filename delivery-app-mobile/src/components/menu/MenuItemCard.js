@@ -4,6 +4,7 @@
 
 import React from 'react';
 import { View, Text, Image, StyleSheet } from 'react-native';
+import { moderateScale } from '../../utils/scaling';
 import { Card } from '../common/Card';
 import { colors } from '../../theme/colors';
 import { layout } from '../../theme/spacing';
@@ -41,11 +42,11 @@ export const MenuItemCard = ({
 const styles = StyleSheet.create({
   content: { flexDirection: 'row', alignItems: 'center' },
   text: { flex: 1 },
-  name: { ...typography.h4, color: colors.text, marginBottom: 4 },
-  desc: { fontSize: typography.fontSize.sm, color: colors.textSecondary, marginBottom: 4 },
+  name: { ...typography.h4, color: colors.text, marginBottom: moderateScale(4) },
+  desc: { fontSize: typography.fontSize.sm, color: colors.textSecondary, marginBottom: moderateScale(4) },
   price: { fontSize: typography.fontSize.md, fontWeight: '600', color: colors.primary },
   unavailable: { color: colors.textLight },
-  image: { width: 72, height: 72, borderRadius: 8, marginLeft: layout.cardPadding },
+  image: { width: moderateScale(72), height: moderateScale(72), borderRadius: moderateScale(8), marginLeft: layout.cardPadding },
 });
 
 export default MenuItemCard;

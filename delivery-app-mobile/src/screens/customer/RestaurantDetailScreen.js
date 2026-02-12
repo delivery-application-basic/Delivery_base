@@ -10,6 +10,7 @@ import { MenuItemCard } from '../../components/menu/MenuItemCard';
 import { Button } from '../../components/common/Button';
 import { Loader } from '../../components/common/Loader';
 import { EmptyState } from '../../components/common/EmptyState';
+import { moderateScale, scale, verticalScale } from '../../utils/scaling';
 import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
 import { layout, spacing } from '../../theme/spacing';
@@ -129,16 +130,16 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.white },
   backButton: {
     position: 'absolute',
-    left: 16,
+    left: spacing.md,
     zIndex: 10,
     backgroundColor: colors.white,
-    padding: 8,
-    borderRadius: 20,
+    padding: spacing.sm,
+    borderRadius: moderateScale(20),
     ...shadows.medium,
   },
   imageHeader: {
     width: '100%',
-    height: 200,
+    height: verticalScale(200),
   },
   coverImage: {
     width: '100%',
@@ -151,11 +152,11 @@ const styles = StyleSheet.create({
   },
   headerContent: {
     paddingHorizontal: layout.screenPadding,
-    marginTop: -30, // Overlap effect
+    marginTop: verticalScale(-30), // Overlap effect
   },
   infoCard: {
     backgroundColor: colors.white,
-    borderRadius: 20,
+    borderRadius: moderateScale(20),
     padding: spacing.md,
     ...shadows.large,
     marginBottom: spacing.lg,
@@ -163,45 +164,43 @@ const styles = StyleSheet.create({
   name: {
     ...typography.h2,
     color: colors.text,
-    fontSize: 24,
-    fontWeight: '700',
-    marginBottom: 4,
+    marginBottom: moderateScale(4),
   },
   cuisine: {
     ...typography.body,
     color: colors.textSecondary,
-    marginBottom: 16,
+    marginBottom: spacing.md,
     fontWeight: '500',
   },
   statsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 12,
+    paddingVertical: moderateScale(12),
     borderTopWidth: 1,
     borderBottomWidth: 1,
     borderColor: colors.borderLight,
-    marginBottom: 12,
+    marginBottom: moderateScale(12),
   },
   statItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: moderateScale(4),
   },
   statValue: {
-    fontSize: 14,
+    fontSize: typography.fontSize.sm,
     fontWeight: '700',
     color: colors.text,
   },
   statDivider: {
     width: 1,
-    height: 15,
+    height: verticalScale(15),
     backgroundColor: colors.border,
   },
   addressRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: moderateScale(6),
   },
   address: {
     ...typography.bodySmall,
@@ -209,13 +208,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   menuTitle: {
-    fontSize: 20,
+    fontSize: typography.fontSize.xl,
     fontWeight: '700',
     color: colors.text,
     marginBottom: spacing.md,
   },
   listContent: {
-    paddingBottom: 120,
+    paddingBottom: verticalScale(120),
   },
   footer: {
     position: 'absolute',

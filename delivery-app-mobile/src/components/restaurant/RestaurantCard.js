@@ -5,6 +5,7 @@
 import React from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
 import { Icon } from 'react-native-paper';
+import { moderateScale, scale, verticalScale } from '../../utils/scaling';
 import { Card } from '../common/Card';
 import { colors } from '../../theme/colors';
 import { spacing, layout } from '../../theme/spacing';
@@ -64,13 +65,13 @@ const styles = StyleSheet.create({
   card: {
     marginHorizontal: layout.screenPadding,
     marginBottom: spacing.lg,
-    borderRadius: 20,
+    borderRadius: moderateScale(20),
     backgroundColor: colors.white,
     overflow: 'hidden',
   },
   imageContainer: {
     width: '100%',
-    height: 160,
+    height: verticalScale(160),
     position: 'relative',
   },
   image: {
@@ -84,23 +85,23 @@ const styles = StyleSheet.create({
   },
   badgeContainer: {
     position: 'absolute',
-    bottom: 12,
-    right: 12,
+    bottom: moderateScale(12),
+    right: moderateScale(12),
     flexDirection: 'row',
-    gap: 8,
+    gap: moderateScale(8),
   },
   ratingBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.white,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: moderateScale(8),
+    paddingVertical: moderateScale(4),
+    borderRadius: moderateScale(12),
     ...shadows.small,
-    gap: 4,
+    gap: moderateScale(4),
   },
   ratingText: {
-    fontSize: 12,
+    fontSize: typography.fontSize.xs,
     fontWeight: '700',
     color: colors.text,
   },
@@ -111,18 +112,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: moderateScale(4),
   },
   name: {
     ...typography.h4,
     color: colors.text,
     fontWeight: '700',
-    fontSize: 18,
     flex: 1,
-    marginRight: 8,
+    marginRight: moderateScale(8),
   },
   fee: {
-    fontSize: 14,
+    fontSize: typography.fontSize.sm,
     fontWeight: '700',
     color: colors.primary,
   },
@@ -131,19 +131,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cuisine: {
-    fontSize: 14,
+    fontSize: typography.fontSize.sm,
     color: colors.textSecondary,
     fontWeight: '500',
   },
   dot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
+    width: moderateScale(4),
+    height: moderateScale(4),
+    borderRadius: moderateScale(2),
     backgroundColor: colors.gray[300],
-    marginHorizontal: 8,
+    marginHorizontal: moderateScale(8),
   },
   time: {
-    fontSize: 14,
+    fontSize: typography.fontSize.sm,
     color: colors.textSecondary,
     fontWeight: '500',
   },

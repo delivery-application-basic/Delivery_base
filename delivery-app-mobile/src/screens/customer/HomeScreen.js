@@ -14,6 +14,7 @@ import { RestaurantCard } from '../../components/restaurant/RestaurantCard';
 import { Loader } from '../../components/common/Loader';
 import { EmptyState } from '../../components/common/EmptyState';
 import { Button } from '../../components/common/Button';
+import { moderateScale, scale, verticalScale } from '../../utils/scaling';
 import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
 import { layout, spacing } from '../../theme/spacing';
@@ -161,7 +162,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
   },
   deliveryLabel: {
-    fontSize: 12,
+    fontSize: typography.fontSize.xs,
     color: colors.textLight,
     fontWeight: '500',
     textTransform: 'uppercase',
@@ -169,10 +170,10 @@ const styles = StyleSheet.create({
   locationSelector: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: moderateScale(4),
   },
   locationText: {
-    fontSize: 16,
+    fontSize: typography.fontSize.md,
     fontWeight: '700',
     color: colors.text,
   },
@@ -183,7 +184,7 @@ const styles = StyleSheet.create({
   iconButton: {
     padding: spacing.xs,
     backgroundColor: colors.gray[50],
-    borderRadius: 12,
+    borderRadius: moderateScale(12),
   },
   searchContainer: {
     paddingHorizontal: layout.screenPadding,
@@ -197,20 +198,20 @@ const styles = StyleSheet.create({
   },
   categoryItem: {
     alignItems: 'center',
-    width: 70,
+    width: scale(70),
   },
   categoryIconContainer: {
-    width: 60,
-    height: 60,
+    width: moderateScale(60),
+    height: moderateScale(60),
     backgroundColor: colors.gray[50],
-    borderRadius: 20,
+    borderRadius: moderateScale(20),
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: moderateScale(8),
     ...shadows.small,
   },
   categoryText: {
-    fontSize: 12,
+    fontSize: typography.fontSize.xs,
     fontWeight: '600',
     color: colors.text,
     textAlign: 'center',
@@ -223,17 +224,17 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: typography.fontSize.xl,
     fontWeight: '700',
     color: colors.text,
   },
   seeAllText: {
-    fontSize: 14,
+    fontSize: typography.fontSize.sm,
     color: colors.primary,
     fontWeight: '600',
   },
   list: {
-    paddingBottom: 100, // Account for floating tab bar
+    paddingBottom: verticalScale(100), // Account for floating tab bar
   },
   emptyContainer: {
     paddingVertical: spacing.xxl,

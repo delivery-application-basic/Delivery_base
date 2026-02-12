@@ -1,3 +1,5 @@
+import { moderateScale } from '../utils/scaling';
+
 // Typography configuration
 export const typography = {
   // Font families
@@ -9,14 +11,14 @@ export const typography = {
   
   // Font sizes
   fontSize: {
-    xs: 12,
-    sm: 14,
-    md: 16,
-    lg: 18,
-    xl: 20,
-    xxl: 24,
-    xxxl: 32,
-    display: 40,
+    xs: moderateScale(12),
+    sm: moderateScale(14),
+    md: moderateScale(16),
+    lg: moderateScale(18),
+    xl: moderateScale(20),
+    xxl: moderateScale(24),
+    xxxl: moderateScale(32),
+    display: moderateScale(40),
   },
   
   // Line heights
@@ -37,42 +39,42 @@ export const typography = {
   
   // Text styles
   h1: {
-    fontSize: 32,
+    fontSize: moderateScale(32),
     fontWeight: '700',
     lineHeight: 1.2,
   },
   h2: {
-    fontSize: 24,
+    fontSize: moderateScale(24),
     fontWeight: '700',
     lineHeight: 1.3,
   },
   h3: {
-    fontSize: 20,
+    fontSize: moderateScale(20),
     fontWeight: '600',
     lineHeight: 1.4,
   },
   h4: {
-    fontSize: 18,
+    fontSize: moderateScale(18),
     fontWeight: '600',
     lineHeight: 1.4,
   },
   body: {
-    fontSize: 16,
+    fontSize: moderateScale(16),
     fontWeight: '400',
     lineHeight: 1.5,
   },
   bodySmall: {
-    fontSize: 14,
+    fontSize: moderateScale(14),
     fontWeight: '400',
     lineHeight: 1.5,
   },
   caption: {
-    fontSize: 12,
+    fontSize: moderateScale(12),
     fontWeight: '400',
     lineHeight: 1.4,
   },
   button: {
-    fontSize: 16,
+    fontSize: moderateScale(16),
     fontWeight: '600',
     lineHeight: 1.5,
   },

@@ -1,12 +1,14 @@
+import { moderateScale } from '../utils/scaling';
+
 // Spacing scale (8px base unit)
 export const spacing = {
-  xs: 4,
-  sm: 8,
-  md: 16,
-  lg: 24,
-  xl: 32,
-  xxl: 48,
-  xxxl: 64,
+  xs: moderateScale(4),
+  sm: moderateScale(8),
+  md: moderateScale(16),
+  lg: moderateScale(24),
+  xl: moderateScale(32),
+  xxl: moderateScale(48),
+  xxxl: moderateScale(64),
 };
 
 // Specific spacing values
