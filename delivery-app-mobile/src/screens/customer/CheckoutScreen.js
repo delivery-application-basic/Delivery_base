@@ -130,7 +130,6 @@ export default function CheckoutScreen() {
           loading={isLoading}
           disabled={!addressId}
           style={styles.placeOrderBtn}
-          contentStyle={{ height: 50 }}
         />
       </View>
     </View>
@@ -153,10 +152,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   title: {
-    ...typography.h2,
+    fontSize: 16,
     color: colors.text,
     fontWeight: '700',
-    fontSize: 22,
   },
   scrollContent: {
     padding: layout.screenPadding,
@@ -172,7 +170,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   sectionTitle: {
-    ...typography.h4,
+    fontSize: 12,
     fontWeight: '700',
     color: colors.text,
     marginBottom: spacing.sm,
@@ -180,7 +178,7 @@ const styles = StyleSheet.create({
   changeText: {
     color: colors.primary,
     fontWeight: '600',
-    fontSize: 14,
+    fontSize: 10,
   },
   addressCard: {
     flexDirection: 'row',
@@ -194,7 +192,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   addressText: {
-    fontSize: 16,
+    fontSize: 12,
     color: colors.text,
     fontWeight: '500',
   },
@@ -217,7 +215,7 @@ const styles = StyleSheet.create({
   },
   paymentText: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 12,
     fontWeight: '600',
     color: colors.textSecondary,
   },

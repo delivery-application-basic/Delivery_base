@@ -46,7 +46,7 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
     backgroundColor: colors.background,
   },
-  title: { ...typography.h1, color: colors.primary, marginBottom: spacing.md },
-  body: { ...typography.body, color: colors.textSecondary, marginBottom: spacing.xl },
+  title: { fontSize: 18, color: colors.primary, marginBottom: 12 },
+  body: { fontSize: 14, color: colors.textSecondary, marginBottom: spacing.xl },
   footer: { marginTop: spacing.lg },
 });

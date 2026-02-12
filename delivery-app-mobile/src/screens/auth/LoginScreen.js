@@ -95,21 +95,21 @@ const styles = StyleSheet.create({
   },
   container: { 
     flexGrow: 1,
-    padding: spacing.xl, 
-    paddingTop: 24,
+    padding: 16, 
+    paddingTop: 20,
     backgroundColor: colors.background,
   },
   header: {
     marginBottom: spacing.xl,
   },
   title: { 
-    ...typography.h2, 
+    fontSize: 20,
     color: colors.text,
     fontWeight: '700',
     marginBottom: 4,
   },
   subtitle: { 
-    ...typography.bodySmall, 
+    fontSize: 12,
     color: colors.textSecondary,
     marginTop: 4,
   },
@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
   },
   formError: { 
     color: colors.error, 
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '500',
     marginBottom: spacing.sm,
     marginTop: -spacing.sm,

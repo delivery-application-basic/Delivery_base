@@ -45,11 +45,13 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   content: {
-    paddingVertical: layout.buttonPadding,
+    paddingVertical: 12,
   },
   label: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
+    lineHeight: 18,
+    textAlign: 'center',
   },
 });
 

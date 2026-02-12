@@ -47,8 +47,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   title: {
-    ...typography.h1,
+    fontSize: 18,
     color: colors.primary,
-    marginBottom: 24,
+    marginBottom: 16,
   },
 });

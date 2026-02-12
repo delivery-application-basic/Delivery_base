@@ -39,9 +39,9 @@ export default function UserTypeSelectScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: spacing.xl, justifyContent: 'center', backgroundColor: colors.background },
-  title: { ...typography.h2, textAlign: 'center', marginBottom: spacing.lg },
-  buttons: { gap: spacing.sm, marginBottom: spacing.md },
-  btn: { marginBottom: spacing.sm },
-  or: { textAlign: 'center', color: colors.textSecondary, marginVertical: spacing.sm },
+  container: { flex: 1, padding: 16, justifyContent: 'center', backgroundColor: colors.background },
+  title: { fontSize: 20, fontWeight: '700', textAlign: 'center', marginBottom: 16 },
+  buttons: { gap: 8, marginBottom: 12 },
+  btn: { marginBottom: 8 },
+  or: { textAlign: 'center', color: colors.textSecondary, fontSize: 14, marginVertical: 8 },
 });

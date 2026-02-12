@@ -62,8 +62,8 @@ export default function ForgotPasswordScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: spacing.xl, paddingTop: 48, backgroundColor: colors.background },
-  title: { ...typography.h2, marginBottom: spacing.md },
-  body: { ...typography.body, color: colors.textSecondary, marginBottom: spacing.lg },
+  title: { fontSize: 18, marginBottom: 12 },
+  body: { fontSize: 14, color: colors.textSecondary, marginBottom: spacing.lg },
   formError: { color: colors.error, marginBottom: spacing.sm },
   btn: { marginBottom: spacing.sm },
 });

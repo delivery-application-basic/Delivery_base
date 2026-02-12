@@ -50,7 +50,8 @@ const styles = StyleSheet.create({
   input: {
     backgroundColor: colors.white,
     paddingHorizontal: 0,
-    marginBottom: layout.itemSpacing,
+    marginBottom: 12,
+    fontSize: 14,
   },
 });
 

@@ -181,12 +181,12 @@ const styles = StyleSheet.create({
     borderColor: colors.white,
   },
   nameText: {
-    ...typography.h2,
+    fontSize: 18,
     color: colors.text,
     fontWeight: '800',
   },
   ownerText: {
-    ...typography.body,
+    fontSize: 14,
     color: colors.textSecondary,
     marginBottom: spacing.md,
   },
@@ -215,11 +215,10 @@ const styles = StyleSheet.create({
     marginTop: spacing.xl,
   },
   sectionTitle: {
-    ...typography.h4,
+    fontSize: 14,
     color: colors.text,
     fontWeight: '700',
     marginBottom: spacing.md,
-    paddingLeft: 4,
   },
   card: {
     backgroundColor: colors.white,
@@ -244,12 +243,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   itemTitle: {
-    ...typography.body,
+    fontSize: 14,
     fontWeight: '700',
     color: colors.text,
   },
   itemSubtitle: {
-    ...typography.bodySmall,
+    fontSize: 11,
     color: colors.textLight,
     marginTop: 2,
   },
@@ -263,7 +262,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.xl,
   },
   versionText: {
-    ...typography.bodySmall,
+    fontSize: 11,
     color: colors.textLight,
   },
 });

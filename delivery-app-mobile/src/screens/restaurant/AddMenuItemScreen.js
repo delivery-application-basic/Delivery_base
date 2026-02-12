@@ -118,10 +118,10 @@ export default function AddMenuItemScreen() {
           </Text>
         </View>
 
-        <View style={{ height: 100 }} />
+        <View style={{ height: 80 }} />
       </ScrollView>
 
-      <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
+      <View style={[styles.footer, { paddingBottom: insets.bottom + 80 }]}>
         <Button
           title="Create Item"
           onPress={handleSave}
@@ -152,10 +152,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   headerTitle: {
-    ...typography.h2,
+    fontSize: 18,
     color: colors.text,
     fontWeight: '700',
-    fontSize: 22,
   },
   scrollContent: {
     padding: layout.screenPadding,
@@ -167,7 +166,7 @@ const styles = StyleSheet.create({
     ...shadows.small,
   },
   sectionLabel: {
-    ...typography.bodySmall,
+    fontSize: 11,
     color: colors.primary,
     fontWeight: '700',
     textTransform: 'uppercase',
@@ -192,9 +191,9 @@ const styles = StyleSheet.create({
   },
   infoText: {
     flex: 1,
-    ...typography.bodySmall,
+    fontSize: 11,
     color: colors.textSecondary,
-    lineHeight: 18,
+    lineHeight: 16,
   },
   footer: {
     padding: layout.screenPadding,
@@ -202,6 +201,6 @@ const styles = StyleSheet.create({
     ...shadows.medium,
   },
   mainButton: {
-    height: 56,
+    // Remove fixed height to let button size naturally
   },
 });

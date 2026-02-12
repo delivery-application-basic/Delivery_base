@@ -57,6 +57,7 @@ export const MenuItemCard = ({
 const styles = StyleSheet.create({
   content: { flexDirection: 'row', alignItems: 'center' },
   text: { flex: 1 },
+<<<<<<< HEAD
   name: { 
     fontSize: 18,
     fontWeight: '700',
@@ -81,6 +82,13 @@ const styles = StyleSheet.create({
   },
   unavailable: { color: colors.textLight },
   image: { width: moderateScale(72), height: moderateScale(72), borderRadius: moderateScale(8), marginLeft: layout.cardPadding },
+=======
+  name: { fontSize: 14, color: colors.text, marginBottom: 4, fontWeight: '600' },
+  desc: { fontSize: 12, color: colors.textSecondary, marginBottom: 4 },
+  price: { fontSize: 14, fontWeight: '600', color: colors.primary },
+  unavailable: { color: colors.textLight },
+  image: { width: 60, height: 60, borderRadius: 8, marginLeft: layout.cardPadding },
+>>>>>>> 764fb5e (fixed the ui text on all pages)
 });
 
 export default MenuItemCard;

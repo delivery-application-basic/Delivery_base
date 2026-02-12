@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   title: {
-    ...typography.h3,
+    fontSize: 16,
     color: colors.text,
     fontWeight: '700',
   },
@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
     marginRight: spacing.md,
   },
   settingText: {
-    ...typography.body,
+    fontSize: 14,
     color: colors.text,
     fontWeight: '600',
   },
@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   settingValue: {
-    ...typography.bodySmall,
+    fontSize: 11,
     color: colors.textSecondary,
     marginRight: spacing.xs,
   },

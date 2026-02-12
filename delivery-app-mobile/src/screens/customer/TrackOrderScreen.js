@@ -112,10 +112,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   title: {
-    ...typography.h2,
+    fontSize: 18,
     color: colors.text,
     fontWeight: '700',
-    fontSize: 22,
   },
   content: {
     flex: 1,
@@ -129,13 +128,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   stageLabel: {
-    ...typography.h3,
+    fontSize: 16,
     color: colors.primary,
     fontWeight: '700',
     marginBottom: 4,
   },
   eta: {
-    ...typography.bodySmall,
+    fontSize: 11,
     color: colors.textSecondary,
     fontWeight: '500',
   },

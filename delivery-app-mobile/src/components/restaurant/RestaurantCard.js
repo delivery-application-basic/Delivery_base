@@ -146,9 +146,15 @@ const styles = StyleSheet.create({
     minHeight: 24, // Ensure minimum height for text
   },
   name: {
+<<<<<<< HEAD
     fontSize: 18, // Fixed size for consistency
     fontWeight: '700',
     color: colors.text,
+=======
+    fontSize: 16,
+    color: colors.text,
+    fontWeight: '700',
+>>>>>>> 764fb5e (fixed the ui text on all pages)
     flex: 1,
     marginRight: moderateScale(8),
     includeFontPadding: false,
@@ -156,7 +162,11 @@ const styles = StyleSheet.create({
     lineHeight: 22, // Fixed line height
   },
   fee: {
+<<<<<<< HEAD
     fontSize: typography.fontSize.sm,
+=======
+    fontSize: 12,
+>>>>>>> 764fb5e (fixed the ui text on all pages)
     fontWeight: '700',
     color: colors.primary,
     includeFontPadding: false,
@@ -166,7 +176,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cuisine: {
+<<<<<<< HEAD
     fontSize: typography.fontSize.sm,
+=======
+    fontSize: 12,
+>>>>>>> 764fb5e (fixed the ui text on all pages)
     color: colors.textSecondary,
     fontWeight: '500',
     includeFontPadding: false,
@@ -179,7 +193,11 @@ const styles = StyleSheet.create({
     marginHorizontal: moderateScale(8),
   },
   time: {
+<<<<<<< HEAD
     fontSize: typography.fontSize.sm,
+=======
+    fontSize: 12,
+>>>>>>> 764fb5e (fixed the ui text on all pages)
     color: colors.textSecondary,
     fontWeight: '500',
     includeFontPadding: false,

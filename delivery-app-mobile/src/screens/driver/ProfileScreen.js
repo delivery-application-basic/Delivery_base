@@ -12,8 +12,8 @@ export default function DriverProfileScreen() {
   const name = user?.full_name ?? user?.name ?? 'Driver';
   return (
     <View style={{ padding: layout.screenPadding }}>
-      <Text style={typography.h2}>Profile</Text>
-      <Text style={typography.body}>{name}</Text>
+      <Text style={{ fontSize: 18, fontWeight: '700', color: colors.text }}>Profile</Text>
+      <Text style={{ fontSize: 14, color: colors.text }}>{name}</Text>
       <Button title="Logout" onPress={() => dispatch(logout())} mode="outlined" style={{ marginTop: 16 }} />
     </View>
   );

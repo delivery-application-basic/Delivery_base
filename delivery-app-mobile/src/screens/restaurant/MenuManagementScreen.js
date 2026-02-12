@@ -135,12 +135,12 @@ const styles = StyleSheet.create({
     ...shadows.small,
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: '800',
     color: colors.text,
   },
   headerSubtitle: {
-    fontSize: 14,
+    fontSize: 12,
     color: colors.textSecondary,
     fontWeight: '500',
   },
@@ -209,19 +209,19 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   itemName: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '700',
     color: colors.text,
     flex: 1,
     marginRight: 8,
   },
   itemPrice: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '800',
     color: colors.primary,
   },
   itemCategory: {
-    fontSize: 12,
+    fontSize: 10,
     color: colors.textLight,
     fontWeight: '500',
     marginTop: -4,

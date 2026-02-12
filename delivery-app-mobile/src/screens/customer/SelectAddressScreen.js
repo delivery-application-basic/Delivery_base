@@ -125,10 +125,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   title: {
-    ...typography.h2,
+    fontSize: 18,
     color: colors.text,
     fontWeight: '700',
-    fontSize: 22,
   },
   list: {
     padding: layout.screenPadding,

@@ -141,10 +141,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   title: {
-    ...typography.h2,
+    fontSize: 18,
     color: colors.text,
     fontWeight: '700',
-    fontSize: 22,
   },
   scrollContent: {
     paddingHorizontal: layout.screenPadding,
@@ -160,12 +159,12 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   id: {
-    ...typography.h3,
+    fontSize: 16,
     color: colors.text,
     fontWeight: '700',
   },
   date: {
-    ...typography.bodySmall,
+    fontSize: 11,
     color: colors.textLight,
     marginTop: 4,
   },
@@ -179,12 +178,12 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   restaurantName: {
-    ...typography.h4,
+    fontSize: 14,
     color: colors.text,
     fontWeight: '600',
   },
   address: {
-    ...typography.bodySmall,
+    fontSize: 11,
     color: colors.textSecondary,
     marginLeft: 28,
   },
@@ -192,7 +191,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   sectionTitle: {
-    ...typography.h4,
+    fontSize: 14,
     fontWeight: '700',
     color: colors.text,
     marginBottom: spacing.md,
@@ -212,13 +211,13 @@ const styles = StyleSheet.create({
     marginRight: spacing.md,
   },
   quantityText: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '700',
     color: colors.primary,
   },
   itemName: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 14,
     color: colors.text,
   },
   summarySection: {

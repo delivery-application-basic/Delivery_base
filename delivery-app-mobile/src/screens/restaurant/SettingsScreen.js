@@ -149,10 +149,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   headerTitle: {
-    ...typography.h2,
+    fontSize: 18,
     color: colors.text,
     fontWeight: '700',
-    fontSize: 22,
   },
   scrollContent: {
     padding: layout.screenPadding,
@@ -161,7 +160,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   sectionTitle: {
-    ...typography.bodySmall,
+    fontSize: 11,
     color: colors.textLight,
     fontWeight: '700',
     textTransform: 'uppercase',
@@ -205,12 +204,12 @@ const styles = StyleSheet.create({
     marginRight: spacing.md,
   },
   settingTitle: {
-    ...typography.body,
+    fontSize: 14,
     fontWeight: '700',
     color: colors.text,
   },
   settingSubtitle: {
-    ...typography.bodySmall,
+    fontSize: 11,
     color: colors.textLight,
     marginTop: 2,
   },

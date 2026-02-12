@@ -85,7 +85,6 @@ export default function CartScreen() {
           title="Proceed to checkout"
           onPress={() => navigation.navigate('Checkout')}
           style={styles.btn}
-          contentStyle={{ height: 50 }}
         />
       </View>
     </View>
@@ -111,10 +110,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   title: {
-    ...typography.h2,
+    fontSize: 16,
     color: colors.text,
     fontWeight: '700',
-    fontSize: 22,
   },
   restaurantContainer: {
     flexDirection: 'row',
@@ -128,7 +126,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   restaurant: {
-    fontSize: 16,
+    fontSize: 12,
     fontWeight: '600',
     color: colors.textSecondary,
   },

@@ -213,10 +213,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   headerTitle: {
-    ...typography.h2,
+    fontSize: 18,
     color: colors.text,
     fontWeight: '700',
-    fontSize: 22,
   },
   scrollContent: {
     padding: layout.screenPadding,
@@ -232,24 +231,23 @@ const styles = StyleSheet.create({
     ...shadows.medium,
   },
   orderId: {
-    ...typography.h3,
+    fontSize: 16,
     fontWeight: '800',
     color: colors.text,
     marginBottom: 4,
   },
   orderDate: {
-    ...typography.bodySmall,
+    fontSize: 11,
     color: colors.textLight,
   },
   section: {
     marginBottom: spacing.lg,
   },
   sectionTitle: {
-    ...typography.h4,
+    fontSize: 14,
     color: colors.text,
     fontWeight: '700',
     marginBottom: spacing.sm,
-    paddingLeft: 4,
   },
   infoCard: {
     backgroundColor: colors.white,
@@ -264,7 +262,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   infoText: {
-    ...typography.body,
+    fontSize: 14,
     color: colors.text,
     flex: 1,
   },
@@ -297,18 +295,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   itemName: {
-    ...typography.body,
+    fontSize: 14,
     fontWeight: '600',
     color: colors.text,
   },
   specialInstructions: {
-    ...typography.bodySmall,
+    fontSize: 11,
     color: colors.warning,
     fontStyle: 'italic',
     marginTop: 2,
   },
   itemPrice: {
-    ...typography.body,
+    fontSize: 14,
     fontWeight: '700',
     color: colors.text,
     marginLeft: 12,
@@ -325,11 +323,11 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   summaryLabel: {
-    ...typography.body,
+    fontSize: 14,
     color: colors.textLight,
   },
   summaryValue: {
-    ...typography.body,
+    fontSize: 14,
     color: colors.text,
     fontWeight: '500',
   },
@@ -340,12 +338,12 @@ const styles = StyleSheet.create({
     borderTopColor: colors.gray[100],
   },
   totalLabel: {
-    ...typography.h3,
+    fontSize: 16,
     fontWeight: '700',
     color: colors.text,
   },
   totalValue: {
-    ...typography.h3,
+    fontSize: 16,
     fontWeight: '700',
     color: colors.primary,
   },
@@ -360,11 +358,11 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   paymentLabel: {
-    ...typography.bodySmall,
+    fontSize: 11,
     color: colors.textLight,
   },
   paymentValue: {
-    ...typography.bodySmall,
+    fontSize: 11,
     fontWeight: '700',
     color: colors.text,
   },

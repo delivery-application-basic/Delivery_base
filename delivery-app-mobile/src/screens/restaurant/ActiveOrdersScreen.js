@@ -99,12 +99,12 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   headerTitle: {
-    fontSize: 22,
+    fontSize: 18,
     color: colors.text,
     fontWeight: '800',
   },
   headerSubtitle: {
-    fontSize: 12,
+    fontSize: 10,
     color: colors.textSecondary,
     fontWeight: '500',
   },

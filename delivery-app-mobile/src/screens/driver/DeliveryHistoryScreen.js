@@ -90,13 +90,12 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   headerTitle: {
-    ...typography.h2,
+    fontSize: 18,
     color: colors.text,
     fontWeight: '700',
-    fontSize: 22,
   },
   headerSubtitle: {
-    ...typography.bodySmall,
+    fontSize: 11,
     color: colors.textLight,
   },
   list: {

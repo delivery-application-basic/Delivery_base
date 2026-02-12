@@ -218,7 +218,11 @@ const styles = StyleSheet.create({
     marginTop: spacingTheme.md,
   },
   name: {
+<<<<<<< HEAD
     fontSize: 24,
+=======
+    fontSize: 16,
+>>>>>>> 764fb5e (fixed the ui text on all pages)
     fontWeight: '700',
     color: colors.text,
     flex: 1,
@@ -227,7 +231,12 @@ const styles = StyleSheet.create({
     lineHeight: 30,
   },
   price: {
+<<<<<<< HEAD
     fontSize: 24,
+=======
+    fontSize: 16,
+    color: colors.primary,
+>>>>>>> 764fb5e (fixed the ui text on all pages)
     fontWeight: '700',
     color: colors.primary,
     includeFontPadding: false,
@@ -247,6 +256,7 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
   desc: {
+<<<<<<< HEAD
     fontSize: 16,
     fontWeight: '400',
     color: colors.textSecondary,
@@ -267,6 +277,11 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: colors.textSecondary,
     includeFontPadding: false,
+=======
+    fontSize: 12,
+    color: colors.textSecondary,
+    lineHeight: 18,
+>>>>>>> 764fb5e (fixed the ui text on all pages)
   },
   footer: {
     position: 'absolute',
@@ -279,6 +294,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     ...shadows.large,
   },
+<<<<<<< HEAD
   addToCartButton: {
     backgroundColor: colors.primary,
     borderRadius: moderateScale(12),
@@ -308,5 +324,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: spacingTheme.sm,
     includeFontPadding: false,
+=======
+  btnAdd: {
+    // Remove fixed height to prevent text clipping
+>>>>>>> 764fb5e (fixed the ui text on all pages)
   },
 });

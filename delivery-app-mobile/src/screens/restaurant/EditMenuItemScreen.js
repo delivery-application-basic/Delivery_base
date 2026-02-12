@@ -213,10 +213,10 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   headerTitle: {
-    ...typography.h2,
+    fontSize: 18,
     color: colors.text,
     fontWeight: '700',
-    fontSize: 22,
+    fontSize: 18,
     flex: 1,
   },
   deleteButton: {
@@ -238,12 +238,12 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.lg,
   },
   availabilityTitle: {
-    ...typography.body,
+    fontSize: 14,
     fontWeight: '700',
     color: colors.text,
   },
   availabilitySubtitle: {
-    ...typography.bodySmall,
+    fontSize: 11,
     color: colors.textLight,
   },
   divider: {
@@ -252,7 +252,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   sectionLabel: {
-    ...typography.bodySmall,
+    fontSize: 11,
     color: colors.primary,
     fontWeight: '700',
     textTransform: 'uppercase',
@@ -277,9 +277,9 @@ const styles = StyleSheet.create({
   },
   infoText: {
     flex: 1,
-    ...typography.bodySmall,
+    fontSize: 11,
     color: colors.textSecondary,
-    lineHeight: 18,
+    lineHeight: 16,
   },
   footer: {
     padding: layout.screenPadding,

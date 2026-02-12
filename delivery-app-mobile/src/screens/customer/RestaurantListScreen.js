@@ -87,7 +87,7 @@ const styles = StyleSheet.create({
     marginRight: spacing.sm,
   },
   title: {
-    ...typography.h2,
+    fontSize: 18,
     color: colors.text,
     fontWeight: '700',
     flex: 1,

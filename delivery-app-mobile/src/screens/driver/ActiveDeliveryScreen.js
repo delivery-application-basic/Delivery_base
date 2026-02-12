@@ -226,10 +226,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   headerTitle: {
-    ...typography.h2,
+    fontSize: 18,
     color: colors.text,
     fontWeight: '700',
-    fontSize: 22,
   },
   scrollContent: {
     padding: layout.screenPadding,
@@ -245,12 +244,12 @@ const styles = StyleSheet.create({
     ...shadows.medium,
   },
   orderId: {
-    ...typography.h3,
+    fontSize: 16,
     fontWeight: '800',
     color: colors.text,
   },
   orderTime: {
-    ...typography.bodySmall,
+    fontSize: 11,
     color: colors.textLight,
   },
   stepContainer: {
@@ -315,13 +314,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   locationTitle: {
-    ...typography.body,
+    fontSize: 14,
     fontWeight: '700',
     color: colors.text,
     marginBottom: 4,
   },
   locationSubtitle: {
-    ...typography.bodySmall,
+    fontSize: 11,
     color: colors.textSecondary,
     marginBottom: 12,
   },
@@ -345,7 +344,7 @@ const styles = StyleSheet.create({
     ...shadows.small,
   },
   sectionTitle: {
-    ...typography.h4,
+    fontSize: 14,
     fontWeight: '700',
     marginBottom: spacing.md,
   },
@@ -355,11 +354,11 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   itemLabel: {
-    ...typography.body,
+    fontSize: 14,
     color: colors.textSecondary,
   },
   itemValue: {
-    ...typography.body,
+    fontSize: 14,
     fontWeight: '600',
     color: colors.text,
   },

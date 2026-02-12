@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   headerTitle: {
-    ...typography.h3,
+    fontSize: 16,
     color: colors.text,
     fontWeight: '700',
     flex: 1,
@@ -157,9 +157,9 @@ const styles = StyleSheet.create({
   },
   infoText: {
     flex: 1,
-    ...typography.bodySmall,
+    fontSize: 11,
     color: colors.textSecondary,
-    lineHeight: 18,
+    lineHeight: 16,
   },
   scheduleCard: {
     backgroundColor: colors.white,
@@ -179,7 +179,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   dayName: {
-    ...typography.body,
+    fontSize: 14,
     fontWeight: '700',
     color: colors.text,
   },
@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
     borderColor: colors.gray[200],
   },
   timeText: {
-    ...typography.bodySmall,
+    fontSize: 11,
     fontWeight: '700',
     color: colors.text,
   },
@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   closedText: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '800',
     color: colors.textLight,
     letterSpacing: 1,

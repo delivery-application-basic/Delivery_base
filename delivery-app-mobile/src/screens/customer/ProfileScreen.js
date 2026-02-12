@@ -157,10 +157,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
   },
   screenTitle: {
-    ...typography.h2,
+    fontSize: 18,
     color: colors.text,
     fontWeight: '700',
-    fontSize: 22,
   },
   header: {
     flexDirection: 'row',
@@ -175,12 +174,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   name: {
-    ...typography.h3,
+    fontSize: 16,
     color: colors.text,
     fontWeight: '700',
   },
   email: {
-    ...typography.bodySmall,
+    fontSize: 12,
     color: colors.textSecondary,
   },
   editButton: {
@@ -210,7 +209,7 @@ const styles = StyleSheet.create({
   },
   menuItemText: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     color: colors.text,
   },
@@ -230,7 +229,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   switchAccountText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '700',
     color: colors.primary,
   },
@@ -247,7 +246,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   logoutText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '700',
     color: colors.error,
   },
@@ -255,6 +254,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: spacing.xl,
     color: colors.textLight,
-    fontSize: 12,
+    fontSize: 10,
   },
 });

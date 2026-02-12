@@ -186,7 +186,13 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   name: {
+<<<<<<< HEAD
     fontSize: 24,
+=======
+    fontSize: 18,
+    color: colors.text,
+    fontSize: 18,
+>>>>>>> 764fb5e (fixed the ui text on all pages)
     fontWeight: '700',
     color: colors.text,
     marginBottom: moderateScale(4),
@@ -194,7 +200,13 @@ const styles = StyleSheet.create({
     lineHeight: 28,
   },
   cuisine: {
+<<<<<<< HEAD
     fontSize: 16,
+=======
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginBottom: 12,
+>>>>>>> 764fb5e (fixed the ui text on all pages)
     fontWeight: '500',
     color: colors.textSecondary,
     marginBottom: spacing.md,
@@ -233,15 +245,19 @@ const styles = StyleSheet.create({
     gap: moderateScale(6),
   },
   address: {
+<<<<<<< HEAD
     fontSize: 14,
     fontWeight: '400',
+=======
+    fontSize: 11,
+>>>>>>> 764fb5e (fixed the ui text on all pages)
     color: colors.textLight,
     flex: 1,
     includeFontPadding: false,
     lineHeight: 18,
   },
   menuTitle: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: '700',
     color: colors.text,
     marginBottom: spacing.md,

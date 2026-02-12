@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   title: {
-    ...typography.h3,
+    fontSize: 16,
     color: colors.text,
     fontWeight: '700',
   },

@@ -62,8 +62,8 @@ export default function CustomerRegisterScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { padding: spacing.xl, paddingTop: 48, backgroundColor: colors.background },
-  title: { ...typography.h2, marginBottom: spacing.lg },
-  formError: { color: colors.error, marginBottom: spacing.sm },
+  container: { padding: 16, paddingTop: 32, backgroundColor: colors.background },
+  title: { fontSize: 20, fontWeight: '700', marginBottom: 16 },
+  formError: { color: colors.error, fontSize: 12, marginBottom: spacing.sm },
   btn: { marginTop: spacing.sm },
 });

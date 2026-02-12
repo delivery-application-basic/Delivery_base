@@ -6,7 +6,7 @@ import { layout } from '../../theme/spacing';
 export default function SettingsScreen() {
   return (
     <View style={{ padding: layout.screenPadding }}>
-      <Text style={typography.h2}>Settings</Text>
+      <Text style={{ fontSize: 18, fontWeight: '700', color: colors.text }}>Settings</Text>
     </View>
   );
 }

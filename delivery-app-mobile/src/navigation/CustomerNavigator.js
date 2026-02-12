@@ -98,15 +98,15 @@ const CustomerNavigator = () => {
           shadowRadius: 4,
         },
         tabBarLabelStyle: {
-          fontSize: 11,
+          fontSize: 10,
           fontWeight: '600',
-          marginBottom: insets.bottom > 0 ? 0 : 4,
+          marginBottom: insets.bottom > 0 ? 0 : 2,
         },
         tabBarIconStyle: {
-          marginBottom: -2,
+          marginBottom: -1,
         },
         tabBarItemStyle: {
-          paddingVertical: 4,
+          paddingVertical: 2,
         },
       }}
     >
@@ -114,7 +114,7 @@ const CustomerNavigator = () => {
         name="Home"
         component={HomeStack}
         options={{
-          tabBarIcon: ({ color, size = 26 }) => (
+          tabBarIcon: ({ color, size = 22 }) => (
             <Icon source="home" size={size} color={color} />
           ),
           tabBarLabel: 'Home',
@@ -124,7 +124,7 @@ const CustomerNavigator = () => {
         name="Orders"
         component={OrdersStack}
         options={{
-          tabBarIcon: ({ color, size = 26 }) => (
+          tabBarIcon: ({ color, size = 22 }) => (
             <Icon source="clipboard-list" size={size} color={color} />
           ),
           tabBarLabel: 'Orders',
@@ -134,7 +134,7 @@ const CustomerNavigator = () => {
         name="Profile"
         component={ProfileStack}
         options={{
-          tabBarIcon: ({ color, size = 26 }) => (
+          tabBarIcon: ({ color, size = 22 }) => (
             <Icon source="account" size={size} color={color} />
           ),
           tabBarLabel: 'Profile',

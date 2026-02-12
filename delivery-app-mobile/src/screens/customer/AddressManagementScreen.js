@@ -230,10 +230,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   title: {
-    ...typography.h2,
+    fontSize: 18,
     color: colors.text,
     fontWeight: '700',
-    fontSize: 22,
     flex: 1,
   },
   headerActionButton: {
@@ -259,7 +258,7 @@ const styles = StyleSheet.create({
     padding: layout.screenPadding,
   },
   formTitle: {
-    ...typography.h3,
+    fontSize: 16,
     color: colors.text,
     marginBottom: spacing.lg,
     fontWeight: '700',

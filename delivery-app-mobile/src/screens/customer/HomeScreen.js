@@ -183,7 +183,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
   },
   deliveryLabel: {
+<<<<<<< HEAD
     fontSize: typography.fontSize.xs,
+=======
+    fontSize: 10,
+>>>>>>> 764fb5e (fixed the ui text on all pages)
     color: colors.textLight,
     fontWeight: '500',
     textTransform: 'uppercase',
@@ -194,7 +198,11 @@ const styles = StyleSheet.create({
     gap: moderateScale(4),
   },
   locationText: {
+<<<<<<< HEAD
     fontSize: typography.fontSize.md,
+=======
+    fontSize: 14,
+>>>>>>> 764fb5e (fixed the ui text on all pages)
     fontWeight: '700',
     color: colors.text,
   },
@@ -219,6 +227,7 @@ const styles = StyleSheet.create({
   },
   categoryItem: {
     alignItems: 'center',
+<<<<<<< HEAD
     width: scale(70),
   },
   categoryIconContainer: {
@@ -233,6 +242,22 @@ const styles = StyleSheet.create({
   },
   categoryText: {
     fontSize: typography.fontSize.xs,
+=======
+    width: 60,
+  },
+  categoryIconContainer: {
+    width: 50,
+    height: 50,
+    backgroundColor: colors.gray[50],
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 6,
+    ...shadows.small,
+  },
+  categoryText: {
+    fontSize: 10,
+>>>>>>> 764fb5e (fixed the ui text on all pages)
     fontWeight: '600',
     color: colors.text,
     textAlign: 'center',
@@ -245,12 +270,20 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   sectionTitle: {
+<<<<<<< HEAD
     fontSize: typography.fontSize.xl,
+=======
+    fontSize: 18,
+>>>>>>> 764fb5e (fixed the ui text on all pages)
     fontWeight: '700',
     color: colors.text,
   },
   seeAllText: {
+<<<<<<< HEAD
     fontSize: typography.fontSize.sm,
+=======
+    fontSize: 12,
+>>>>>>> 764fb5e (fixed the ui text on all pages)
     color: colors.primary,
     fontWeight: '600',
   },

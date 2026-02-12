@@ -66,7 +66,7 @@ export default function MenuScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  title: { ...typography.h2, padding: layout.screenPadding },
+  title: { fontSize: 18, padding: layout.screenPadding },
   list: { padding: layout.screenPadding },
   cartBtn: { margin: layout.screenPadding },
 });
