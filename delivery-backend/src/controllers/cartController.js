@@ -156,7 +156,55 @@ exports.updateItem = async (req, res, next) => {
         cartItem.quantity = quantity;
         await cartItem.save();
 
-        return res.status(200).json({ success: true, data: { cart_item: cartItem } });
+        // Fetch the updated cart with items
+        const updatedCart = await Cart.findOne({
+            where: { customer_id: customerId },
+            include: [
+                { model: Restaurant, as: 'restaurant', attributes: ['restaurant_id', 'restaurant_name', 'street_address', 'city'] },
+                {
+                    model: CartItem,
+                    as: 'items',
+                    include: [{ model: MenuItem, as: 'product', attributes: ['item_id', 'item_name', 'price', 'image_url', 'is_available'] }]
+                }
+            ]
+        });
+
+        if (!updatedCart) {
+            return res.status(200).json({
+                success: true,
+                data: { cart: null, items: [], subtotal: 0, restaurant: null }
+            });
+        }
+
+        const items = updatedCart.items || [];
+        let subtotal = 0;
+        const invalidItems = [];
+
+        for (const ci of items) {
+            const product = ci.product;
+            if (!product) {
+                invalidItems.push(ci.cart_item_id);
+                continue;
+            }
+            const lineTotal = parseFloat(product.price) * (ci.quantity || 0);
+            subtotal += lineTotal;
+        }
+
+        const response = {
+            cart_id: updatedCart.cart_id,
+            restaurant_id: updatedCart.restaurant_id,
+            restaurant: updatedCart.restaurant,
+            items: items.map((ci) => ({
+                cart_item_id: ci.cart_item_id,
+                item_id: ci.item_id,
+                quantity: ci.quantity,
+                product: ci.product,
+                line_total: parseFloat(ci.product?.price || 0) * (ci.quantity || 0)
+            })),
+            subtotal: Math.round(subtotal * 100) / 100
+        };
+
+        return res.status(200).json({ success: true, data: response });
     } catch (error) {
         next(error);
     }
