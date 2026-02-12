@@ -1,4 +1,4 @@
-import { moderateScale } from '../utils/scaling';
+import { normalizeFont } from '../utils/scaling';
 
 // Typography configuration
 export const typography = {
@@ -9,16 +9,16 @@ export const typography = {
     bold: 'System',
   },
   
-  // Font sizes
+  // Font sizes - using normalizeFont for better consistency
   fontSize: {
-    xs: moderateScale(12),
-    sm: moderateScale(14),
-    md: moderateScale(16),
-    lg: moderateScale(18),
-    xl: moderateScale(20),
-    xxl: moderateScale(24),
-    xxxl: moderateScale(32),
-    display: moderateScale(40),
+    xs: normalizeFont(12),
+    sm: normalizeFont(14),
+    md: normalizeFont(16),
+    lg: normalizeFont(18),
+    xl: normalizeFont(20),
+    xxl: normalizeFont(24),
+    xxxl: normalizeFont(32),
+    display: normalizeFont(40),
   },
   
   // Line heights
@@ -39,42 +39,42 @@ export const typography = {
   
   // Text styles
   h1: {
-    fontSize: moderateScale(32),
+    fontSize: normalizeFont(32),
     fontWeight: '700',
     lineHeight: 1.2,
   },
   h2: {
-    fontSize: moderateScale(24),
+    fontSize: normalizeFont(24),
     fontWeight: '700',
     lineHeight: 1.3,
   },
   h3: {
-    fontSize: moderateScale(20),
+    fontSize: normalizeFont(20),
     fontWeight: '600',
     lineHeight: 1.4,
   },
   h4: {
-    fontSize: moderateScale(18),
+    fontSize: normalizeFont(18),
     fontWeight: '600',
     lineHeight: 1.4,
   },
   body: {
-    fontSize: moderateScale(16),
+    fontSize: normalizeFont(16),
     fontWeight: '400',
     lineHeight: 1.5,
   },
   bodySmall: {
-    fontSize: moderateScale(14),
+    fontSize: normalizeFont(14),
     fontWeight: '400',
     lineHeight: 1.5,
   },
   caption: {
-    fontSize: moderateScale(12),
+    fontSize: normalizeFont(12),
     fontWeight: '400',
     lineHeight: 1.4,
   },
   button: {
-    fontSize: moderateScale(16),
+    fontSize: normalizeFont(16),
     fontWeight: '600',
     lineHeight: 1.5,
   },

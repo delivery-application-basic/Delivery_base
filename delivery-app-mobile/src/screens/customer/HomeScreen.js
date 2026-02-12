@@ -3,7 +3,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
+import { View, StyleSheet, FlatList, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
@@ -14,6 +14,7 @@ import { RestaurantCard } from '../../components/restaurant/RestaurantCard';
 import { Loader } from '../../components/common/Loader';
 import { EmptyState } from '../../components/common/EmptyState';
 import { Button } from '../../components/common/Button';
+import { Text } from '../../components/common/Text';
 import { moderateScale, scale, verticalScale } from '../../utils/scaling';
 import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
@@ -51,16 +52,36 @@ export default function HomeScreen() {
     { id: '6', name: 'More', icon: 'dots-horizontal' },
   ];
 
-  const renderItem = ({ item }) => (
-    <RestaurantCard
-      name={item.restaurant_name}
-      cuisine={item.cuisine_type}
-      imageUrl={item.logo_url}
-      rating={item.rating || 4.5}
-      deliveryFee={item.delivery_fee}
-      onPress={() => navigation.navigate('RestaurantDetail', { restaurantId: item.restaurant_id })}
-    />
-  );
+  const renderItem = ({ item }) => {
+    // Ensure restaurant name is always a valid string - handle all possible field names
+    let restaurantName = 'Restaurant';
+    if (item.restaurant_name) {
+      restaurantName = String(item.restaurant_name).trim();
+    } else if (item.name) {
+      restaurantName = String(item.name).trim();
+    } else if (item.restaurantName) {
+      restaurantName = String(item.restaurantName).trim();
+    }
+    
+    // Fallback if name is empty or invalid
+    if (!restaurantName || restaurantName === '' || restaurantName === 'null' || restaurantName === 'undefined') {
+      restaurantName = 'Restaurant';
+    }
+    
+    // Ensure rating is valid
+    const restaurantRating = item.average_rating || item.rating || 4.5;
+    
+    return (
+      <RestaurantCard
+        name={restaurantName}
+        cuisine={item.cuisine_type || 'International'}
+        imageUrl={item.logo_url || item.cover_image_url}
+        rating={restaurantRating}
+        deliveryFee={item.delivery_fee || 0}
+        onPress={() => navigation.navigate('RestaurantDetail', { restaurantId: item.restaurant_id })}
+      />
+    );
+  };
 
   const renderHeader = () => (
     <View>

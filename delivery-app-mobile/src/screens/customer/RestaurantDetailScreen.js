@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, FlatList, Image, TouchableOpacity } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Icon } from 'react-native-paper';
@@ -10,6 +10,7 @@ import { MenuItemCard } from '../../components/menu/MenuItemCard';
 import { Button } from '../../components/common/Button';
 import { Loader } from '../../components/common/Loader';
 import { EmptyState } from '../../components/common/EmptyState';
+import { Text } from '../../components/common/Text';
 import { moderateScale, scale, verticalScale } from '../../utils/scaling';
 import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
@@ -39,39 +40,62 @@ export default function RestaurantDetailScreen() {
   const r = selectedRestaurant;
   const deliveryTime = '25-35 min';
 
-  const renderHeader = () => (
-    <View style={styles.headerContent}>
-      <View style={styles.infoCard}>
-        <Text style={styles.name}>{r.restaurant_name}</Text>
-        <Text style={styles.cuisine}>{r.cuisine_type || 'International'}</Text>
+  const renderHeader = () => {
+    // Ensure restaurant name is always valid
+    const restaurantName = (() => {
+      if (r.restaurant_name) return String(r.restaurant_name).trim();
+      if (r.name) return String(r.name).trim();
+      return 'Restaurant';
+    })();
+    
+    return (
+      <View style={styles.headerContent}>
+        <View style={styles.infoCard}>
+          <Text style={styles.name} allowFontScaling={false}>
+            {restaurantName}
+          </Text>
+          <Text style={styles.cuisine} allowFontScaling={false}>
+            {r.cuisine_type || 'International'}
+          </Text>
 
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
             <Icon source="star" size={16} color={colors.warning} />
-            <Text style={styles.statValue}>{Number(r.rating || 4.5).toFixed(1)}</Text>
+            <Text style={styles.statValue} allowFontScaling={false}>
+              {Number(r.average_rating || r.rating || 4.5).toFixed(1)}
+            </Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
             <Icon source="clock-outline" size={16} color={colors.primary} />
-            <Text style={styles.statValue}>{deliveryTime}</Text>
+            <Text style={styles.statValue} allowFontScaling={false}>
+              {deliveryTime}
+            </Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
             <Icon source="silverware-fork-knife" size={16} color={colors.primary} />
-            <Text style={styles.statValue}>{r.delivery_fee > 0 ? formatCurrency(r.delivery_fee) : 'FREE'}</Text>
+            <Text style={styles.statValue} allowFontScaling={false}>
+              {r.delivery_fee > 0 ? formatCurrency(r.delivery_fee) : 'FREE'}
+            </Text>
           </View>
         </View>
 
         {r.street_address && (
           <View style={styles.addressRow}>
             <Icon source="map-marker" size={16} color={colors.textLight} />
-            <Text style={styles.address} numberOfLines={1}>{r.street_address}, {r.city}</Text>
+            <Text style={styles.address} numberOfLines={1} allowFontScaling={false}>
+              {r.street_address}, {r.city}
+            </Text>
           </View>
         )}
       </View>
-      <Text style={styles.menuTitle}>Popular Items</Text>
+      <Text style={styles.menuTitle} allowFontScaling={false}>
+        Popular Items
+      </Text>
     </View>
-  );
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -162,15 +186,20 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   name: {
-    ...typography.h2,
+    fontSize: 24,
+    fontWeight: '700',
     color: colors.text,
     marginBottom: moderateScale(4),
+    includeFontPadding: false,
+    lineHeight: 28,
   },
   cuisine: {
-    ...typography.body,
+    fontSize: 16,
+    fontWeight: '500',
     color: colors.textSecondary,
     marginBottom: spacing.md,
-    fontWeight: '500',
+    includeFontPadding: false,
+    lineHeight: 20,
   },
   statsRow: {
     flexDirection: 'row',
@@ -188,9 +217,10 @@ const styles = StyleSheet.create({
     gap: moderateScale(4),
   },
   statValue: {
-    fontSize: typography.fontSize.sm,
+    fontSize: 14,
     fontWeight: '700',
     color: colors.text,
+    includeFontPadding: false,
   },
   statDivider: {
     width: 1,
@@ -203,15 +233,20 @@ const styles = StyleSheet.create({
     gap: moderateScale(6),
   },
   address: {
-    ...typography.bodySmall,
+    fontSize: 14,
+    fontWeight: '400',
     color: colors.textLight,
     flex: 1,
+    includeFontPadding: false,
+    lineHeight: 18,
   },
   menuTitle: {
-    fontSize: typography.fontSize.xl,
+    fontSize: 20,
     fontWeight: '700',
     color: colors.text,
     marginBottom: spacing.md,
+    includeFontPadding: false,
+    lineHeight: 24,
   },
   listContent: {
     paddingBottom: verticalScale(120),

@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, StatusBar } from 'react-native';
+import { View, StyleSheet, FlatList, TouchableOpacity, Image, StatusBar } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Icon } from 'react-native-paper';
@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fetchMenu } from '../../store/slices/menuSlice';
 import { Loader } from '../../components/common/Loader';
 import { EmptyState } from '../../components/common/EmptyState';
+import { Text } from '../../components/common/Text';
 import { layout, spacing } from '../../theme/spacing';
 import { typography } from '../../theme/typography';
 import { colors } from '../../theme/colors';

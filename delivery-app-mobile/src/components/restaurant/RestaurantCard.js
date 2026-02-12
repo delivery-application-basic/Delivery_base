@@ -3,10 +3,11 @@
  */
 
 import React from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Image, StyleSheet, TouchableOpacity } from 'react-native';
 import { Icon } from 'react-native-paper';
 import { moderateScale, scale, verticalScale } from '../../utils/scaling';
 import { Card } from '../common/Card';
+import { Text } from '../common/Text';
 import { colors } from '../../theme/colors';
 import { spacing, layout } from '../../theme/spacing';
 import { typography } from '../../theme/typography';
@@ -28,6 +29,16 @@ export const RestaurantCard = ({
   };
 
   const deliveryTime = '25-35 min'; // Mock estimation
+  
+  // Ensure name is always a valid string - handle all edge cases
+  const displayName = (() => {
+    if (!name) return 'Restaurant';
+    const trimmed = String(name).trim();
+    if (trimmed === '' || trimmed === 'null' || trimmed === 'undefined') {
+      return 'Restaurant';
+    }
+    return trimmed;
+  })();
 
   return (
     <Card onPress={handlePress} style={styles.card}>
@@ -48,13 +59,31 @@ export const RestaurantCard = ({
       </View>
       <View style={styles.info}>
         <View style={styles.nameRow}>
-          <Text style={styles.name} numberOfLines={1}>{name}</Text>
-          <Text style={styles.fee}>{deliveryFee > 0 ? formatCurrency(deliveryFee) : 'FREE'}</Text>
+          <Text 
+            style={styles.name} 
+            numberOfLines={1} 
+            ellipsizeMode="tail"
+            allowFontScaling={false}
+          >
+            {displayName}
+          </Text>
+          <Text style={styles.fee} allowFontScaling={false}>
+            {deliveryFee > 0 ? formatCurrency(deliveryFee) : 'FREE'}
+          </Text>
         </View>
         <View style={styles.metaRow}>
-          <Text style={styles.cuisine} numberOfLines={1}>{cuisine || 'International'}</Text>
+          <Text 
+            style={styles.cuisine} 
+            numberOfLines={1} 
+            ellipsizeMode="tail"
+            allowFontScaling={false}
+          >
+            {cuisine || 'International'}
+          </Text>
           <View style={styles.dot} />
-          <Text style={styles.time}>{deliveryTime}</Text>
+          <Text style={styles.time} allowFontScaling={false}>
+            {deliveryTime}
+          </Text>
         </View>
       </View>
     </Card>
@@ -104,6 +133,7 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.xs,
     fontWeight: '700',
     color: colors.text,
+    includeFontPadding: false,
   },
   info: {
     padding: spacing.md,
@@ -111,20 +141,25 @@ const styles = StyleSheet.create({
   nameRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: moderateScale(4),
+    minHeight: 24, // Ensure minimum height for text
   },
   name: {
-    ...typography.h4,
-    color: colors.text,
+    fontSize: 18, // Fixed size for consistency
     fontWeight: '700',
+    color: colors.text,
     flex: 1,
     marginRight: moderateScale(8),
+    includeFontPadding: false,
+    textAlignVertical: 'center',
+    lineHeight: 22, // Fixed line height
   },
   fee: {
     fontSize: typography.fontSize.sm,
     fontWeight: '700',
     color: colors.primary,
+    includeFontPadding: false,
   },
   metaRow: {
     flexDirection: 'row',
@@ -134,6 +169,7 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.sm,
     color: colors.textSecondary,
     fontWeight: '500',
+    includeFontPadding: false,
   },
   dot: {
     width: moderateScale(4),
@@ -146,6 +182,7 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.sm,
     color: colors.textSecondary,
     fontWeight: '500',
+    includeFontPadding: false,
   },
 });
 

@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect } from 'react';
-import { StatusBar, StyleSheet, useColorScheme, View, ActivityIndicator } from 'react-native';
+import { StatusBar, StyleSheet, useColorScheme, View, ActivityIndicator, Text, TextInput } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Provider } from 'react-redux';
 import { PaperProvider, configureFonts, DefaultTheme } from 'react-native-paper';
@@ -14,6 +14,13 @@ import AppNavigator from './src/navigation/AppNavigator';
 import { paperLightTheme, paperDarkTheme } from './src/theme/paperTheme';
 import { initializeSocket } from './src/socket/socket';
 import { colors } from './src/theme/colors';
+
+// Disable font scaling globally for Text and TextInput components
+if (Text.defaultProps == null) Text.defaultProps = {};
+Text.defaultProps.allowFontScaling = false;
+
+if (TextInput.defaultProps == null) TextInput.defaultProps = {};
+TextInput.defaultProps.allowFontScaling = false;
 
 function App() {
   const isDarkMode = useColorScheme() === 'dark';
