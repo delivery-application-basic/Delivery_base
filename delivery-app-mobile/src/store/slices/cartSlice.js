@@ -141,8 +141,9 @@ const cartSlice = createSlice({
       })
       .addCase(updateCartItem.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.items = action.payload.items || [];
-        state.subtotal = action.payload.subtotal || 0;
+        const d = action.payload.data ?? action.payload;
+        state.items = d.items ?? [];
+        state.subtotal = d.subtotal ?? 0;
       })
       .addCase(updateCartItem.rejected, (state, action) => {
         state.isLoading = false;

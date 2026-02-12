@@ -42,6 +42,7 @@ const HomeStack = () => (
     <Stack.Screen name="Cart" component={CartScreen} />
     <Stack.Screen name="Checkout" component={CheckoutScreen} />
     <Stack.Screen name="SelectAddress" component={SelectAddressScreen} />
+    <Stack.Screen name="AddressManagement" component={AddressManagementScreen} />
   </Stack.Navigator>
 );
 
