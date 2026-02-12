@@ -1,3 +1,5 @@
+const fs = require('fs');
+const path = require('path');
 const {
     autoAssignDriver,
     manualAssignDriver,
@@ -8,6 +10,126 @@ const {
 } = require('../services/driverAssignmentService');
 const { Driver, Order, DriverAssignment, Restaurant, Address } = require('../models');
 const { USER_TYPES } = require('../utils/constants');
+const cloudinary = require('../config/cloudinary');
+
+const PROFILE_FIELDS = [
+    'driver_id', 'full_name', 'email', 'phone_number', 'profile_picture_url',
+    'driver_license_number', 'driver_license_image_url', 'id_card_number',
+    'id_card_image_url', 'vehicle_type', 'vehicle_plate_number', 'vehicle_image_url',
+    'is_available', 'is_verified', 'verification_status', 'average_rating',
+    'total_deliveries', 'total_earnings', 'joined_at', 'updated_at'
+];
+
+/**
+ * Get driver's own profile
+ * GET /api/v1/drivers/profile
+ * Access: Driver only
+ */
+exports.getProfile = async (req, res) => {
+    try {
+        const driver = req.user;
+
+        if (!driver) {
+            return res.status(401).json({
+                success: false,
+                message: 'Driver authentication required'
+            });
+        }
+
+        const profile = {};
+        PROFILE_FIELDS.forEach((field) => {
+            if (driver[field] !== undefined && driver[field] !== null) {
+                profile[field] = driver[field];
+            }
+        });
+
+        res.status(200).json({
+            success: true,
+            data: profile
+        });
+    } catch (error) {
+        res.status(error.statusCode || 500).json({
+            success: false,
+            message: error.message || 'Failed to get driver profile'
+        });
+    }
+};
+
+/**
+ * Upload driver profile picture
+ * POST /api/v1/drivers/profile/picture
+ * Access: Driver only
+ * Body: multipart form with "picture" file
+ * Uses Cloudinary if configured, otherwise saves locally to uploads/driver-profiles/
+ */
+exports.uploadProfilePicture = async (req, res) => {
+    try {
+        const driver = req.user;
+
+        if (!driver) {
+            return res.status(401).json({
+                success: false,
+                message: 'Driver authentication required'
+            });
+        }
+
+        if (!req.file || !req.file.buffer) {
+            return res.status(400).json({
+                success: false,
+                message: 'No image file provided'
+            });
+        }
+
+        const isCloudinaryConfigured = process.env.CLOUDINARY_CLOUD_NAME &&
+            process.env.CLOUDINARY_API_KEY &&
+            process.env.CLOUDINARY_API_SECRET &&
+            !process.env.CLOUDINARY_API_KEY.includes('your_');
+
+        let profilePictureUrl;
+
+        if (isCloudinaryConfigured) {
+            const b64 = Buffer.from(req.file.buffer).toString('base64');
+            const dataUri = `data:${req.file.mimetype};base64,${b64}`;
+            try {
+                const result = await cloudinary.uploader.upload(dataUri, {
+                    folder: 'driver-profiles',
+                    resource_type: 'image'
+                });
+                profilePictureUrl = result.secure_url;
+            } catch (cloudErr) {
+                return res.status(500).json({
+                    success: false,
+                    message: cloudErr.message || 'Failed to upload image'
+                });
+            }
+        } else {
+            const uploadsDir = path.join(__dirname, '../../uploads/driver-profiles');
+            if (!fs.existsSync(uploadsDir)) {
+                fs.mkdirSync(uploadsDir, { recursive: true });
+            }
+            const ext = (req.file.mimetype || '').includes('png') ? 'png' : 'jpg';
+            const filename = `driver-${driver.driver_id}-${Date.now()}.${ext}`;
+            const filepath = path.join(uploadsDir, filename);
+            fs.writeFileSync(filepath, req.file.buffer);
+            const host = req.get('host') || 'localhost:5000';
+            const protocol = req.protocol || 'http';
+            profilePictureUrl = `${protocol}://${host}/uploads/driver-profiles/${filename}`;
+        }
+
+        await driver.update({ profile_picture_url: profilePictureUrl });
+
+        res.status(200).json({
+            success: true,
+            message: 'Profile picture updated',
+            data: { profile_picture_url: profilePictureUrl }
+        });
+    } catch (error) {
+        res.status(error.statusCode || 500).json({
+            success: false,
+            message: error.message || 'Failed to upload profile picture'
+        });
+    }
+};
 
 /**
  * Auto-assign driver to order

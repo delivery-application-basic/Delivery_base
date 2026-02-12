@@ -79,6 +79,8 @@ const DriverNavigator = () => {
           bottom: 0,
           left: 0,
           right: 0,
+          elevation: 24,
+          zIndex: 999,
         },
         tabBarLabelStyle: {
           fontSize: 11,

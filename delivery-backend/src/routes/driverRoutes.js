@@ -1,6 +1,9 @@
 const express = require('express');
 const router = express.Router();
+const upload = require('../middleware/upload');
 const {
+    getProfile,
+    uploadProfilePicture,
     autoAssign,
     manualAssign,
     acceptOrder,
@@ -20,6 +23,31 @@ const {
     validateGetAvailableDrivers,
     validateAssignmentStatus
 } = require('../middleware/validators/driverValidator');
+
+/**
+ * Get driver's own profile
+ * GET /api/v1/drivers/profile
+ * Access: Driver only
+ */
+router.get(
+    '/profile',
+    protect,
+    authorize(USER_TYPES.DRIVER),
+    getProfile
+);
+
+/**
+ * Upload driver profile picture
+ * POST /api/v1/drivers/profile/picture
+ * Access: Driver only
+ */
+router.post(
+    '/profile/picture',
+    protect,
+    authorize(USER_TYPES.DRIVER),
+    upload.single('picture'),
+    uploadProfilePicture
+);
 
 /**
  * Auto-assign driver to order

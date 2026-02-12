@@ -53,4 +53,18 @@ export const driverService = {
   async updateDriverProfile(data) {
     return apiClient.put('/drivers/profile', data);
   },
+
+  // Upload profile picture
+  async uploadProfilePicture(imageUri, mimeType = 'image/jpeg') {
+    const ext = mimeType?.includes('png') ? 'png' : 'jpg';
+    const formData = new FormData();
+    formData.append('picture', {
+      uri: imageUri,
+      type: mimeType || 'image/jpeg',
+      name: `profile.${ext}`,
+    });
+    return apiClient.post('/drivers/profile/picture', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
 };

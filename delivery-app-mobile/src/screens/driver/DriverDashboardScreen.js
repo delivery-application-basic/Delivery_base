@@ -16,6 +16,7 @@ export default function DriverDashboardScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const { user } = useSelector((state) => state.auth);
+  const driverName = (user?.full_name ?? user?.name ?? 'Driver').trim().split(' ')[0] || 'Driver';
   const { orders, isLoading } = useSelector((state) => state.order);
 
   useEffect(() => {
@@ -45,14 +46,8 @@ export default function DriverDashboardScreen() {
       <View style={styles.header}>
         <View>
           <Text style={styles.headerSubtitle}>Ready for a shift?</Text>
-          <Text style={styles.headerTitle}>Hello, {user?.full_name?.split(' ')[0] || 'Driver'}</Text>
+          <Text style={styles.headerTitle}>Hello, {driverName}</Text>
         </View>
-        <TouchableOpacity
-          style={styles.profileButton}
-          onPress={() => navigation.navigate('Profile')}
-        >
-          <Icon source="account-circle-outline" size={32} color={colors.primary} />
-        </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -85,14 +80,14 @@ export default function DriverDashboardScreen() {
             value={todayOrders.length}
             icon="bike"
             color={colors.primary}
-            onPress={() => navigation.navigate('DeliveryHistory')}
+            onPress={() => navigation.getParent()?.navigate('History', { screen: 'DeliveryHistory' })}
           />
           <StatCard
             title="Earnings"
             value="ETB 0"
             icon="cash"
             color={colors.secondary}
-            onPress={() => navigation.navigate('Earnings')}
+            onPress={() => navigation.getParent()?.navigate('History', { screen: 'Earnings' })}
           />
         </View>
 
@@ -114,7 +109,7 @@ export default function DriverDashboardScreen() {
 
           <TouchableOpacity
             style={styles.actionCard}
-            onPress={() => navigation.navigate('DeliveryHistory')}
+            onPress={() => navigation.getParent()?.navigate('History', { screen: 'DeliveryHistory' })}
           >
             <View style={[styles.actionIcon, { backgroundColor: colors.info + '15' }]}>
               <Icon source="history" size={30} color={colors.info} />
@@ -162,9 +157,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: colors.text,
     fontWeight: '800',
-  },
-  profileButton: {
-    padding: 4,
   },
   scrollContent: {
     padding: layout.screenPadding,
