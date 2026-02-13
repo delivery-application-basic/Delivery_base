@@ -1,13 +1,13 @@
 // API Configuration
-// IMPORTANT: For physical devices, use your PC's Wi-Fi IPv4 address (run: ipconfig / Windows, ifconfig / Mac)
-// Your current Wi-Fi IP: 192.168.43.135 - update if your network changes!
+// IMPORTANT: For physical devices via USB (adb reverse), use localhost
+// Ensure you run: adb reverse tcp:5000 tcp:5000
 export const API_BASE_URL = __DEV__
-  ? 'http://192.168.43.135:5000/api/v1' // Development - use your local IP for physical devices
+  ? 'http://192.168.100.5:5000/api/v1' // Development - use localhost with adb reverse
   : 'https://your-production-api.com/api/v1'; // Production
 
-// For physical devices, replace with your computer's IP. Phone and PC must be on same Wi-Fi.
+// For physical devices via USB (adb reverse), use localhost
 export const SOCKET_URL = __DEV__
-  ? 'http://192.168.43.135:5000' // Development
+  ? 'http://192.168.100.5:5000' // Development
   : 'https://your-production-api.com'; // Production
 
 // App Constants
@@ -105,6 +105,13 @@ export const IMAGE_CONFIG = {
   MAX_SIZE: 5 * 1024 * 1024, // 5MB
   QUALITY: 0.8,
   ALLOWED_TYPES: ['image/jpeg', 'image/png', 'image/jpg'],
+};
+
+// Geocoding Configuration (Pelias / Geocode Earth)
+// Get your key at https://geocode.earth/ or use your own Pelias instance
+export const GEOCODING_CONFIG = {
+  API_KEY: 'ge-4f68755edf209e9b', // Replace with your key
+  BASE_URL: 'https://api.geocode.earth/v1', // Or your self-hosted Pelias URL
 };
 
 // Error Messages

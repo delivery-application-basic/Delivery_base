@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, PermissionsAndroid } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Icon } from 'react-native-paper';
@@ -14,6 +14,8 @@ import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
 import { layout, spacing } from '../../theme/spacing';
 import { shadows } from '../../theme/shadows';
+import Geolocation from '@react-native-community/geolocation';
+import { customerService } from '../../api/services/customerService';
 
 export default function CheckoutScreen() {
   const dispatch = useDispatch();
@@ -26,12 +28,71 @@ export default function CheckoutScreen() {
   const [addressId, setAddressId] = useState(route.params?.addressId || '');
   const [paymentMethod, setPaymentMethod] = useState(PAYMENT_METHODS.CASH);
   const [specialInstructions, setSpecialInstructions] = useState('');
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
+
+  const getCurrentLocation = async () => {
+    setIsGettingLocation(true);
+    try {
+      let granted = false;
+      if (Platform.OS === 'ios') {
+        const auth = await Geolocation.requestAuthorization('whenInUse');
+        granted = auth === 'granted';
+      } else {
+        const permission = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION);
+        granted = permission === PermissionsAndroid.RESULTS.GRANTED;
+      }
+      if (!granted) {
+        throw new Error('Location permission not granted');
+      }
+      // Proceed with getting location
+      Geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+          try {
+            // Reverse geocode using Pelias
+            const response = await fetch(`https://api.geocode.earth/v1/reverse?point.lat=${latitude}&point.lon=${longitude}&size=1`);
+            const data = await response.json();
+            if (data.features && data.features.length > 0) {
+              const feature = data.features[0];
+              const properties = feature.properties;
+              const addressData = {
+                address_label: 'Current Location',
+                street_address: properties.name || properties.label || 'Unknown Address',
+                city: properties.locality || properties.region || 'Unknown City',
+                sub_city: properties.neighbourhood || '',
+                latitude,
+                longitude,
+              };
+              const res = await customerService.addAddress(addressData);
+              setAddressId(res.data.address_id);
+            }
+          } catch (error) {
+            console.error('Geocoding error:', error);
+          }
+        },
+        (error) => {
+          console.error('Location error:', error); // Changed from console.log to console.error
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+      );
+    } catch (error) {
+      console.error('Location permission error:', error);
+    } finally {
+      setIsGettingLocation(false);
+    }
+  };
 
   useEffect(() => {
     if (route.params?.addressId) {
       setAddressId(route.params.addressId);
     }
   }, [route.params?.addressId]);
+
+  useEffect(() => {
+    if (!addressId && !isGettingLocation) {
+      getCurrentLocation();
+    }
+  }, [addressId, isGettingLocation]);
 
   const handlePlaceOrder = async () => {
     const numAddressId = parseInt(addressId, 10);
@@ -75,7 +136,7 @@ export default function CheckoutScreen() {
             <Icon source="map-marker-outline" size={24} color={colors.primary} />
             <View style={styles.addressInfo}>
               <Text style={styles.addressText}>
-                {addressId ? `Address ID: ${addressId}` : 'No address selected'}
+                {isGettingLocation ? 'Getting your location...' : addressId ? `Address ID: ${addressId}` : 'No address selected'}
               </Text>
             </View>
           </View>
