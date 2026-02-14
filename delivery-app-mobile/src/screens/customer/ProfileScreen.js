@@ -106,7 +106,14 @@ export default function ProfileScreen() {
             <TouchableOpacity
               key={item.id}
               style={styles.menuItem}
-              onPress={() => item.screen && navigation.navigate(item.screen)}
+              onPress={() => {
+                if (!item.screen) return;
+                if (item.screen === 'OrderHistory') {
+                  navigation.navigate('Orders', { screen: 'OrderHistory' });
+                  return;
+                }
+                navigation.navigate(item.screen);
+              }}
             >
               <View style={styles.menuIconContainer}>
                 <Icon source={item.icon} size={24} color={colors.primary} />

@@ -42,6 +42,7 @@ export default function OrderDetailScreen() {
 
   const o = selectedOrder;
   const canCancel = o.order_status === 'pending' || o.order_status === 'confirmed';
+  const canTrack = o.order_status !== 'cancelled' && o.order_status !== 'delivered';
 
   const renderHeader = () => (
     <View style={styles.header}>
@@ -111,11 +112,13 @@ export default function OrderDetailScreen() {
 
       <View style={[styles.actionsContainer, { paddingBottom: insets.bottom + spacing.md }]}>
         <View style={styles.actions}>
-          <Button
-            title="Track Order"
-            onPress={() => navigation.navigate('TrackOrder', { orderId: o.order_id })}
-            style={styles.trackBtn}
-          />
+          {canTrack && (
+            <Button
+              title="Track Order"
+              onPress={() => navigation.navigate('TrackOrder', { orderId: o.order_id })}
+              style={styles.trackBtn}
+            />
+          )}
           {canCancel && (
             <Button
               title="Cancel Order"
