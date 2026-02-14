@@ -281,12 +281,13 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     ...shadows.large,
   },
-  btnAdd: {
+  addToCartButton: {
     backgroundColor: colors.primary,
     borderRadius: moderateScale(12),
     justifyContent: 'center',
     alignItems: 'center',
     width: '100%',
+    paddingVertical: moderateScale(14),
   },
   buttonDisabled: {
     opacity: 0.6,
