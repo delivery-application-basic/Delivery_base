@@ -2,12 +2,12 @@
 // IMPORTANT: For physical devices, use your PC's Wi-Fi IPv4 address (run: ipconfig / Windows, ifconfig / Mac)
 // Your current Wi-Fi IP: 192.168.43.135 - update if your network changes!
 export const API_BASE_URL = __DEV__
-  ? 'http://192.168.43.135:5000/api/v1' // Development - use your local IP for physical devices
+  ? 'http://192.168.100.5:5000/api/v1' // Development - use your local IP for physical devices
   : 'https://your-production-api.com/api/v1'; // Production
 
 // For physical devices, replace with your computer's IP. Phone and PC must be on same Wi-Fi.
 export const SOCKET_URL = __DEV__
-  ? 'http://192.168.43.135:5000' // Development
+  ? 'http://192.168.100.5:5000' // Development
   : 'https://your-production-api.com'; // Production
 
 // App Constants
@@ -92,6 +92,12 @@ export const DELIVERY = {
   DEFAULT_RADIUS_KM: 10,
   ESTIMATED_TIME_MINUTES: 25,
   VERIFICATION_CODE_LENGTH: 6,
+};
+
+// Geocoding Configuration
+export const GEOCODE_CONFIG = {
+  API_KEY: 'ge-4f68755edf209e9b',
+  BASE_URL: 'https://api.geocode.earth/v1',
 };
 
 // Pagination

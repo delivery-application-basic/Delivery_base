@@ -32,10 +32,14 @@ export default function MenuItemDetailScreen() {
     if (menuItemId) dispatch(fetchMenuItemById(menuItemId));
   }, [dispatch, menuItemId]);
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (!menuItemId) return;
-    dispatch(addToCart({ menuItemId: parseInt(menuItemId, 10), quantity: 1 }));
-    navigation.navigate('Cart');
+    try {
+      await dispatch(addToCart({ menuItemId: parseInt(menuItemId, 10), quantity: 1 })).unwrap();
+      navigation.navigate('Cart');
+    } catch (error) {
+      console.error('Failed to add to cart:', error);
+    }
   };
 
   if (isLoading && !selectedMenuItem) return <Loader fullScreen />;

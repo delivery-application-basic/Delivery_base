@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: layout.screenPadding,
-    paddingBottom: spacing.lg,
+    paddingBottom: 100, // Increased padding to ensure room for buttons
   },
   orderHeader: {
     flexDirection: 'row',
