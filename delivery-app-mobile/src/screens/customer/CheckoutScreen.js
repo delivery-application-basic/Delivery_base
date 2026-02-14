@@ -106,8 +106,10 @@ export default function CheckoutScreen() {
   }, [addressId, getLocationWithPermission, isDetectingLocation]);
 
   useEffect(() => {
-    // Automatic detection disabled to ensure stability
-  }, []);
+    if (!addressId) {
+      detectLocation();
+    }
+  }, [addressId, detectLocation]);
 
   const handlePlaceOrder = async () => {
     const numAddressId = parseInt(addressId, 10);
@@ -169,15 +171,6 @@ export default function CheckoutScreen() {
             </Text>
           </View>
         </View>
-        {!addressId && !isDetectingLocation && (
-          <TouchableOpacity 
-            onPress={() => detectLocation(true)} 
-            style={styles.detectButton}
-          >
-            <Icon source="crosshairs-gps" size={16} color={colors.primary} />
-            <Text style={styles.detectButtonText}>Detect My Location</Text>
-          </TouchableOpacity>
-        )}
       </View>
     );
   };
@@ -320,24 +313,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.gray[50],
     borderRadius: 16,
   },
-  detectButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: spacing.sm,
-    backgroundColor: colors.primary + '10',
-    borderRadius: 12,
-    gap: 6,
-    borderWidth: 1,
-    borderColor: colors.primary + '30',
-  },
-  detectButtonText: {
-    fontSize: 12,
-    color: colors.primary,
-    fontWeight: '700',
-  },
   addressInfo: {
     flex: 1,
+    marginLeft: spacing.md,
   },
   addressLabel: {
     fontSize: 14,
