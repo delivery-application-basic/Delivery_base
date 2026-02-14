@@ -34,12 +34,18 @@ export const OrderTimeline = ({ timeline = [] }) => (
 
 const styles = StyleSheet.create({
   wrap: { paddingVertical: 8 },
-  item: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 4 },
+  item: { flexDirection: 'row', alignItems: 'flex-start', paddingBottom: 12 },
   dot: { width: 12, height: 12, borderRadius: 6, backgroundColor: colors.gray[300], marginRight: 12, marginTop: 4 },
   dotCompleted: { backgroundColor: colors.primary },
-  line: { position: 'absolute', left: 5, top: 16, bottom: -8, width: 2, backgroundColor: colors.gray[200] },
-  text: { flex: 1 },
-  label: { ...typography.bodySmall, fontWeight: '500' },
+  line: { position: 'absolute', left: 5, top: 16, bottom: 0, width: 2, backgroundColor: colors.gray[200] },
+  text: { flex: 1, minWidth: 0 },
+  label: {
+    fontSize: typography.fontSize.sm,
+    lineHeight: typography.fontSize.sm + 6,
+    color: colors.text,
+    fontWeight: '500',
+    flexShrink: 1,
+  },
   time: { fontSize: typography.fontSize.xs, color: colors.textSecondary },
 });
 

@@ -3,7 +3,7 @@
  */
 
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { useRoute } from '@react-navigation/native';
 import { fetchOrderTracking } from '../../store/slices/orderSlice';
@@ -66,7 +66,11 @@ export default function TrackOrderScreen() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {renderHeader()}
 
-      <View style={styles.content}>
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={[styles.contentContainer, { paddingBottom: insets.bottom + spacingTheme.xl }]}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.statusCard}>
           <Text style={styles.stageLabel}>{t.current_stage_label ?? 'Tracking Order'}</Text>
           {t.estimated_delivery_at && (
@@ -89,7 +93,7 @@ export default function TrackOrderScreen() {
             />
           </View>
         )}
-      </View>
+      </ScrollView>
     </View>
   );
 }
@@ -117,8 +121,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   content: {
-    flex: 1,
     paddingHorizontal: layout.screenPadding,
+  },
+  contentContainer: {
+    paddingTop: 0,
   },
   statusCard: {
     backgroundColor: colors.primary + '10',
@@ -142,7 +148,7 @@ const styles = StyleSheet.create({
     marginBottom: spacingTheme.xl,
   },
   mapContainer: {
-    flex: 1,
+    height: 240,
     borderRadius: 24,
     overflow: 'hidden',
     backgroundColor: colors.gray[100],

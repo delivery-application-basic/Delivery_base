@@ -28,13 +28,28 @@ const Row = ({ label, value }) => (
 );
 
 const styles = StyleSheet.create({
-  wrap: { paddingVertical: 8 },
+  wrap: { paddingVertical: 8, paddingBottom: 16 },
   row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
   label: { fontSize: typography.fontSize.sm, color: colors.textSecondary },
   value: { fontSize: typography.fontSize.sm },
-  total: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.border },
-  totalLabel: { ...typography.h4 },
-  totalValue: { ...typography.h4, color: colors.primary },
+  total: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+    paddingTop: 8,
+    paddingBottom: 2,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  totalLabel: {
+    ...typography.h4,
+    lineHeight: (typography?.h4?.fontSize || 16) + 6,
+  },
+  totalValue: {
+    ...typography.h4,
+    color: colors.primary,
+    lineHeight: (typography?.h4?.fontSize || 16) + 6,
+  },
 });
 
 export default OrderSummary;

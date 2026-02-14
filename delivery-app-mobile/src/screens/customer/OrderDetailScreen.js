@@ -58,7 +58,10 @@ export default function OrderDetailScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {renderHeader()}
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 140 }]}
+      >
         <View style={styles.orderHeader}>
           <View>
             <Text style={styles.id}>Order #{o.order_id}</Text>
@@ -104,7 +107,9 @@ export default function OrderDetailScreen() {
             total={o.total_amount}
           />
         </View>
+      </ScrollView>
 
+      <View style={[styles.actionsContainer, { paddingBottom: insets.bottom + spacing.md }]}>
         <View style={styles.actions}>
           <Button
             title="Track Order"
@@ -120,7 +125,7 @@ export default function OrderDetailScreen() {
             />
           )}
         </View>
-      </ScrollView>
+      </View>
     </View>
   );
 }
@@ -223,8 +228,16 @@ const styles = StyleSheet.create({
   summarySection: {
     backgroundColor: colors.gray[50],
     padding: spacing.md,
+    paddingBottom: spacing.lg,
     borderRadius: 16,
     marginBottom: spacing.xl,
+  },
+  actionsContainer: {
+    paddingHorizontal: layout.screenPadding,
+    paddingTop: spacing.md,
+    backgroundColor: colors.white,
+    borderTopWidth: 1,
+    borderTopColor: colors.borderLight,
   },
   actions: {
     gap: spacing.md,

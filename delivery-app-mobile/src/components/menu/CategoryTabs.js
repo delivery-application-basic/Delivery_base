@@ -25,7 +25,7 @@ export const CategoryTabs = ({ categories, selected, onSelect }) => (
 );
 
 const styles = StyleSheet.create({
-  scroll: { maxHeight: 48 },
+  scroll: { },
   content: { paddingVertical: spacing.sm, gap: spacing.sm },
   chip: { marginRight: spacing.sm },
 });
