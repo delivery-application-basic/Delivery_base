@@ -1,6 +1,10 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { restaurantService } from '../../api/services/restaurantService';
 
+function getErrorMessage(error) {
+  return error?.response?.data?.message || error?.message || 'Failed to fetch restaurants';
+}
+
 // Async thunks
 export const fetchRestaurants = createAsyncThunk(
   'restaurant/fetchRestaurants',
@@ -9,7 +13,7 @@ export const fetchRestaurants = createAsyncThunk(
       const response = await restaurantService.getRestaurants(filters, page, limit);
       return response.data;
     } catch (error) {
-      return rejectWithValue(error.message || 'Failed to fetch restaurants');
+      return rejectWithValue(getErrorMessage(error));
     }
   }
 );
@@ -21,7 +25,7 @@ export const fetchRestaurantById = createAsyncThunk(
       const response = await restaurantService.getRestaurantById(restaurantId);
       return response.data;
     } catch (error) {
-      return rejectWithValue(error.message || 'Failed to fetch restaurant');
+      return rejectWithValue(getErrorMessage(error));
     }
   }
 );
@@ -33,7 +37,7 @@ export const searchRestaurants = createAsyncThunk(
       const response = await restaurantService.searchRestaurants(query, filters);
       return response.data;
     } catch (error) {
-      return rejectWithValue(error.message || 'Failed to search restaurants');
+      return rejectWithValue(getErrorMessage(error));
     }
   }
 );
@@ -90,10 +94,12 @@ const restaurantSlice = createSlice({
       .addCase(fetchRestaurants.fulfilled, (state, action) => {
         const p = action.payload;
         state.isLoading = false;
-        state.restaurants = p.restaurants ?? p.data ?? [];
-        state.currentPage = p.current_page ?? 1;
-        state.totalPages = p.total_pages ?? 1;
-        state.totalCount = p.total_count ?? p.count ?? 0;
+        state.error = null;
+        const raw = p?.restaurants ?? p?.data ?? p;
+        state.restaurants = Array.isArray(raw) ? raw : [];
+        state.currentPage = p?.current_page ?? 1;
+        state.totalPages = p?.total_pages ?? 1;
+        state.totalCount = p?.total_count ?? p?.count ?? state.restaurants.length;
       })
       .addCase(fetchRestaurants.rejected, (state, action) => {
         state.isLoading = false;

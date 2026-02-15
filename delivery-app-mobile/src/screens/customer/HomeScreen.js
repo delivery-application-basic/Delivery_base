@@ -3,7 +3,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, FlatList, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
+import { View, StyleSheet, FlatList, ScrollView, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
@@ -11,7 +11,6 @@ import { Icon } from 'react-native-paper';
 import { fetchRestaurants, setSearchQuery } from '../../store/slices/restaurantSlice';
 import { SearchBar } from '../../components/common/SearchBar';
 import { RestaurantCard } from '../../components/restaurant/RestaurantCard';
-import { Loader } from '../../components/common/Loader';
 import { EmptyState } from '../../components/common/EmptyState';
 import { Button } from '../../components/common/Button';
 import { Text } from '../../components/common/Text';
@@ -133,7 +132,33 @@ export default function HomeScreen() {
     </View>
   );
 
-  if (isLoading && restaurants.length === 0) return <Loader fullScreen />;
+  const onRetry = () => dispatch(fetchRestaurants({ filters: { search: searchQuery } }));
+
+  const listEmptyComponent =
+    isLoading && restaurants.length === 0 ? (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.loadingText}>Loading restaurants…</Text>
+        <Text style={styles.loadingHint}>Check that backend is running and PC IP is correct in constants.js</Text>
+      </View>
+    ) : error ? (
+      <View style={styles.emptyContainer}>
+        <EmptyState
+          message={error}
+          icon="wifi-off"
+        />
+        <Button title="Retry" onPress={onRetry} style={styles.browseButton} />
+      </View>
+    ) : (
+      <View style={styles.emptyContainer}>
+        <EmptyState message="No restaurants found" icon="store-off-outline" />
+        <Button
+          title="Browse All Restaurants"
+          onPress={() => navigation.navigate('RestaurantList')}
+          style={styles.browseButton}
+        />
+      </View>
+    );
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -143,16 +168,7 @@ export default function HomeScreen() {
         renderItem={renderItem}
         ListHeaderComponent={renderHeader}
         contentContainerStyle={styles.list}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <EmptyState message="No restaurants found" icon="store-off-outline" />
-            <Button
-              title="Browse All Restaurants"
-              onPress={() => navigation.navigate('RestaurantList')}
-              style={styles.browseButton}
-            />
-          </View>
-        }
+        ListEmptyComponent={listEmptyComponent}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -256,6 +272,24 @@ const styles = StyleSheet.create({
   },
   list: {
     paddingBottom: verticalScale(100), // Account for floating tab bar
+  },
+  loadingContainer: {
+    paddingVertical: verticalScale(48),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    marginTop: spacing.md,
+    fontSize: 14,
+    color: colors.text,
+    fontWeight: '600',
+  },
+  loadingHint: {
+    marginTop: spacing.xs,
+    fontSize: 11,
+    color: colors.textLight,
+    textAlign: 'center',
+    paddingHorizontal: layout.screenPadding,
   },
   emptyContainer: {
     paddingVertical: spacing.xxl,

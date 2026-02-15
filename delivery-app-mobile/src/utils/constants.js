@@ -1,13 +1,16 @@
-// API Configuration
-// IMPORTANT: For physical devices, use your PC's Wi-Fi IPv4 (run: ipconfig / Windows, ifconfig / Mac)
-// Current PC Wi-Fi IP: 10.152.22.118 — update here and in backend .env if your network changes.
+// API Configuration — must match your backend server
+// 1) Backend must be running (e.g. npm start in delivery-backend) and DB connected.
+// 2) Physical device: use your PC's Wi-Fi IPv4 (ipconfig / ifconfig). Phone and PC on same Wi-Fi.
+// 3) Android emulator: use '10.0.2.2' instead of your PC IP so emulator can reach host.
+// Set to your PC's current IP (run: npm run check-connection in delivery-backend to see IPs and test DB).
+const DEV_HOST = '192.168.43.135';
 export const API_BASE_URL = __DEV__
-  ? 'http://10.152.22.118:5000/api/v1' // Development - PC and phone must be on same Wi-Fi
+  ? `http://${DEV_HOST}:5000/api/v1`
   : 'https://your-production-api.com/api/v1'; // Production
 
 // Socket URL must match the same host:port as the API server.
 export const SOCKET_URL = __DEV__
-  ? 'http://10.152.22.118:5000' // Development
+  ? `http://${DEV_HOST}:5000`
   : 'https://your-production-api.com'; // Production
 
 // App Constants

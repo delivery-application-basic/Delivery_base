@@ -120,6 +120,7 @@
         "test": "echo \"Error: no test specified\" && exit 1",
         "start": "node server.js",
         "dev": "nodemon server.js",
+        "check-connection": "node scripts/check-connection.js",
         "clear-orders": "node scripts/clearOrders.js",
         "approve-all-drivers": "node scripts/approveAllDrivers.js"
     },
