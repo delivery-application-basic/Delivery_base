@@ -6,11 +6,13 @@ const {
     addMenuItem,
     updateMenuItem,
     deleteMenuItem,
-    toggleAvailability
+    toggleAvailability,
+    uploadMenuItemPicture
 } = require('../controllers/menuController');
 const { protect, authorize } = require('../middleware/auth');
 const { USER_TYPES } = require('../utils/constants');
 const { validateAddMenuItem, validateUpdateMenuItem } = require('../middleware/validators/menuValidator');
+const upload = require('../middleware/upload');
 
 // Public routes
 router.get('/restaurant/:restaurantId', getMenuByRestaurant);
@@ -24,5 +26,6 @@ router.post('/items', validateAddMenuItem, addMenuItem);
 router.put('/items/:id', validateUpdateMenuItem, updateMenuItem);
 router.delete('/items/:id', deleteMenuItem);
 router.patch('/items/:id/availability', toggleAvailability);
+router.post('/items/:id/picture', upload.single('picture'), uploadMenuItemPicture);
 
 module.exports = router;

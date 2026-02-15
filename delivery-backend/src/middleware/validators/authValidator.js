@@ -27,6 +27,16 @@ const restaurantRegisterRules = [
     body('email').optional().isEmail().withMessage('Invalid email format'),
     body('street_address').trim().notEmpty().withMessage('Street address is required'),
     body('city').trim().notEmpty().withMessage('City is required'),
+    body('latitude')
+        .optional({ checkFalsy: true })
+        .isFloat({ min: -90, max: 90 })
+        .withMessage('Latitude must be between -90 and 90 (e.g. 8.7525 for Bishoftu)')
+        .toFloat(),
+    body('longitude')
+        .optional({ checkFalsy: true })
+        .isFloat({ min: -180, max: 180 })
+        .withMessage('Longitude must be between -180 and 180 (e.g. 38.9785 for Bishoftu)')
+        .toFloat(),
 ];
 
 const driverRegisterRules = [

@@ -1,9 +1,10 @@
 /**
- * MenuItemCard - Single menu item for list
+ * MenuItemCard - Single menu item for list. Shows food image or placeholder.
  */
 
 import React from 'react';
 import { View, Image, StyleSheet } from 'react-native';
+import { Icon } from 'react-native-paper';
 import { moderateScale } from '../../utils/scaling';
 import { Card } from '../common/Card';
 import { Text } from '../common/Text';
@@ -46,9 +47,15 @@ export const MenuItemCard = ({
             {formatCurrency(price)}
           </Text>
         </View>
-        {imageUrl && (
-          <Image source={{ uri: imageUrl }} style={styles.image} resizeMode="cover" />
-        )}
+        <View style={styles.imageContainer}>
+          {imageUrl ? (
+            <Image source={{ uri: imageUrl }} style={styles.image} resizeMode="cover" />
+          ) : (
+            <View style={styles.imagePlaceholder}>
+              <Icon source="food" size={28} color={colors.gray[300]} />
+            </View>
+          )}
+        </View>
       </View>
     </Card>
   );
@@ -80,7 +87,16 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
   unavailable: { color: colors.textLight },
-  image: { width: 60, height: 60, borderRadius: 8, marginLeft: layout.cardPadding },
+  imageContainer: { marginLeft: layout.cardPadding },
+  image: { width: 60, height: 60, borderRadius: 8 },
+  imagePlaceholder: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    backgroundColor: colors.gray[100],
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 });
 
 export default MenuItemCard;

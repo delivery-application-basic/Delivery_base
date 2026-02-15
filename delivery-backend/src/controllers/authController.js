@@ -44,16 +44,21 @@ exports.registerCustomer = async (req, res, next) => {
 // @access  Public
 exports.registerRestaurant = async (req, res, next) => {
     try {
-        const { restaurant_name, email, phone_number, password, street_address, city } = req.body;
+        const { restaurant_name, email, phone_number, password, street_address, city, latitude, longitude } = req.body;
 
-        const restaurant = await Restaurant.create({
+        const createPayload = {
             restaurant_name,
             email,
             phone_number,
             password_hash: password,
             street_address,
             city
-        });
+        };
+        if (latitude != null && longitude != null && !isNaN(Number(latitude)) && !isNaN(Number(longitude))) {
+            createPayload.latitude = Number(latitude);
+            createPayload.longitude = Number(longitude);
+        }
+        const restaurant = await Restaurant.create(createPayload);
 
         const token = generateToken({ id: restaurant.restaurant_id, type: USER_TYPES.RESTAURANT });
 

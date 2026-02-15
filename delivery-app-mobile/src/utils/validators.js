@@ -85,6 +85,44 @@ export const validateNumber = (value, options = {}) => {
 };
 
 /**
+ * Validate latitude (e.g. from Google Maps). Range: -90 to 90.
+ * @param {string|number} value
+ * @returns {{ valid: boolean, message?: string }}
+ */
+export const validateLatitude = (value) => {
+  if (value == null || (typeof value === 'string' && value.trim() === '')) {
+    return { valid: false, message: 'Latitude is required (copy from Google Maps)' };
+  }
+  const num = Number(String(value).trim());
+  if (Number.isNaN(num)) {
+    return { valid: false, message: 'Latitude must be a number (e.g. 8.7525)' };
+  }
+  if (num < -90 || num > 90) {
+    return { valid: false, message: 'Latitude must be between -90 and 90' };
+  }
+  return { valid: true };
+};
+
+/**
+ * Validate longitude (e.g. from Google Maps). Range: -180 to 180.
+ * @param {string|number} value
+ * @returns {{ valid: boolean, message?: string }}
+ */
+export const validateLongitude = (value) => {
+  if (value == null || (typeof value === 'string' && value.trim() === '')) {
+    return { valid: false, message: 'Longitude is required (copy from Google Maps)' };
+  }
+  const num = Number(String(value).trim());
+  if (Number.isNaN(num)) {
+    return { valid: false, message: 'Longitude must be a number (e.g. 38.9785)' };
+  }
+  if (num < -180 || num > 180) {
+    return { valid: false, message: 'Longitude must be between -180 and 180' };
+  }
+  return { valid: true };
+};
+
+/**
  * Run multiple validators; return first error or valid
  * @param {Array<() => { valid: boolean, message?: string }>} validators
  * @returns {{ valid: boolean, message?: string }}

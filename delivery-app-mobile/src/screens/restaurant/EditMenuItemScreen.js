@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Switch } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Switch, Image } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from 'react-native-paper';
+import { launchImageLibrary } from 'react-native-image-picker';
 import { fetchMenuItemById } from '../../store/slices/menuSlice';
 import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
@@ -29,6 +30,8 @@ export default function EditMenuItemScreen() {
   const [category, setCategory] = useState('');
   const [isAvailable, setIsAvailable] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [imageUrl, setImageUrl] = useState(null);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
 
   useEffect(() => {
     if (menuItemId) dispatch(fetchMenuItemById(menuItemId));
@@ -41,8 +44,26 @@ export default function EditMenuItemScreen() {
       setPrice(String(selectedMenuItem.price ?? ''));
       setCategory(selectedMenuItem.category ?? '');
       setIsAvailable(selectedMenuItem.is_available ?? true);
+      setImageUrl(selectedMenuItem.image_url ?? null);
     }
   }, [selectedMenuItem]);
+
+  const handleChangePhoto = async () => {
+    const result = await launchImageLibrary({ mediaType: 'photo', quality: 0.8 });
+    if (result.didCancel || result.errorCode) return;
+    const asset = result.assets?.[0];
+    if (!asset?.uri) return;
+    setIsUploadingPhoto(true);
+    try {
+      const res = await menuService.uploadMenuItemPicture(menuItemId, asset.uri, asset.type || 'image/jpeg');
+      const url = res.data?.data?.image_url ?? res.data?.image_url;
+      if (url) setImageUrl(url);
+    } catch (e) {
+      Alert.alert('Error', e.message || 'Failed to upload photo');
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!name || !price) {
@@ -118,6 +139,35 @@ export default function EditMenuItemScreen() {
         contentContainerStyle={styles.scrollContent}
       >
         <View style={styles.formCard}>
+          <Text style={styles.sectionLabel}>Food Photo</Text>
+          <TouchableOpacity
+            style={styles.photoBox}
+            onPress={handleChangePhoto}
+            disabled={isUploadingPhoto}
+            activeOpacity={0.8}
+          >
+            {imageUrl ? (
+              <>
+                <Image source={{ uri: imageUrl }} style={styles.photoPreview} resizeMode="cover" />
+                <View style={styles.photoOverlay}>
+                  {isUploadingPhoto ? (
+                    <Text style={styles.photoOverlayText}>Uploading...</Text>
+                  ) : (
+                    <>
+                      <Icon source="camera" size={28} color={colors.white} />
+                      <Text style={styles.photoOverlayText}>Change photo</Text>
+                    </>
+                  )}
+                </View>
+              </>
+            ) : (
+              <>
+                <Icon source="image-plus" size={40} color={colors.primary} />
+                <Text style={styles.photoPlaceholderText}>{isUploadingPhoto ? 'Uploading...' : 'Tap to add a photo'}</Text>
+              </>
+            )}
+          </TouchableOpacity>
+
           <View style={styles.availabilityRow}>
             <View>
               <Text style={styles.availabilityTitle}>Item Availability</Text>
@@ -230,6 +280,37 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: spacing.lg,
     ...shadows.small,
+  },
+  photoBox: {
+    height: 160,
+    borderRadius: 16,
+    backgroundColor: colors.gray[100],
+    marginBottom: spacing.lg,
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  photoPreview: {
+    ...StyleSheet.absoluteFillObject,
+    width: '100%',
+    height: '100%',
+  },
+  photoOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  photoOverlayText: {
+    color: colors.white,
+    fontSize: 12,
+    marginTop: 4,
+  },
+  photoPlaceholderText: {
+    fontSize: 14,
+    color: colors.text,
+    fontWeight: '600',
+    marginTop: 8,
   },
   availabilityRow: {
     flexDirection: 'row',
