@@ -1,3 +1,4 @@
+import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -10,7 +11,6 @@ import { OrderStatusBadge } from '../../components/order/OrderStatusBadge';
 import { Button } from '../../components/common/Button';
 import { Loader } from '../../components/common/Loader';
 import { layout, spacing } from '../../theme/spacing';
-import { typography } from '../../theme/typography';
 import { colors } from '../../theme/colors';
 import { shadows } from '../../theme/shadows';
 import { formatCurrency } from '../../utils/helpers';
@@ -80,6 +80,12 @@ export default function OrderDetailsScreen() {
   const o = selectedOrder;
   const nextStatus = NEXT_STATUS[o.order_status];
   const items = o.items || [];
+  const customerName = o.customer?.full_name ?? o.user?.full_name ?? 'Guest';
+  const customerPhone = o.customer?.phone_number ?? o.user?.phone_number ?? 'N/A';
+  const subtotalFromItems = items.reduce((sum, it) => sum + Number(it.subtotal ?? it.unit_price * it.quantity ?? 0), 0);
+  const deliveryFee = Number(o.delivery_fee) ?? 0;
+  const totalAmount = Number(o.total_amount) ?? subtotalFromItems + deliveryFee;
+  const bottomPadding = Math.max(insets.bottom, 16) + 80;
 
   const renderHeader = () => (
     <View style={styles.header}>
@@ -99,12 +105,14 @@ export default function OrderDetailsScreen() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomPadding }]}
       >
         <View style={styles.orderHeader}>
           <View>
             <Text style={styles.orderId}>Order #{o.order_id}</Text>
-            <Text style={styles.orderDate}>{new Date(o.order_date).toLocaleString()}</Text>
+            <Text style={styles.orderDate}>
+              {o.order_date ? new Date(o.order_date).toLocaleString() : '—'}
+            </Text>
           </View>
           <OrderStatusBadge status={o.order_status} />
         </View>
@@ -114,17 +122,17 @@ export default function OrderDetailsScreen() {
           <View style={styles.infoCard}>
             <View style={styles.infoRow}>
               <Icon source="account" size={20} color={colors.primary} />
-              <Text style={styles.infoText}>{o.user?.full_name || 'Guest'}</Text>
+              <Text style={styles.infoText}>{customerName}</Text>
             </View>
             <View style={styles.infoRow}>
               <Icon source="phone" size={20} color={colors.primary} />
-              <Text style={styles.infoText}>{o.user?.phone_number || 'N/A'}</Text>
+              <Text style={styles.infoText}>{customerPhone}</Text>
             </View>
             {o.delivery_address && (
               <View style={styles.infoRow}>
                 <Icon source="map-marker" size={20} color={colors.primary} />
                 <Text style={styles.infoText}>
-                  {o.delivery_address.street_address}, {o.delivery_address.city}
+                  {[o.delivery_address.street_address, o.delivery_address.city].filter(Boolean).join(', ') || 'N/A'}
                 </Text>
               </View>
             )}
@@ -134,25 +142,28 @@ export default function OrderDetailsScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Order Items</Text>
           <View style={styles.itemsCard}>
-            {items.map((item, index) => (
-              <View
-                key={index}
-                style={[styles.itemRow, index === items.length - 1 && { borderBottomWidth: 0 }]}
-              >
-                <View style={styles.quantityBadge}>
-                  <Text style={styles.quantityText}>{item.quantity}x</Text>
+            {items.map((item, index) => {
+              const unitPrice = Number(item.unit_price ?? item.price ?? 0);
+              const qty = Number(item.quantity ?? 1);
+              const lineTotal = Number(item.subtotal) || unitPrice * qty;
+              return (
+                <View
+                  key={item.order_item_id ?? index}
+                  style={[styles.itemRow, index === items.length - 1 && { borderBottomWidth: 0 }]}
+                >
+                  <View style={styles.quantityBadge}>
+                    <Text style={styles.quantityText}>{qty}x</Text>
+                  </View>
+                  <View style={styles.itemMain}>
+                    <Text style={styles.itemName}>{item.item_name ?? 'Item'}</Text>
+                    {item.special_instructions ? (
+                      <Text style={styles.specialInstructions}>{item.special_instructions}</Text>
+                    ) : null}
+                  </View>
+                  <Text style={styles.itemPrice}>{formatCurrency(lineTotal)}</Text>
                 </View>
-                <View style={styles.itemMain}>
-                  <Text style={styles.itemName}>{item.item_name}</Text>
-                  {item.special_instructions && (
-                    <Text style={styles.specialInstructions}>{item.special_instructions}</Text>
-                  )}
-                </View>
-                <Text style={styles.itemPrice}>
-                  {formatCurrency(item.price * item.quantity)}
-                </Text>
-              </View>
-            ))}
+              );
+            })}
           </View>
         </View>
 
@@ -160,15 +171,15 @@ export default function OrderDetailsScreen() {
           <View style={styles.summaryCard}>
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Subtotal</Text>
-              <Text style={styles.summaryValue}>{formatCurrency(o.total_amount)}</Text>
+              <Text style={styles.summaryValue}>{formatCurrency(subtotalFromItems || totalAmount)}</Text>
             </View>
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Delivery Fee</Text>
-              <Text style={styles.summaryValue}>{formatCurrency(0)}</Text>
+              <Text style={styles.summaryValue}>{formatCurrency(deliveryFee)}</Text>
             </View>
             <View style={[styles.summaryRow, styles.totalRow]}>
               <Text style={styles.totalLabel}>Total</Text>
-              <Text style={styles.totalValue}>{formatCurrency(o.total_amount)}</Text>
+              <Text style={styles.totalValue}>{formatCurrency(totalAmount)}</Text>
             </View>
             <View style={styles.paymentBox}>
               <Text style={styles.paymentLabel}>Payment Method:</Text>
@@ -177,19 +188,17 @@ export default function OrderDetailsScreen() {
           </View>
         </View>
 
-        <View style={{ height: 100 }} />
+        {nextStatus ? (
+          <View style={[styles.footerInline, { marginBottom: insets.bottom + 16 }]}>
+            <Button
+              title={STATUS_TEXT[o.order_status] || `Mark as ${nextStatus}`}
+              onPress={handleUpdateStatus}
+              loading={isLoading}
+              style={styles.actionButton}
+            />
+          </View>
+        ) : null}
       </ScrollView>
-
-      {nextStatus && (
-        <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
-          <Button
-            title={STATUS_TEXT[o.order_status] || `Mark as ${nextStatus}`}
-            onPress={handleUpdateStatus}
-            loading={isLoading}
-            style={styles.actionButton}
-          />
-        </View>
-      )}
     </View>
   );
 }
@@ -366,16 +375,11 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.text,
   },
-  footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: colors.white,
-    padding: layout.screenPadding,
-    ...shadows.medium,
+  footerInline: {
+    marginTop: spacing.lg,
+    paddingHorizontal: layout.screenPadding,
   },
   actionButton: {
-    height: 56,
+    minHeight: 48,
   },
 });

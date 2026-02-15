@@ -3,8 +3,10 @@ const router = express.Router();
 const {
     getRestaurants,
     getRestaurant,
+    getMyProfile,
     updateProfile,
     updateHours,
+    updateStatus,
     searchRestaurants
 } = require('../controllers/restaurantController');
 const { getMenuByRestaurant } = require('../controllers/menuController');
@@ -13,6 +15,8 @@ const { USER_TYPES } = require('../utils/constants');
 
 router.get('/', getRestaurants);
 router.get('/search', searchRestaurants);
+// Owner route must be before /:id so "me" is not used as id
+router.get('/me/profile', protect, authorize(USER_TYPES.RESTAURANT), getMyProfile);
 router.get('/:id', getRestaurant);
 router.get('/:id/menu', getMenuByRestaurant);
 
@@ -21,6 +25,7 @@ router.use(protect);
 router.use(authorize(USER_TYPES.RESTAURANT));
 
 router.put('/:id', updateProfile);
+router.patch('/:id/status', updateStatus);
 router.put('/:id/hours', updateHours);
 
 module.exports = router;

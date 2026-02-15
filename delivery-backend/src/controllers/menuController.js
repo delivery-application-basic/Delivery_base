@@ -1,16 +1,22 @@
 const fs = require('fs');
 const path = require('path');
-const { MenuItem } = require('../models');
+const { MenuItem, Restaurant } = require('../models');
 const cloudinary = require('../config/cloudinary');
 
-// @desc    Get menu for a restaurant (available items only, filter by category)
-// @route   GET /api/v1/menu/restaurant/:restaurantId
+// @desc    Get menu for a restaurant (available items only, filter by category). Returns empty when restaurant is inactive.
+// @route   GET /api/v1/restaurants/:id/menu or GET /api/v1/menu/restaurant/:restaurantId
 // @access  Public
 exports.getMenuByRestaurant = async (req, res, next) => {
     try {
+        const restaurantId = req.params.restaurantId || req.params.id;
+        const restaurant = await Restaurant.findByPk(restaurantId);
+        if (!restaurant || !restaurant.is_active) {
+            return res.status(200).json({ success: true, count: 0, data: [] });
+        }
+
         const { category } = req.query;
         const whereClause = {
-            restaurant_id: req.params.restaurantId,
+            restaurant_id: restaurantId,
             is_available: true
         };
 

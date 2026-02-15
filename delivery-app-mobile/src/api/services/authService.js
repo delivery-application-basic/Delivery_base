@@ -81,7 +81,15 @@ export const authService = {
       new_password: newPassword,
     });
   },
-  
+
+  // Change password (logged-in user)
+  async changePassword(currentPassword, newPassword) {
+    return apiClient.post('/auth/change-password', {
+      current_password: currentPassword,
+      new_password: newPassword,
+    });
+  },
+
   // Verify phone number
   async verifyPhone(phoneNumber, verificationCode) {
     return apiClient.post('/auth/verify-phone', {

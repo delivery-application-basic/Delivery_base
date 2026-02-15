@@ -27,8 +27,8 @@ export const orderService = {
   },
   
   // Update order status (restaurant/driver only)
-  async updateOrderStatus(orderId, status) {
-    return apiClient.patch(`/orders/${orderId}/status`, { status });
+  async updateOrderStatus(orderId, orderStatus) {
+    return apiClient.patch(`/orders/${orderId}/status`, { order_status: orderStatus });
   },
   
   // Cancel order

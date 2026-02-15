@@ -8,9 +8,11 @@ const {
     refreshToken,
     logout,
     forgotPassword,
-    resetPassword
+    resetPassword,
+    changePassword
 } = require('../controllers/authController');
 const { validateRegistration, validateLogin } = require('../middleware/validators/authValidator');
+const { protect } = require('../middleware/auth');
 
 router.post('/register/customer', ...validateRegistration('customer'), registerCustomer);
 router.post('/register/restaurant', ...validateRegistration('restaurant'), registerRestaurant);
@@ -20,5 +22,6 @@ router.post('/refresh-token', refreshToken);
 router.post('/logout', logout);
 router.post('/forgot-password', forgotPassword);
 router.post('/reset-password', resetPassword);
+router.post('/change-password', protect, changePassword);
 
 module.exports = router;

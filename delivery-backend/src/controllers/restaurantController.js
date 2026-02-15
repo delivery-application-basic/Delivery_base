@@ -33,7 +33,7 @@ exports.getRestaurants = async (req, res, next) => {
     }
 };
 
-// @desc    Get single restaurant with full info, menu, ratings, hours
+// @desc    Get single restaurant with full info, menu, ratings, hours (hidden if inactive)
 // @route   GET /api/v1/restaurants/:id
 // @access  Public
 exports.getRestaurant = async (req, res, next) => {
@@ -45,7 +45,7 @@ exports.getRestaurant = async (req, res, next) => {
             ]
         });
 
-        if (!restaurant) {
+        if (!restaurant || !restaurant.is_active) {
             return res.status(404).json({ success: false, message: 'Restaurant not found' });
         }
 
@@ -53,6 +53,45 @@ exports.getRestaurant = async (req, res, next) => {
             success: true,
             data: restaurant
         });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Get own restaurant profile (owner only; includes inactive)
+// @route   GET /api/v1/restaurants/me/profile
+// @access  Private (Restaurant Owner)
+exports.getMyProfile = async (req, res, next) => {
+    try {
+        const restaurant = await Restaurant.findByPk(req.user.restaurant_id);
+        if (!restaurant) {
+            return res.status(404).json({ success: false, message: 'Restaurant not found' });
+        }
+        res.status(200).json({ success: true, data: restaurant });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Update restaurant active status (deactivate/reactivate)
+// @route   PATCH /api/v1/restaurants/:id/status
+// @access  Private (Restaurant Owner)
+exports.updateStatus = async (req, res, next) => {
+    try {
+        const id = parseInt(req.params.id, 10);
+        if (id !== req.user.restaurant_id) {
+            return res.status(403).json({ success: false, message: 'Not authorized to update this restaurant' });
+        }
+        const { is_active } = req.body;
+        if (typeof is_active !== 'boolean') {
+            return res.status(400).json({ success: false, message: 'is_active (boolean) is required' });
+        }
+        const restaurant = await Restaurant.findByPk(id);
+        if (!restaurant) {
+            return res.status(404).json({ success: false, message: 'Restaurant not found' });
+        }
+        await restaurant.update({ is_active });
+        res.status(200).json({ success: true, data: restaurant });
     } catch (error) {
         next(error);
     }

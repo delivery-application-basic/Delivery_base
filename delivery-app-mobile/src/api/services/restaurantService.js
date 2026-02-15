@@ -39,4 +39,14 @@ export const restaurantService = {
   async updateOperatingHours(restaurantId, hours) {
     return apiClient.put(`/restaurants/${restaurantId}/hours`, { hours });
   },
+
+  // Get own restaurant profile (for settings; includes when inactive)
+  async getMyProfile() {
+    return apiClient.get('/restaurants/me/profile');
+  },
+
+  // Deactivate or reactivate restaurant
+  async updateStatus(restaurantId, isActive) {
+    return apiClient.patch(`/restaurants/${restaurantId}/status`, { is_active: isActive });
+  },
 };
