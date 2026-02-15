@@ -86,8 +86,8 @@ function getStageLabel(stage) {
 async function getOrderTracking(orderId) {
     const order = await Order.findByPk(orderId, {
         include: [
-            { model: Restaurant, as: 'restaurant', attributes: ['restaurant_id', 'restaurant_name', 'phone_number', 'street_address', 'city'] },
-            { model: Address, as: 'delivery_address', attributes: ['address_id', 'address_label', 'street_address', 'city', 'sub_city', 'landmark'] },
+            { model: Restaurant, as: 'restaurant', attributes: ['restaurant_id', 'restaurant_name', 'phone_number', 'street_address', 'city', 'latitude', 'longitude'] },
+            { model: Address, as: 'delivery_address', attributes: ['address_id', 'address_label', 'street_address', 'city', 'sub_city', 'landmark', 'latitude', 'longitude'] },
             { model: Driver, as: 'driver', attributes: ['driver_id', 'full_name', 'phone_number'] },
             {
                 model: Delivery,
@@ -177,14 +177,18 @@ async function getOrderTracking(orderId) {
             restaurant_id: order.restaurant?.restaurant_id,
             restaurant_name: order.restaurant?.restaurant_name,
             phone_number: order.restaurant?.phone_number,
-            address: order.restaurant?.street_address
+            address: order.restaurant?.street_address,
+            latitude: order.restaurant?.latitude != null ? parseFloat(order.restaurant.latitude) : null,
+            longitude: order.restaurant?.longitude != null ? parseFloat(order.restaurant.longitude) : null
         },
         delivery_address: {
             address_label: order.delivery_address?.address_label,
             street_address: order.delivery_address?.street_address,
             city: order.delivery_address?.city,
             sub_city: order.delivery_address?.sub_city,
-            landmark: order.delivery_address?.landmark
+            landmark: order.delivery_address?.landmark,
+            latitude: order.delivery_address?.latitude != null ? parseFloat(order.delivery_address.latitude) : null,
+            longitude: order.delivery_address?.longitude != null ? parseFloat(order.delivery_address.longitude) : null
         },
         driver: order.driver ? {
             driver_id: order.driver.driver_id,

@@ -35,18 +35,20 @@ module.exports = (io, socket) => {
         socket.leave(`restaurant:${restaurantId}`);
     });
 
-    // Join driver room to receive assignment offers
+    // Join driver room to receive assignment offers; also join shared "drivers" room for order:taken
     socket.on('join:driver', (data) => {
         const driverId = typeof data === 'object' && data !== null ? data.driverId : data;
         if (!driverId) return;
         const room = `driver:${driverId}`;
         socket.join(room);
+        socket.join('drivers');
         console.log(`Socket ${socket.id} joined driver room: ${room}`);
     });
     socket.on('leave:driver', (data) => {
         const driverId = typeof data === 'object' && data !== null ? data.driverId : data;
         if (!driverId) return;
         socket.leave(`driver:${driverId}`);
+        socket.leave('drivers');
     });
 
     // Handle order cancellation notifications (client can emit to broadcast to order room)

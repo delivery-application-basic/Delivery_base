@@ -82,6 +82,16 @@ You've successfully run and modified your React Native App. :partying_face:
 - If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
 - If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
 
+# Google Maps (Android)
+
+The app uses **react-native-maps** for the customer order-tracking screen. To avoid "API key not found" crashes:
+
+1. Get an API key: [Google Cloud Console](https://console.cloud.google.com/) → APIs & Services → Credentials → Create credentials → API key. Enable **Maps SDK for Android** for the project.
+2. Set the key in **`android/gradle.properties`**: replace `REPLACE_WITH_YOUR_GOOGLE_MAPS_API_KEY` with your key (same property name `GOOGLE_MAPS_API_KEY`).
+3. Rebuild the app: `npm run android` or `yarn android`.
+
+**Driver order tracking** does not use an in-app map; it shows "Check locations" with **Open in Maps** buttons using the restaurant’s registered latitude/longitude and the customer’s order delivery address coordinates, so that screen works even without an API key.
+
 # Troubleshooting
 
 If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.

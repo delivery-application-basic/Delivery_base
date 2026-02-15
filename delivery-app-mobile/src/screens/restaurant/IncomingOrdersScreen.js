@@ -22,7 +22,7 @@ export default function IncomingOrdersScreen() {
   const restaurantId = user?.restaurant_id ?? user?.id;
   const { orders, isLoading } = useSelector((state) => state.order);
   const incoming = orders.filter((o) => o.order_status === 'pending' || o.order_status === 'confirmed');
-  const { joinRestaurantRoom, leaveRestaurantRoom, subscribeToNewOrders } = useSocket();
+  const { joinRestaurantRoom, leaveRestaurantRoom, subscribeToNewOrders, subscribeToOrderDelivered } = useSocket();
 
   useEffect(() => {
     dispatch(fetchOrders({}));
@@ -31,14 +31,14 @@ export default function IncomingOrdersScreen() {
   useEffect(() => {
     if (restaurantId == null) return;
     joinRestaurantRoom(restaurantId);
-    const unsubscribe = subscribeToNewOrders(() => {
-      dispatch(fetchOrders({}));
-    });
+    const unsubNew = subscribeToNewOrders(() => dispatch(fetchOrders({})));
+    const unsubDelivered = subscribeToOrderDelivered(() => dispatch(fetchOrders({})));
     return () => {
-      unsubscribe();
+      unsubNew();
+      unsubDelivered();
       leaveRestaurantRoom(restaurantId);
     };
-  }, [restaurantId, joinRestaurantRoom, leaveRestaurantRoom, subscribeToNewOrders, dispatch]);
+  }, [restaurantId, joinRestaurantRoom, leaveRestaurantRoom, subscribeToNewOrders, subscribeToOrderDelivered, dispatch]);
 
   if (isLoading && !orders.length) return <Loader fullScreen />;
 

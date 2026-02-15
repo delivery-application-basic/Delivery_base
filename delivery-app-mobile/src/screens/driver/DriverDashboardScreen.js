@@ -25,7 +25,13 @@ export default function DriverDashboardScreen() {
 
   const today = new Date().toDateString();
   const todayOrders = orders.filter((o) => new Date(o.order_date).toDateString() === today);
-  const activeDelivery = orders.find(o => o.order_status === 'picked_up' || o.order_status === 'arrived_at_pickup');
+  const { activeDelivery: activeDeliveryFromRedux } = useSelector((state) => state.driver);
+  const activeOrderFromList = orders.find((o) =>
+    ['ready', 'picked_up', 'in_transit'].includes(o.order_status)
+  );
+  const activeDelivery = activeOrderFromList || (activeDeliveryFromRedux?.order_id
+    ? { order_id: activeDeliveryFromRedux.order_id }
+    : null);
 
   if (isLoading && !orders.length) return <Loader fullScreen />;
 

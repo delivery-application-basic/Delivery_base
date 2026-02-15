@@ -17,10 +17,18 @@ export default function DeliveryHistoryScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const { orders, isLoading } = useSelector((state) => state.order);
+  const completedOrders = orders.filter((o) => o.order_status === 'delivered');
 
   useEffect(() => {
     dispatch(fetchOrders({}));
   }, [dispatch]);
+
+  const openOrderDetail = (orderId) => {
+    navigation.getParent()?.navigate('Dashboard', {
+      screen: 'ActiveDelivery',
+      params: { orderId },
+    });
+  };
 
   const renderHeader = () => (
     <View style={styles.header}>
@@ -32,7 +40,7 @@ export default function DeliveryHistoryScreen() {
       </TouchableOpacity>
       <View>
         <Text style={styles.headerTitle}>Delivery History</Text>
-        <Text style={styles.headerSubtitle}>{orders.length} total deliveries completed</Text>
+        <Text style={styles.headerSubtitle}>{completedOrders.length} deliveries completed</Text>
       </View>
     </View>
   );
@@ -43,7 +51,7 @@ export default function DeliveryHistoryScreen() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {renderHeader()}
       <FlatList
-        data={orders}
+        data={completedOrders}
         keyExtractor={(o) => String(o.order_id)}
         renderItem={({ item }) => (
           <OrderCard
@@ -53,7 +61,7 @@ export default function DeliveryHistoryScreen() {
             createdAt={item.order_date}
             customerName={item.user?.full_name}
             restaurantName={item.restaurant?.restaurant_name}
-            onPress={() => navigation.navigate('ActiveDelivery', { orderId: item.order_id })}
+            onPress={() => openOrderDetail(item.order_id)}
           />
         )}
         contentContainerStyle={styles.list}

@@ -65,11 +65,11 @@ const Driver = sequelize.define('Driver', {
     },
     is_verified: {
         type: DataTypes.BOOLEAN,
-        defaultValue: false
+        defaultValue: true
     },
     verification_status: {
         type: DataTypes.ENUM('pending', 'approved', 'rejected'),
-        defaultValue: 'pending'
+        defaultValue: 'approved'
     },
     verified_by: {
         type: DataTypes.INTEGER

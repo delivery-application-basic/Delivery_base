@@ -1,64 +1,72 @@
 import { io } from 'socket.io-client';
 import { SOCKET_URL } from '../utils/constants';
 import storage from '../utils/storage';
-import { STORAGE_KEYS } from '../utils/constants';
 
 let socket = null;
+
+// Log socket issues without triggering React Native error overlay (use warn in dev only)
+const socketLog = (message, err) => {
+  if (__DEV__) {
+    if (err) console.warn(message, err?.message || err);
+    else console.warn(message);
+  }
+};
 
 export const initializeSocket = async () => {
   try {
     const token = await storage.getAuthToken();
-    
+
     if (!token) {
-      console.warn('No auth token available for socket connection');
+      if (__DEV__) console.warn('No auth token available for socket connection');
       return null;
     }
 
     // Close existing connection if any
     if (socket) {
+      socket.removeAllListeners();
       socket.disconnect();
+      socket = null;
     }
 
-    // Create new socket connection
+    // Try polling first for better compatibility (e.g. networks that block websocket)
     socket = io(SOCKET_URL, {
-      auth: {
-        token,
-      },
-      transports: ['websocket', 'polling'],
+      auth: { token },
+      transports: ['polling', 'websocket'],
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
       reconnectionAttempts: 5,
+      timeout: 10000,
     });
 
-    // Connection event handlers
     socket.on('connect', () => {
-      console.log('Socket connected:', socket.id);
+      if (__DEV__) console.log('Socket connected:', socket?.id);
     });
 
     socket.on('disconnect', (reason) => {
-      console.log('Socket disconnected:', reason);
+      if (__DEV__) console.log('Socket disconnected:', reason);
     });
 
     socket.on('connect_error', (error) => {
-      console.error('Socket connection error:', error);
+      socketLog('Socket connection error (real-time updates may be delayed).', error);
     });
 
     socket.on('reconnect', (attemptNumber) => {
-      console.log('Socket reconnected after', attemptNumber, 'attempts');
+      if (__DEV__) console.log('Socket reconnected after', attemptNumber, 'attempts');
     });
 
     socket.on('reconnect_error', (error) => {
-      console.error('Socket reconnection error:', error);
+      socketLog('Socket reconnection error.', error);
     });
 
     socket.on('reconnect_failed', () => {
-      console.error('Socket reconnection failed');
+      socketLog('Socket reconnection failed. Pull to refresh for latest data.');
     });
 
     return socket;
   } catch (error) {
-    console.error('Error initializing socket:', error);
+    socketLog('Error initializing socket.', error);
+    socket = null;
     return null;
   }
 };

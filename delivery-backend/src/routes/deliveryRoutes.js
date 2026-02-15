@@ -4,6 +4,7 @@ const {
     getDeliveryDetails,
     updateLocation,
     updateStatus,
+    updateStatusByOrderId,
     uploadProof,
     getRoute
 } = require('../controllers/deliveryController');
@@ -46,6 +47,20 @@ const validateProof = [
     body('proof_url').notEmpty().withMessage('proof_url is required'),
     validationHandler
 ];
+
+/**
+ * Update delivery status by order ID (driver app convenience)
+ * PATCH /api/v1/deliveries/order/:orderId/status
+ * Access: Driver only
+ */
+router.patch(
+    '/order/:orderId/status',
+    protect,
+    authorize(USER_TYPES.DRIVER),
+    validateOrderId,
+    validateStatus,
+    updateStatusByOrderId
+);
 
 /**
  * Get delivery details by order ID

@@ -1,13 +1,13 @@
 // API Configuration
-// IMPORTANT: For physical devices, use your PC's Wi-Fi IPv4 address (run: ipconfig / Windows, ifconfig / Mac)
-// Your current Wi-Fi IP: 192.168.43.135 - update if your network changes!
+// IMPORTANT: For physical devices, use your PC's Wi-Fi IPv4 (run: ipconfig / Windows, ifconfig / Mac)
+// Current PC Wi-Fi IP: 10.152.22.118 — update here and in backend .env if your network changes.
 export const API_BASE_URL = __DEV__
-  ? 'http://192.168.43.135:5000/api/v1' // Development - use your local IP for physical devices
+  ? 'http://10.152.22.118:5000/api/v1' // Development - PC and phone must be on same Wi-Fi
   : 'https://your-production-api.com/api/v1'; // Production
 
-// For physical devices, replace with your computer's IP. Phone and PC must be on same Wi-Fi.
+// Socket URL must match the same host:port as the API server.
 export const SOCKET_URL = __DEV__
-  ? 'http://192.168.43.135:5000' // Development
+  ? 'http://10.152.22.118:5000' // Development
   : 'https://your-production-api.com'; // Production
 
 // App Constants

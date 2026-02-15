@@ -6,13 +6,12 @@ export const fetchAvailableOrders = createAsyncThunk(
   'driver/fetchAvailableOrders',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await driverService.getPendingAssignments();
+      const response = await driverService.getAvailableOrders();
       const data = response.data?.data ?? response.data;
-      const list = Array.isArray(data) ? data : data?.assignments ?? [];
-      const orders = list.map((a) => a.order || a).filter(Boolean);
+      const orders = Array.isArray(data) ? data : [];
       return { orders };
     } catch (error) {
-      return rejectWithValue(error.message || 'Failed to fetch pending assignments');
+      return rejectWithValue(error.message || 'Failed to fetch available orders');
     }
   }
 );
@@ -37,6 +36,18 @@ export const rejectOrder = createAsyncThunk(
       return response.data;
     } catch (error) {
       return rejectWithValue(error.message || 'Failed to reject order');
+    }
+  }
+);
+
+export const releaseOrder = createAsyncThunk(
+  'driver/releaseOrder',
+  async (orderId, { rejectWithValue }) => {
+    try {
+      const response = await driverService.releaseOrder(orderId);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.message || 'Failed to release order');
     }
   }
 );
@@ -113,10 +124,11 @@ const driverSlice = createSlice({
       })
       .addCase(acceptOrder.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.activeDelivery = action.payload.order;
-        // Remove from available orders
+        const data = action.payload?.data ?? action.payload;
+        const orderId = data?.order_id;
+        state.activeDelivery = data?.order || (orderId ? { order_id: orderId } : null);
         state.availableOrders = state.availableOrders.filter(
-          order => order.order_id !== action.payload.order.order_id
+          (o) => o.order_id !== orderId
         );
       })
       .addCase(acceptOrder.rejected, (state, action) => {
@@ -126,10 +138,13 @@ const driverSlice = createSlice({
       
       // Reject order
       .addCase(rejectOrder.fulfilled, (state, action) => {
-        // Remove from available orders
         state.availableOrders = state.availableOrders.filter(
-          order => order.order_id !== action.payload.order_id
+          order => order.order_id !== action.payload?.order_id
         );
+      })
+      // Release order (unassign – back to pool)
+      .addCase(releaseOrder.fulfilled, (state) => {
+        state.activeDelivery = null;
       })
       
       // Update availability

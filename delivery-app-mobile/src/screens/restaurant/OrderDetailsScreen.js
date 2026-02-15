@@ -188,7 +188,7 @@ export default function OrderDetailsScreen() {
           </View>
         </View>
 
-        {nextStatus ? (
+        {nextStatus && nextStatus !== 'picked_up' ? (
           <View style={[styles.footerInline, { marginBottom: insets.bottom + 16 }]}>
             <Button
               title={STATUS_TEXT[o.order_status] || `Mark as ${nextStatus}`}
@@ -196,6 +196,12 @@ export default function OrderDetailsScreen() {
               loading={isLoading}
               style={styles.actionButton}
             />
+          </View>
+        ) : o.order_status === 'ready' ? (
+          <View style={[styles.footerInline, styles.waitingFooter, { marginBottom: insets.bottom + 16 }]}>
+            <Text style={styles.waitingText}>
+              {o.driver_id ? 'Out for delivery — driver assigned' : 'Waiting for a driver to accept'}
+            </Text>
           </View>
         ) : null}
       </ScrollView>
@@ -378,6 +384,15 @@ const styles = StyleSheet.create({
   footerInline: {
     marginTop: spacing.lg,
     paddingHorizontal: layout.screenPadding,
+  },
+  waitingFooter: {
+    paddingVertical: spacing.md,
+    alignItems: 'center',
+  },
+  waitingText: {
+    fontSize: 14,
+    color: colors.textLight,
+    fontWeight: '600',
   },
   actionButton: {
     minHeight: 48,

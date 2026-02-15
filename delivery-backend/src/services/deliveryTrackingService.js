@@ -305,14 +305,17 @@ async function updateDeliveryStatus(deliveryId, driverId, status) {
         });
     }
 
-    // Emit simplified tracking update
+    // Emit simplified tracking update and notify restaurant when delivered
     try {
         const updatedOrder = await Order.findByPk(orderId);
         if (updatedOrder) {
             const trackingStage = getTrackingStage(updatedOrder);
             emitTrackingUpdate(orderId, trackingStage, updatedOrder);
-            const { emitOrderStatusEvent } = require('./socketEventService');
+            const { emitOrderStatusEvent, emitOrderDeliveredToRestaurant } = require('./socketEventService');
             emitOrderStatusEvent(orderId, updatedOrder.order_status);
+            if (status === DELIVERY_STATUS.DELIVERED && updatedOrder.restaurant_id) {
+                emitOrderDeliveredToRestaurant(orderId, updatedOrder.restaurant_id);
+            }
         }
     } catch (error) {
         console.error(`Failed to emit tracking update for order ${orderId}:`, error.message);

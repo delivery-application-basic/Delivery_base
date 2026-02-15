@@ -6,9 +6,9 @@ export const deliveryService = {
     return apiClient.get(`/deliveries/${orderId}`);
   },
   
-  // Update delivery status
+  // Update delivery status (by order ID – backend resolves delivery)
   async updateDeliveryStatus(orderId, status) {
-    return apiClient.patch(`/deliveries/${orderId}/status`, { status });
+    return apiClient.patch(`/deliveries/order/${orderId}/status`, { status });
   },
   
   // Update driver location

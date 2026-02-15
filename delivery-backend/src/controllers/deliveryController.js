@@ -147,6 +147,57 @@ exports.updateStatus = async (req, res) => {
 };
 
 /**
+ * Update delivery status by order ID (convenience for driver app)
+ * PATCH /api/v1/deliveries/order/:orderId/status
+ * Access: Driver only
+ */
+exports.updateStatusByOrderId = async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const { status } = req.body;
+        const driverId = req.user.driver_id;
+
+        if (!driverId) {
+            return res.status(401).json({
+                success: false,
+                message: 'Driver authentication required'
+            });
+        }
+
+        if (!status) {
+            return res.status(400).json({
+                success: false,
+                message: 'status is required'
+            });
+        }
+
+        const { Delivery } = require('../models');
+        const delivery = await Delivery.findOne({
+            where: { order_id: parseInt(orderId), driver_id: driverId }
+        });
+        if (!delivery) {
+            return res.status(404).json({
+                success: false,
+                message: 'Delivery not found or you are not assigned to this order'
+            });
+        }
+
+        const result = await updateDeliveryStatus(delivery.delivery_id, driverId, status);
+
+        res.status(200).json({
+            success: true,
+            message: 'Delivery status updated successfully',
+            data: result
+        });
+    } catch (error) {
+        res.status(error.statusCode || 500).json({
+            success: false,
+            message: error.message || 'Failed to update delivery status'
+        });
+    }
+};
+
+/**
  * Upload delivery proof
  * POST /api/v1/deliveries/:id/proof
  * Access: Driver only

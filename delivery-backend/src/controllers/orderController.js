@@ -6,8 +6,8 @@ const { USER_TYPES, ORDER_STATUS } = require('../utils/constants');
 
 const orderIncludeCommon = [
     { model: OrderItem, as: 'items' },
-    { model: Address, as: 'delivery_address', attributes: ['address_id', 'address_label', 'street_address', 'city', 'sub_city', 'landmark'] },
-    { model: Restaurant, as: 'restaurant', attributes: ['restaurant_id', 'restaurant_name', 'phone_number', 'street_address', 'city'] }
+    { model: Address, as: 'delivery_address', attributes: ['address_id', 'address_label', 'street_address', 'city', 'sub_city', 'landmark', 'latitude', 'longitude'] },
+    { model: Restaurant, as: 'restaurant', attributes: ['restaurant_id', 'restaurant_name', 'phone_number', 'street_address', 'city', 'latitude', 'longitude'] }
 ];
 
 /**
@@ -190,28 +190,7 @@ exports.updateOrderStatus = async (req, res, next) => {
             req.userType === USER_TYPES.CUSTOMER ? req.user.customer_id : req.userType === USER_TYPES.RESTAURANT ? req.user.restaurant_id : req.user.driver_id
         );
 
-        // Auto-assign driver based on order flow type
-        const isPartnered = order.order_flow_type === 'partnered';
-        const isNonPartnered = order.order_flow_type === 'non_partnered';
-
-        if (isPartnered && order_status === ORDER_STATUS.READY && !order.driver_id) {
-            // Partnered: Assign when order is ready
-            try {
-                const { autoAssignDriver } = require('../services/driverAssignmentService');
-                await autoAssignDriver(orderId);
-            } catch (error) {
-                console.error(`Auto-assignment failed for order ${orderId}:`, error.message);
-            }
-        } else if (isNonPartnered && order_status === ORDER_STATUS.PENDING && !order.driver_id) {
-            // Non-Partnered: Assign immediately (driver will place order at restaurant)
-            try {
-                const { autoAssignDriver } = require('../services/driverAssignmentService');
-                await autoAssignDriver(orderId);
-            } catch (error) {
-                console.error(`Auto-assignment failed for order ${orderId}:`, error.message);
-            }
-        }
-
+        // Pool flow only: no auto-assign. Orders appear at preparing/ready for drivers to accept in GET /drivers/orders/available
         const updated = await Order.findByPk(orderId, { include: orderIncludeCommon });
         
         // Emit simplified tracking update
@@ -220,6 +199,10 @@ exports.updateOrderStatus = async (req, res, next) => {
         // Emit Step 13 status events for real-time UI
         try {
             emitOrderStatusEvent(orderId, order_status);
+            const { emitOrderAvailableToDrivers } = require('../services/socketEventService');
+            if (order_status === 'preparing' || order_status === 'ready') {
+                emitOrderAvailableToDrivers(orderId, order_status);
+            }
         } catch (e) {
             console.error('Socket emit order status:', e.message);
         }

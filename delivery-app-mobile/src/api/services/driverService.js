@@ -9,8 +9,13 @@ export const driverService = {
   async getPendingAssignments() {
     return apiClient.get('/drivers/assignments/pending');
   },
-  
-  // Accept order
+
+  // Get pool of available orders (ready, no driver) for drivers to accept
+  async getAvailableOrders() {
+    return apiClient.get('/drivers/orders/available');
+  },
+
+  // Accept order (from offer or from pool)
   async acceptOrder(orderId) {
     return apiClient.post(`/drivers/accept/${orderId}`);
   },
@@ -18,6 +23,11 @@ export const driverService = {
   // Reject order
   async rejectOrder(orderId) {
     return apiClient.post(`/drivers/reject/${orderId}`);
+  },
+
+  // Release order (unassign) – order goes back to pool for other drivers
+  async releaseOrder(orderId) {
+    return apiClient.post(`/drivers/release/${orderId}`);
   },
   
   // Update driver availability

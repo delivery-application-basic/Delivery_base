@@ -5,10 +5,12 @@ const {
     manualAssignDriver,
     acceptAssignment,
     rejectAssignment,
+    releaseAssignment,
     getAvailableDrivers,
     handleExpiredAssignments
 } = require('../services/driverAssignmentService');
-const { Driver, Order, DriverAssignment, Restaurant, Address } = require('../models');
+const { Op } = require('sequelize');
+const { Driver, Order, DriverAssignment, Restaurant, Address, Customer, OrderItem } = require('../models');
 const { USER_TYPES } = require('../utils/constants');
 const cloudinary = require('../config/cloudinary');
 
@@ -258,6 +260,38 @@ exports.rejectOrder = async (req, res) => {
 };
 
 /**
+ * Driver releases an order they had accepted (unassign). Order goes back to pool for other drivers.
+ * POST /api/v1/drivers/release/:orderId
+ * Access: Driver only
+ */
+exports.releaseOrder = async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const driverId = req.user.driver_id;
+
+        if (!driverId) {
+            return res.status(401).json({
+                success: false,
+                message: 'Driver authentication required'
+            });
+        }
+
+        const result = await releaseAssignment(parseInt(orderId), driverId);
+
+        res.status(200).json({
+            success: true,
+            message: result.message,
+            data: result
+        });
+    } catch (error) {
+        res.status(error.statusCode || 500).json({
+            success: false,
+            message: error.message || 'Failed to release order'
+        });
+    }
+};
+
+/**
  * Toggle driver availability
  * PATCH /api/v1/drivers/availability
  * Access: Driver only
@@ -330,6 +364,56 @@ exports.getAvailableDrivers = async (req, res) => {
         res.status(error.statusCode || 500).json({
             success: false,
             message: error.message || 'Failed to get available drivers'
+        });
+    }
+};
+
+/**
+ * Get pool of available orders (preparing or ready, no driver assigned) for all drivers to see and accept
+ * GET /api/v1/drivers/orders/available
+ * Access: Driver only
+ */
+exports.getAvailableOrders = async (req, res) => {
+    try {
+        const orders = await Order.findAll({
+            where: {
+                order_status: { [Op.in]: ['preparing', 'ready'] },
+                driver_id: null
+            },
+            include: [
+                {
+                    model: Customer,
+                    as: 'customer',
+                    attributes: ['customer_id', 'full_name', 'phone_number']
+                },
+                {
+                    model: Restaurant,
+                    as: 'restaurant',
+                    attributes: ['restaurant_id', 'restaurant_name', 'phone_number', 'street_address', 'city', 'latitude', 'longitude']
+                },
+                {
+                    model: Address,
+                    as: 'delivery_address',
+                    attributes: ['address_id', 'street_address', 'city', 'sub_city', 'landmark', 'latitude', 'longitude']
+                },
+                {
+                    model: OrderItem,
+                    as: 'items',
+                    attributes: ['order_item_id', 'item_name', 'quantity', 'unit_price', 'subtotal']
+                }
+            ],
+            order: [['order_date', 'ASC']]
+        });
+
+        res.status(200).json({
+            success: true,
+            count: orders.length,
+            data: orders
+        });
+    } catch (error) {
+        res.status(error.statusCode || 500).json({
+            success: false,
+            message: error.message || 'Failed to get available orders'
         });
     }
 };

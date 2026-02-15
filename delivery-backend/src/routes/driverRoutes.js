@@ -8,8 +8,10 @@ const {
     manualAssign,
     acceptOrder,
     rejectOrder,
+    releaseOrder,
     toggleAvailability,
     getAvailableDrivers,
+    getAvailableOrders,
     getPendingAssignments,
     getAssignmentHistory,
     handleExpiredAssignments
@@ -102,6 +104,19 @@ router.post(
 );
 
 /**
+ * Driver releases an order they had accepted (unassign). Order goes back to pool.
+ * POST /api/v1/drivers/release/:orderId
+ * Access: Driver only
+ */
+router.post(
+    '/release/:orderId',
+    protect,
+    authorize(USER_TYPES.DRIVER),
+    validateOrderId,
+    releaseOrder
+);
+
+/**
  * Toggle driver availability
  * PATCH /api/v1/drivers/availability
  * Access: Driver only
@@ -124,6 +139,18 @@ router.get(
     authorize(USER_TYPES.ADMIN, USER_TYPES.RESTAURANT),
     validateGetAvailableDrivers,
     getAvailableDrivers
+);
+
+/**
+ * Get pool of available orders (ready, no driver) for drivers to accept
+ * GET /api/v1/drivers/orders/available
+ * Access: Driver only
+ */
+router.get(
+    '/orders/available',
+    protect,
+    authorize(USER_TYPES.DRIVER),
+    getAvailableOrders
 );
 
 /**

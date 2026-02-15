@@ -424,184 +424,154 @@ async function manualAssignDriver(orderId, driverId) {
 }
 
 /**
- * Driver accepts order assignment
- * @param {number} orderId - Order ID
- * @param {number} driverId - Driver ID (from authenticated user)
- * @returns {Promise<Object>} Assignment details
+ * Driver accepts order from the pool (order is preparing or ready, no driver - first-come-first-served)
+ * Uses transaction to prevent race when two drivers accept at once.
+ * When status is 'preparing': assign driver only, keep order status preparing until restaurant marks ready.
+ * When status is 'ready': assign driver and set order to picked_up.
  */
-async function acceptAssignment(orderId, driverId) {
-    // Find pending assignment
-    const assignment = await DriverAssignment.findOne({
-        where: {
-            order_id: orderId,
-            driver_id: driverId,
-            assignment_status: 'offered'
-        }
+async function acceptFromPool(orderId, driverId) {
+    const order = await Order.findByPk(orderId, {
+        include: [
+            { model: Restaurant, as: 'restaurant', attributes: ['restaurant_id', 'street_address', 'city'] },
+            { model: Address, as: 'delivery_address', attributes: ['address_id', 'street_address', 'city'] }
+        ]
     });
-
-    if (!assignment) {
-        const err = new Error('Assignment offer not found or already responded to');
-        err.statusCode = 404;
-        throw err;
-    }
-
-    // Get order separately
-    const order = await Order.findByPk(orderId);
     if (!order) {
         const err = new Error('Order not found');
         err.statusCode = 404;
         throw err;
     }
-
-    // Check if assignment has expired
-    const offeredAt = new Date(assignment.offered_at);
-    const now = new Date();
-    const secondsElapsed = (now - offeredAt) / 1000;
-
-    if (secondsElapsed > ASSIGNMENT_TIMEOUT_SECONDS) {
-        await assignment.update({
-            assignment_status: 'expired',
-            responded_at: now
-        });
-        const err = new Error('Assignment offer has expired');
-        err.statusCode = 400;
-        throw err;
-    }
-
-    // Check if order still needs driver
     if (order.driver_id) {
-        await assignment.update({
-            assignment_status: 'rejected',
-            responded_at: now
-        });
-        const err = new Error('Order already has a driver assigned');
+        const err = new Error('Order already taken by another driver');
+        err.statusCode = 409;
+        throw err;
+    }
+    const allowedStatuses = [ORDER_STATUS.PREPARING, ORDER_STATUS.READY];
+    if (!allowedStatuses.includes(order.order_status)) {
+        const err = new Error(`Order is not available for acceptance. Status: ${order.order_status}`);
         err.statusCode = 400;
         throw err;
     }
 
-    // Check order status based on flow type
-    const isPartnered = order.order_flow_type === 'partnered';
-    const isNonPartnered = order.order_flow_type === 'non_partnered';
-    
-    if (isPartnered && order.order_status !== ORDER_STATUS.READY) {
-        await assignment.update({
-            assignment_status: 'rejected',
-            responded_at: now
-        });
-        const err = new Error(`Partnered order is no longer available for assignment. Current status: ${order.order_status}`);
-        err.statusCode = 400;
+    const driver = await Driver.findByPk(driverId);
+    if (!driver) {
+        const err = new Error('Driver not found');
+        err.statusCode = 404;
         throw err;
     }
-    
-    if (isNonPartnered && ![ORDER_STATUS.PENDING, ORDER_STATUS.CONFIRMED].includes(order.order_status)) {
-        await assignment.update({
-            assignment_status: 'rejected',
-            responded_at: now
-        });
-        const err = new Error(`Non-partnered order is no longer available for assignment. Current status: ${order.order_status}`);
-        err.statusCode = 400;
+    if (!driver.is_active) {
+        const err = new Error('Your driver account is inactive. Contact support.');
+        err.statusCode = 403;
+        throw err;
+    }
+    if (driver.verification_status !== 'approved') {
+        const err = new Error('Your account is pending approval. You can accept orders once verified.');
+        err.statusCode = 403;
         throw err;
     }
 
-    // Update assignment to accepted
-    await assignment.update({
-        assignment_status: 'accepted',
-        responded_at: now
-    });
+    const now = new Date();
+    const wasReady = order.order_status === ORDER_STATUS.READY;
+    const newStatus = wasReady ? ORDER_STATUS.PICKED_UP : order.order_status;
 
-    // Reject all other pending assignments for this order
-    await DriverAssignment.update(
-        {
-            assignment_status: 'rejected',
-            responded_at: now
-        },
-        {
-            where: {
-                order_id: orderId,
-                driver_id: { [Op.ne]: driverId },
-                assignment_status: 'offered'
-            }
+    const t = await Order.sequelize.transaction();
+    try {
+        const [updated] = await Order.update(
+            { driver_id: driverId, order_status: newStatus },
+            { where: { order_id: orderId, driver_id: null }, transaction: t }
+        );
+        if (updated === 0) {
+            await t.rollback();
+            const err = new Error('Order already taken by another driver');
+            err.statusCode = 409;
+            throw err;
         }
-    );
 
-    // Update order with driver
-    // For non-partnered orders, status changes to 'confirmed' (driver will place order)
-    // For partnered orders, status changes to 'picked_up' (food already ready)
-    const newStatus = isNonPartnered ? ORDER_STATUS.CONFIRMED : ORDER_STATUS.PICKED_UP;
+        await DriverAssignment.create({
+            order_id: orderId,
+            driver_id: driverId,
+            assignment_status: 'accepted',
+            offered_at: now,
+            responded_at: now
+        }, { transaction: t });
 
-    await order.update({
-        driver_id: driverId,
-        order_status: newStatus
-    });
+        const restaurant = order.restaurant || await Restaurant.findByPk(order.restaurant_id);
+        const address = order.delivery_address || await Address.findByPk(order.address_id);
+        await Delivery.create({
+            order_id: orderId,
+            driver_id: driverId,
+            pickup_address: restaurant ? `${restaurant.street_address}, ${restaurant.city}` : 'Restaurant Address',
+            pickup_latitude: restaurant?.latitude ?? null,
+            pickup_longitude: restaurant?.longitude ?? null,
+            delivery_address: address ? `${address.street_address}, ${address.city}` : 'Delivery Address',
+            delivery_latitude: address?.latitude ?? null,
+            delivery_longitude: address?.longitude ?? null,
+            distance_km: null,
+            assigned_at: now,
+            delivery_status: DELIVERY_STATUS.ASSIGNED
+        }, { transaction: t });
 
-    // Create delivery record
-    const restaurant = await Restaurant.findByPk(order.restaurant_id);
-    const address = await Address.findByPk(order.address_id);
+        await OrderStatusHistory.create({
+            order_id: orderId,
+            old_status: order.order_status,
+            new_status: newStatus,
+            changed_by_type: 'driver',
+            changed_by_id: driverId
+        }, { transaction: t });
 
-    await Delivery.create({
-        order_id: orderId,
-        driver_id: driverId,
-        pickup_address: restaurant ? `${restaurant.street_address}, ${restaurant.city}` : 'Restaurant Address',
-        pickup_latitude: restaurant ? restaurant.latitude : null,
-        pickup_longitude: restaurant ? restaurant.longitude : null,
-        delivery_address: address ? `${address.street_address}, ${address.city}` : 'Delivery Address',
-        delivery_latitude: address ? address.latitude : null,
-        delivery_longitude: address ? address.longitude : null,
-        distance_km: null, // Will be calculated when driver picks up
-        assigned_at: now,
-        delivery_status: DELIVERY_STATUS.ASSIGNED
-    });
-
-    // Send verification code to driver when assigned
-    try {
-        const { sendVerificationCode } = require('./verificationCodeService');
-        await sendVerificationCode(orderId);
-    } catch (error) {
-        console.error(`Failed to send verification code to driver for order ${orderId}:`, error.message);
-        // Don't fail assignment if code sending fails
+        await t.commit();
+    } catch (e) {
+        await t.rollback();
+        throw e;
     }
 
-    // Record status change
-    const oldStatus = isNonPartnered ? ORDER_STATUS.PENDING : ORDER_STATUS.READY;
-    await OrderStatusHistory.create({
-        order_id: orderId,
-        old_status: oldStatus,
-        new_status: newStatus,
-        changed_by_type: 'driver',
-        changed_by_id: driverId
-    });
-
+    if (wasReady) {
+        try {
+            const { sendVerificationCode } = require('./verificationCodeService');
+            await sendVerificationCode(orderId);
+        } catch (error) {
+            console.error(`Failed to send verification code for order ${orderId}:`, error.message);
+        }
+    }
     try {
-        const { emitOrderAssigned } = require('./socketEventService');
-        const driver = await Driver.findByPk(driverId, { attributes: ['driver_id', 'full_name', 'phone_number'] });
+        const { emitOrderAssigned, emitOrderTakenToDrivers } = require('./socketEventService');
         emitOrderAssigned(orderId, {
             driver_id: driverId,
-            driver_name: driver?.full_name,
-            driver_phone: driver?.phone_number,
+            driver_name: driver.full_name,
+            driver_phone: driver.phone_number,
             order_status: newStatus
         });
+        emitOrderTakenToDrivers(orderId);
     } catch (error) {
-        console.error(`Failed to emit order:assigned for order ${orderId}:`, error.message);
+        console.error(`Failed to emit for order ${orderId}:`, error.message);
     }
 
     return {
-        assignment_id: assignment.assignment_id,
         order_id: orderId,
         driver_id: driverId,
         assignment_status: 'accepted',
-        message: 'Assignment accepted successfully'
+        order_status: newStatus,
+        message: 'Order accepted successfully'
     };
 }
 
 /**
- * Driver rejects order assignment
- * Automatically offers to next nearest driver after rejection
+ * Driver accepts order (pool only - no more one-driver-offer flow)
  * @param {number} orderId - Order ID
  * @param {number} driverId - Driver ID (from authenticated user)
- * @returns {Promise<Object>} Rejection confirmation and next assignment attempt
+ * @returns {Promise<Object>} Assignment details
+ */
+async function acceptAssignment(orderId, driverId) {
+    return acceptFromPool(orderId, driverId);
+}
+
+/**
+ * Driver rejects order assignment (pool flow: no re-offer; order stays in pool for others)
+ * @param {number} orderId - Order ID
+ * @param {number} driverId - Driver ID (from authenticated user)
+ * @returns {Promise<Object>} Rejection confirmation
  */
 async function rejectAssignment(orderId, driverId) {
-    // Find pending assignment
     const assignment = await DriverAssignment.findOne({
         where: {
             order_id: orderId,
@@ -616,35 +586,17 @@ async function rejectAssignment(orderId, driverId) {
         throw err;
     }
 
-    // Update assignment to rejected
     await assignment.update({
         assignment_status: 'rejected',
         responded_at: new Date()
     });
-
-    // Check if order still needs a driver
-    const order = await Order.findByPk(orderId);
-    let nextAssignment = null;
-    let nextAssignmentMessage = null;
-
-    if (order && !order.driver_id && order.order_status === ORDER_STATUS.READY) {
-        try {
-            // Automatically try to assign to next nearest driver (excluding this rejected driver)
-            nextAssignment = await autoAssignDriver(orderId, [driverId]);
-            nextAssignmentMessage = 'Next nearest driver has been automatically offered the order.';
-        } catch (error) {
-            // If no more drivers available, that's okay - we'll return rejection confirmation
-            nextAssignmentMessage = 'No other available drivers found. Order will be reassigned when drivers become available.';
-        }
-    }
 
     return {
         assignment_id: assignment.assignment_id,
         order_id: orderId,
         driver_id: driverId,
         assignment_status: 'rejected',
-        message: 'Assignment rejected. ' + (nextAssignmentMessage || 'System will try to assign to another driver.'),
-        next_assignment: nextAssignment
+        message: 'Assignment rejected.'
     };
 }
 
@@ -709,6 +661,70 @@ async function getAvailableDrivers(filters = {}) {
 }
 
 /**
+ * Driver releases an order they had accepted (unassign). Order goes back to pool for other drivers.
+ * @param {number} orderId - Order ID
+ * @param {number} driverId - Driver ID (must be the currently assigned driver)
+ * @returns {Promise<Object>} Release confirmation
+ */
+async function releaseAssignment(orderId, driverId) {
+    const { Delivery } = require('../models');
+    const order = await Order.findByPk(orderId);
+    if (!order) {
+        const err = new Error('Order not found');
+        err.statusCode = 404;
+        throw err;
+    }
+    if (order.driver_id !== driverId) {
+        const err = new Error('You are not assigned to this order');
+        err.statusCode = 403;
+        throw err;
+    }
+    const allowedStatuses = [ORDER_STATUS.PREPARING, ORDER_STATUS.READY, ORDER_STATUS.PICKED_UP, ORDER_STATUS.IN_TRANSIT];
+    if (!allowedStatuses.includes(order.order_status)) {
+        const err = new Error(`Order cannot be released in status: ${order.order_status}`);
+        err.statusCode = 400;
+        throw err;
+    }
+
+    const t = await Order.sequelize.transaction();
+    try {
+        const oldStatus = order.order_status;
+        await order.update(
+            { driver_id: null, order_status: ORDER_STATUS.READY },
+            { transaction: t }
+        );
+        await Delivery.destroy({
+            where: { order_id: orderId },
+            transaction: t
+        });
+        await OrderStatusHistory.create({
+            order_id: orderId,
+            old_status: oldStatus,
+            new_status: ORDER_STATUS.READY,
+            changed_by_type: 'driver',
+            changed_by_id: driverId
+        }, { transaction: t });
+        await t.commit();
+    } catch (e) {
+        await t.rollback();
+        throw e;
+    }
+
+    try {
+        const { emitOrderAvailableToDrivers } = require('./socketEventService');
+        emitOrderAvailableToDrivers(orderId);
+    } catch (error) {
+        console.error(`Failed to emit order:available for order ${orderId}:`, error.message);
+    }
+
+    return {
+        order_id: orderId,
+        driver_id: driverId,
+        message: 'Order released. It is back in the pool for other drivers.'
+    };
+}
+
+/**
  * Check and handle expired assignments
  * Called periodically to reassign expired offers
  */
@@ -733,18 +749,7 @@ async function handleExpiredAssignments() {
             });
 
             expired.push(assignment);
-
-            // Try to auto-assign to next driver if order still needs one
-            // Exclude the expired driver from next assignment
-            const order = await Order.findByPk(assignment.order_id);
-            if (order && !order.driver_id && order.order_status === ORDER_STATUS.READY) {
-                try {
-                    await autoAssignDriver(order.order_id, [assignment.driver_id]);
-                } catch (error) {
-                    // Log error but don't throw - continue processing other expired assignments
-                    console.error(`Failed to reassign order ${order.order_id}:`, error.message);
-                }
-            }
+            // Pool flow: no re-offer; order remains in pool for drivers to accept
         }
     }
 
@@ -757,6 +762,7 @@ module.exports = {
     manualAssignDriver,
     acceptAssignment,
     rejectAssignment,
+    releaseAssignment,
     getAvailableDrivers,
     handleExpiredAssignments,
     ASSIGNMENT_TIMEOUT_SECONDS

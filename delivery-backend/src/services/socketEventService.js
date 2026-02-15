@@ -91,10 +91,52 @@ function emitOrderAssigned(orderId, payload) {
     });
 }
 
+/**
+ * Notify all drivers that an order was taken (so they remove it from available list)
+ */
+function emitOrderTakenToDrivers(orderId) {
+    const io = getIOOrNull();
+    if (!io || !orderId) return;
+    io.to('drivers').emit('order:taken', {
+        order_id: orderId,
+        timestamp: new Date()
+    });
+}
+
+/**
+ * Notify all drivers that a new order is available (preparing or ready) so they refetch the list
+ */
+function emitOrderAvailableToDrivers(orderId, orderStatus) {
+    const io = getIOOrNull();
+    if (!io || !orderId) return;
+    io.to('drivers').emit('order:available', {
+        order_id: orderId,
+        order_status: orderStatus,
+        timestamp: new Date()
+    });
+}
+
+/**
+ * Notify restaurant that an order was delivered (so they can complete their records)
+ */
+function emitOrderDeliveredToRestaurant(orderId, restaurantId) {
+    const io = getIOOrNull();
+    if (!io || !orderId || !restaurantId) return;
+    io.to(`restaurant:${restaurantId}`).emit('order:delivered', {
+        order_id: orderId,
+        order_status: 'delivered',
+        message: 'Order delivered. You can complete your records.',
+        timestamp: new Date()
+    });
+}
+
 module.exports = {
     emitOrderCreated,
     emitOrderStatusEvent,
     emitOrderCancelled,
     emitDriverAssignment,
-    emitOrderAssigned
+    emitOrderAssigned,
+    emitOrderTakenToDrivers,
+    emitOrderAvailableToDrivers,
+    emitOrderDeliveredToRestaurant
 };

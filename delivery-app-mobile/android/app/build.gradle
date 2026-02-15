@@ -85,7 +85,11 @@ android {
         versionCode 1
         versionName "1.0"
         // Allow HTTP (cleartext) for development - backend uses http://IP:5000
-        manifestPlaceholders = [usesCleartextTraffic: "true"]
+        // Set GOOGLE_MAPS_API_KEY in android/gradle.properties (get key: Google Cloud Console → Maps SDK for Android)
+        manifestPlaceholders = [
+            usesCleartextTraffic: "true",
+            GOOGLE_MAPS_API_KEY: project.findProperty("GOOGLE_MAPS_API_KEY") ?: "REPLACE_WITH_YOUR_GOOGLE_MAPS_API_KEY"
+        ]
     }
     signingConfigs {
         debug {

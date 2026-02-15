@@ -372,21 +372,7 @@ async function createOrderFromCart(customerId, { address_id, payment_method, spe
         console.error(`Failed to emit order:created for order ${order.order_id}:`, error.message);
     }
 
-    // For non-partnered orders, auto-assign driver immediately
-    // For partnered orders, wait until restaurant marks as 'ready'
-    if (orderFlowType === 'non_partnered') {
-        try {
-            const { autoAssignDriver } = require('./driverAssignmentService');
-            await autoAssignDriver(order.order_id);
-            // Send verification code to driver when assigned
-            const { sendVerificationCode } = require('./verificationCodeService');
-            await sendVerificationCode(order.order_id);
-        } catch (error) {
-            // Log but don't fail order creation
-            console.error(`Auto-assignment failed for non-partnered order ${order.order_id}:`, error.message);
-        }
-    }
-
+    // Pool flow: drivers see orders when restaurant sets preparing/ready and accept from GET /drivers/orders/available
     return order;
 }
 

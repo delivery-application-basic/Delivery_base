@@ -14,9 +14,13 @@ export const useSocket = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      initializeSocket().then((socket) => {
-        socketRef.current = socket;
-      });
+      initializeSocket()
+        .then((s) => {
+          socketRef.current = s;
+        })
+        .catch(() => {
+          socketRef.current = null;
+        });
     }
     return () => {
       disconnectSocket();
@@ -98,6 +102,35 @@ export const useSocket = () => {
     return () => s.off('driver:assignment', handler);
   }, []);
 
+  const subscribeToOrderTaken = useCallback((onOrderTaken) => {
+    const s = getSocket();
+    if (!s) return () => {};
+    const handler = (data) => onOrderTaken?.(data);
+    s.on('order:taken', handler);
+    return () => s.off('order:taken', handler);
+  }, []);
+
+  const subscribeToOrderAvailable = useCallback((onOrderAvailable) => {
+    const s = getSocket();
+    if (!s) return () => {};
+    const handler = (data) => onOrderAvailable?.(data);
+    s.on('order:available', handler);
+    return () => s.off('order:available', handler);
+  }, []);
+
+  const subscribeToOrderDelivered = useCallback((onOrderDelivered) => {
+    const s = getSocket();
+    if (!s) return () => {};
+    const handler = (data) => {
+      if (data?.order_status === 'delivered') {
+        dispatch(updateOrderStatus({ orderId: data.order_id, status: 'delivered' }));
+      }
+      onOrderDelivered?.(data);
+    };
+    s.on('order:delivered', handler);
+    return () => s.off('order:delivered', handler);
+  }, [dispatch]);
+
   return {
     socket,
     isConnected: !!socket?.connected,
@@ -110,6 +143,9 @@ export const useSocket = () => {
     subscribeToOrderTracking,
     subscribeToNewOrders,
     subscribeToDriverAssignment,
+    subscribeToOrderTaken,
+    subscribeToOrderAvailable,
+    subscribeToOrderDelivered,
     ...socketHelpers,
   };
 };

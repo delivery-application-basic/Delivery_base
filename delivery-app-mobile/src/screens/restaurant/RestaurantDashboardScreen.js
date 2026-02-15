@@ -3,7 +3,7 @@
  */
 
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Alert } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
 import { fetchOrders } from '../../store/slices/orderSlice';
@@ -12,7 +12,7 @@ import { Loader } from '../../components/common/Loader';
 import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
 import { layout } from '../../theme/spacing';
-
+import { useSocket } from '../../hooks/useSocket';
 import { ScrollView, TouchableOpacity, StatusBar } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from 'react-native-paper';
@@ -26,10 +26,30 @@ export default function RestaurantDashboardScreen() {
   const { user } = useSelector((state) => state.auth);
   const { orders, isLoading } = useSelector((state) => state.order);
   const restaurantId = user?.restaurant_id ?? user?.id;
+  const { joinRestaurantRoom, leaveRestaurantRoom, subscribeToOrderDelivered } = useSocket();
 
   useEffect(() => {
     if (restaurantId) dispatch(fetchOrders({}));
   }, [dispatch, restaurantId]);
+
+  useEffect(() => {
+    if (restaurantId == null) return;
+    joinRestaurantRoom(restaurantId);
+    const unsubscribe = subscribeToOrderDelivered((data) => {
+      dispatch(fetchOrders({}));
+      if (data?.order_id) {
+        Alert.alert(
+          'Order delivered',
+          `Order #${data.order_id} has been delivered. You can complete your records.`,
+          [{ text: 'OK' }]
+        );
+      }
+    });
+    return () => {
+      unsubscribe();
+      leaveRestaurantRoom(restaurantId);
+    };
+  }, [restaurantId, joinRestaurantRoom, leaveRestaurantRoom, subscribeToOrderDelivered, dispatch]);
 
   const pendingCount = orders.filter((o) => o.order_status === 'pending' || o.order_status === 'confirmed').length;
   const activeCount = orders.filter((o) => o.order_status === 'preparing' || o.order_status === 'ready').length;
