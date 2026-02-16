@@ -44,7 +44,7 @@ exports.registerCustomer = async (req, res, next) => {
 // @access  Public
 exports.registerRestaurant = async (req, res, next) => {
     try {
-        const { restaurant_name, email, phone_number, password, street_address, city, latitude, longitude } = req.body;
+        const { restaurant_name, email, phone_number, password, street_address, city, latitude, longitude, cuisine_type, logo_url } = req.body;
 
         const createPayload = {
             restaurant_name,
@@ -52,7 +52,9 @@ exports.registerRestaurant = async (req, res, next) => {
             phone_number,
             password_hash: password,
             street_address,
-            city
+            city,
+            cuisine_type,
+            logo_url
         };
         if (latitude != null && longitude != null && !isNaN(Number(latitude)) && !isNaN(Number(longitude))) {
             createPayload.latitude = Number(latitude);
@@ -212,11 +214,11 @@ exports.logout = async (req, res, next) => {
             }
 
             if (userId) {
-                await UserSession.destroy({ 
-                    where: { 
+                await UserSession.destroy({
+                    where: {
                         user_type: req.userType,
-                        user_id: userId 
-                    } 
+                        user_id: userId
+                    }
                 });
             }
         }

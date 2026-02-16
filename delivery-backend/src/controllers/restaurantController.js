@@ -1,14 +1,24 @@
 const { Restaurant, MenuItem, RestaurantHours } = require('../models');
 const { Op } = require('sequelize');
 
+// Helper to calculate distance between two coordinates in km
+const getDistance = (lat1, lon1, lat2, lon2) => {
+    const R = 6371; // Radius of the earth in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a =
+        0.5 - Math.cos(dLat) / 2 +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        (1 - Math.cos(dLon)) / 2;
+    return R * 2 * Math.asin(Math.sqrt(a));
+};
+
 // @desc    Get all active restaurants
 // @route   GET /api/v1/restaurants
 // @access  Public
 exports.getRestaurants = async (req, res, next) => {
     try {
-        const { search, cuisine, city } = req.query;
-        // For testing: Show all active restaurants regardless of verification status
-        // In production, you might want to add: verification_status: 'approved'
+        const { search, cuisine, city, latitude, longitude, radius } = req.query;
         let query = { where: { is_active: true } };
 
         if (search) {
@@ -21,7 +31,31 @@ exports.getRestaurants = async (req, res, next) => {
             query.where.city = city;
         }
 
-        const restaurants = await Restaurant.findAll(query);
+        let restaurants = await Restaurant.findAll(query);
+
+        if (latitude && longitude) {
+            const userLat = parseFloat(latitude);
+            const userLng = parseFloat(longitude);
+            const searchRadius = parseFloat(radius) || 12; // 12km default radius for "near you"
+
+            restaurants = restaurants.map(r => {
+                const restaurant = r.toJSON();
+                if (restaurant.latitude && restaurant.longitude) {
+                    restaurant.distance = getDistance(userLat, userLng, restaurant.latitude, restaurant.longitude);
+                } else {
+                    restaurant.distance = 999;
+                }
+                return restaurant;
+            });
+
+            // If radius is specified, filter by it
+            if (req.query.radius) {
+                restaurants = restaurants.filter(r => r.distance <= searchRadius);
+            }
+
+            // Sort by distance
+            restaurants.sort((a, b) => (a.distance || 999) - (b.distance || 999));
+        }
 
         res.status(200).json({
             success: true,
@@ -148,6 +182,39 @@ exports.updateHours = async (req, res, next) => {
         res.status(200).json({
             success: true,
             data: createdHours
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Upload restaurant logo
+// @route   POST /api/v1/restaurants/:id/logo
+// @access  Private (Restaurant Owner)
+exports.uploadLogo = async (req, res, next) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ success: false, message: 'Please upload a file' });
+        }
+
+        const restaurantId = parseInt(req.params.id, 10);
+        if (restaurantId !== req.user.restaurant_id) {
+            return res.status(403).json({ success: false, message: 'Not authorized to update this restaurant' });
+        }
+
+        const restaurant = await Restaurant.findByPk(restaurantId);
+        if (!restaurant) {
+            return res.status(404).json({ success: false, message: 'Restaurant not found' });
+        }
+
+        // The file is already uploaded to cloudinary by the middleware
+        await restaurant.update({ logo_url: req.file.path });
+
+        res.status(200).json({
+            success: true,
+            data: {
+                logo_url: req.file.path
+            }
         });
     } catch (error) {
         next(error);

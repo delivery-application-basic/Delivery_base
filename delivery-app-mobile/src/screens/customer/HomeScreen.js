@@ -26,21 +26,52 @@ export default function HomeScreen() {
   const dispatch = useDispatch();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const { restaurants, isLoading, error, searchQuery } = useSelector((state) => state.restaurant);
+  const { restaurants, isLoading, error, searchQuery, filters } = useSelector((state) => state.restaurant);
   const { user } = useSelector((state) => state.auth);
   const [refreshing, setRefreshing] = useState(false);
+  const { location, getCurrentPosition } = require('../../hooks/useLocation').default();
+
+  const loadData = useCallback(async (loc = location) => {
+    const params = {
+      filters: {
+        ...filters,
+        search: searchQuery
+      }
+    };
+    if (loc?.latitude) {
+      params.filters.latitude = loc.latitude;
+      params.filters.longitude = loc.longitude;
+    }
+    dispatch(fetchRestaurants(params));
+  }, [dispatch, searchQuery, filters, location]);
 
   useEffect(() => {
-    dispatch(fetchRestaurants({ filters: { search: searchQuery } }));
-  }, [dispatch, searchQuery]);
+    loadData();
+  }, [loadData]);
+
+  useEffect(() => {
+    getCurrentPosition();
+  }, [getCurrentPosition]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await dispatch(fetchRestaurants({ filters: { search: searchQuery } }));
+    const loc = await getCurrentPosition();
+    await loadData(loc);
     setRefreshing(false);
   };
 
   const onSearch = (q) => dispatch(setSearchQuery(q));
+
+  const toggleCategory = (cuisine) => {
+    if (filters.cuisine === cuisine) {
+      dispatch(fetchRestaurants({ filters: { ...filters, cuisine: null, search: searchQuery } }));
+      // Normally we'd use setFilters but simpler here to just call directly
+      // Wait, let's stick to setFilters pattern
+      dispatch(require('../../store/slices/restaurantSlice').setFilters({ cuisine: null }));
+    } else {
+      dispatch(require('../../store/slices/restaurantSlice').setFilters({ cuisine }));
+    }
+  };
 
   const categories = [
     { id: '1', name: 'Pizza', icon: 'pizza' },
@@ -61,15 +92,15 @@ export default function HomeScreen() {
     } else if (item.restaurantName) {
       restaurantName = String(item.restaurantName).trim();
     }
-    
+
     // Fallback if name is empty or invalid
     if (!restaurantName || restaurantName === '' || restaurantName === 'null' || restaurantName === 'undefined') {
       restaurantName = 'Restaurant';
     }
-    
+
     // Ensure rating is valid
     const restaurantRating = item.average_rating || item.rating || 4.5;
-    
+
     return (
       <RestaurantCard
         name={restaurantName}
@@ -113,18 +144,33 @@ export default function HomeScreen() {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.categoryList}
       >
-        {categories.map((cat) => (
-          <TouchableOpacity key={cat.id} style={styles.categoryItem}>
-            <View style={styles.categoryIconContainer}>
-              <Icon source={cat.icon} size={24} color={colors.primary} />
-            </View>
-            <Text style={styles.categoryText}>{cat.name}</Text>
-          </TouchableOpacity>
-        ))}
+        {categories.map((cat) => {
+          const isSelected = filters.cuisine === cat.name;
+          return (
+            <TouchableOpacity
+              key={cat.id}
+              style={styles.categoryItem}
+              onPress={() => toggleCategory(cat.name)}
+            >
+              <View style={[
+                styles.categoryIconContainer,
+                isSelected && styles.categoryIconSelected
+              ]}>
+                <Icon source={cat.icon} size={24} color={isSelected ? colors.white : colors.primary} />
+              </View>
+              <Text style={[
+                styles.categoryText,
+                isSelected && styles.categoryTextSelected
+              ]}>{cat.name}</Text>
+            </TouchableOpacity>
+          );
+        })}
       </ScrollView>
 
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Featured Restaurants</Text>
+        <Text style={styles.sectionTitle}>
+          {location?.latitude ? 'Restaurants Near You' : 'Featured Restaurants'}
+        </Text>
         <TouchableOpacity onPress={() => navigation.navigate('RestaurantList')}>
           <Text style={styles.seeAllText}>See all</Text>
         </TouchableOpacity>
@@ -247,11 +293,18 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     ...shadows.small,
   },
+  categoryIconSelected: {
+    backgroundColor: colors.primary,
+  },
   categoryText: {
     fontSize: 10,
     fontWeight: '600',
     color: colors.text,
     textAlign: 'center',
+  },
+  categoryTextSelected: {
+    color: colors.primary,
+    fontWeight: '800',
   },
   sectionHeader: {
     flexDirection: 'row',

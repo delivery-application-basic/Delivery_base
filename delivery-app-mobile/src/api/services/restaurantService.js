@@ -10,12 +10,12 @@ export const restaurantService = {
     };
     return apiClient.get('/restaurants', { params });
   },
-  
+
   // Get restaurant by ID
   async getRestaurantById(restaurantId) {
     return apiClient.get(`/restaurants/${restaurantId}`);
   },
-  
+
   // Search restaurants
   async searchRestaurants(query, filters = {}) {
     const params = {
@@ -24,17 +24,17 @@ export const restaurantService = {
     };
     return apiClient.get('/restaurants/search', { params });
   },
-  
+
   // Get restaurant menu
   async getRestaurantMenu(restaurantId) {
     return apiClient.get(`/restaurants/${restaurantId}/menu`);
   },
-  
+
   // Update restaurant profile (restaurant owner only)
   async updateRestaurant(restaurantId, data) {
     return apiClient.put(`/restaurants/${restaurantId}`, data);
   },
-  
+
   // Update restaurant operating hours
   async updateOperatingHours(restaurantId, hours) {
     return apiClient.put(`/restaurants/${restaurantId}/hours`, { hours });
@@ -48,5 +48,18 @@ export const restaurantService = {
   // Deactivate or reactivate restaurant
   async updateStatus(restaurantId, isActive) {
     return apiClient.patch(`/restaurants/${restaurantId}/status`, { is_active: isActive });
+  },
+
+  // Upload restaurant logo. Pass uri from image picker.
+  async uploadLogo(restaurantId, imageUri) {
+    const formData = new FormData();
+    formData.append('logo', {
+      uri: imageUri,
+      type: 'image/jpeg',
+      name: `logo-${restaurantId}.jpg`,
+    });
+    return apiClient.post(`/restaurants/${restaurantId}/logo`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
   },
 };

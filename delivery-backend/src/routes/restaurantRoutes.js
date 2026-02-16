@@ -13,6 +13,8 @@ const { getMenuByRestaurant } = require('../controllers/menuController');
 const { protect, authorize } = require('../middleware/auth');
 const { USER_TYPES } = require('../utils/constants');
 
+const { upload } = require('../middleware/upload');
+
 router.get('/', getRestaurants);
 router.get('/search', searchRestaurants);
 // Owner route must be before /:id so "me" is not used as id
@@ -25,6 +27,7 @@ router.use(protect);
 router.use(authorize(USER_TYPES.RESTAURANT));
 
 router.put('/:id', updateProfile);
+router.post('/:id/logo', upload.single('logo'), require('../controllers/restaurantController').uploadLogo);
 router.patch('/:id/status', updateStatus);
 router.put('/:id/hours', updateHours);
 

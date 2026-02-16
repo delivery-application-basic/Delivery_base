@@ -5,8 +5,9 @@
  */
 
 import React, { useState, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity, Image, Alert } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
+import { Icon } from 'react-native-paper';
 import { register, clearError } from '../../store/slices/authSlice';
 import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
@@ -29,6 +30,9 @@ export default function RestaurantRegisterScreen() {
   const [city, setCity] = useState('');
   const [latitude, setLatitude] = useState('');
   const [longitude, setLongitude] = useState('');
+  const [cuisine_type, setCuisineType] = useState('');
+  const [logoBase64, setLogoBase64] = useState(null);
+  const [logoUri, setLogoUri] = useState(null);
   const [errors, setErrors] = useState({});
   const scrollRef = useRef(null);
   const fieldLayouts = useRef({});
@@ -71,7 +75,7 @@ export default function RestaurantRegisterScreen() {
 
     dispatch(clearError());
     try {
-      await dispatch(register({
+      const result = await dispatch(register({
         userType: USER_TYPES.RESTAURANT,
         registrationData: {
           restaurant_name,
@@ -82,10 +86,32 @@ export default function RestaurantRegisterScreen() {
           city,
           latitude: Number(String(latitude).trim()),
           longitude: Number(String(longitude).trim()),
+          cuisine_type,
         },
       })).unwrap();
+
+      // If registration success and we have a logo, upload it
+      const restaurantId = result.user?.id;
+      if (restaurantId && logoUri) {
+        try {
+          const { restaurantService } = require('../../api/services/restaurantService');
+          await restaurantService.uploadLogo(restaurantId, logoUri);
+        } catch (uploadErr) {
+          console.error('Logo upload failed:', uploadErr);
+          // Just alert, don't fail registration
+          Alert.alert('Registration Success', 'Your account was created but logo upload failed. You can update it in profile settings.');
+        }
+      }
     } catch (e) {
       setErrors({ form: e || 'Registration failed' });
+    }
+  };
+
+  const handleSelectLogo = async () => {
+    const { launchImageLibrary } = require('react-native-image-picker');
+    const result = await launchImageLibrary({ mediaType: 'photo', quality: 0.7 });
+    if (result.assets?.[0]?.uri) {
+      setLogoUri(result.assets[0].uri);
     }
   };
 
@@ -105,7 +131,19 @@ export default function RestaurantRegisterScreen() {
         keyboardDismissMode="on-drag"
       >
         <Text style={styles.title}>Restaurant sign up</Text>
+        <TouchableOpacity style={styles.logoPicker} onPress={handleSelectLogo}>
+          {logoUri ? (
+            <Image source={{ uri: logoUri }} style={styles.logoPreview} />
+          ) : (
+            <View style={styles.logoPlaceholder}>
+              <Icon source="camera-plus" size={32} color={colors.primary} />
+              <Text style={styles.logoText}>Add Logo</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+
         <Input label="Restaurant name" value={restaurant_name} onChangeText={setRestaurantName} error={errors.restaurant_name} />
+        <Input label="Cuisine Type" value={cuisine_type} onChangeText={setCuisineType} placeholder="e.g. Pizza, Ethiopian, Burgers" />
         <Input label="Phone number" value={phone_number} onChangeText={setPhone} error={errors.phone_number} placeholder="+251911234567" keyboardType="phone-pad" />
         <Input label="Email (optional)" value={email} onChangeText={setEmail} error={errors.email} keyboardType="email-address" />
         <Input label="Street address" value={street_address} onChangeText={setStreetAddress} error={errors.street_address} />
@@ -162,6 +200,33 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   title: { fontSize: 18, marginBottom: 16 },
+  logoPicker: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: colors.gray[100],
+    alignSelf: 'center',
+    marginBottom: 20,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.gray[200],
+    borderStyle: 'dashed',
+  },
+  logoPlaceholder: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  logoPreview: {
+    width: '100%',
+    height: '100%',
+  },
+  logoText: {
+    fontSize: 10,
+    color: colors.primary,
+    fontWeight: '600',
+    marginTop: 4,
+  },
   hint: { fontSize: 12, color: colors.textSecondary, marginBottom: spacing.sm },
   formError: { color: colors.error, fontSize: 12, marginBottom: spacing.sm },
   btn: { marginTop: spacing.sm },

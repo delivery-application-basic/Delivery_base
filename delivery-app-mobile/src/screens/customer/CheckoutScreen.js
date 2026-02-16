@@ -22,7 +22,7 @@ export default function CheckoutScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const insets = useSafeAreaInsets();
-  
+
   // Important: Selecting both subtotal and items to ensure Redux updates correctly
   const { subtotal, items } = useSelector((state) => state.cart);
   const { isLoading, error: orderError } = useSelector((state) => state.order);
@@ -30,6 +30,7 @@ export default function CheckoutScreen() {
   const [addressId, setAddressId] = useState(route.params?.addressId || '');
   const [selectedAddress, setSelectedAddress] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState(PAYMENT_METHODS.CASH);
+  const [deliveryType, setDeliveryType] = useState('delivery'); // 'delivery' or 'pickup'
   const [specialInstructions, setSpecialInstructions] = useState('');
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
   const [detectionError, setDetectionError] = useState(null);
@@ -66,19 +67,19 @@ export default function CheckoutScreen() {
   // Auto-detect location function
   const detectLocation = useCallback(async (isManual = false) => {
     if ((addressId && !isManual) || isDetectingLocation) return;
-    
+
     try {
       setIsDetectingLocation(true);
       setDetectionError(null);
-      
+
       const coords = await getLocationWithPermission();
-      
+
       if (!coords || !coords.latitude) {
         throw new Error('Could not get coordinates');
       }
-      
+
       const addressData = await geocodingService.reverseGeocode(coords.latitude, coords.longitude);
-      
+
       if (!addressData) {
         throw new Error('Could not resolve address');
       }
@@ -92,14 +93,20 @@ export default function CheckoutScreen() {
         latitude: coords.latitude,
         longitude: coords.longitude
       });
-      
+
       const newAddress = newAddressResponse.data?.data || newAddressResponse.data;
       if (newAddress && newAddress.address_id) {
         setAddressId(newAddress.address_id);
         setSelectedAddress(newAddress);
       }
     } catch (err) {
-      setDetectionError(err.message || 'Location failed');
+      const msg = err.message || 'Location failed';
+      setDetectionError(msg);
+      Alert.alert(
+        'Location Issue',
+        'We could not detect your location. Please check if your GPS is turned on and try again, or select an address manually.',
+        [{ text: 'OK' }]
+      );
     } finally {
       setIsDetectingLocation(false);
     }
@@ -113,15 +120,16 @@ export default function CheckoutScreen() {
 
   const handlePlaceOrder = async () => {
     const numAddressId = parseInt(addressId, 10);
-    if (!numAddressId) {
+    if (!numAddressId && deliveryType !== 'pickup') {
       Alert.alert('Address Required', 'Please select a delivery address');
       return;
     }
     try {
       const result = await dispatch(createOrder({
-        address_id: numAddressId,
+        address_id: numAddressId || undefined,
         payment_method: paymentMethod,
         special_instructions: specialInstructions || undefined,
+        delivery_type: deliveryType,
       })).unwrap();
       const order = result.data ?? result.order ?? result;
       dispatch(clearCart());
@@ -133,7 +141,7 @@ export default function CheckoutScreen() {
       } else {
         navigation.navigate('Orders', { screen: 'OrderHistory' });
       }
-    } catch (e) {}
+    } catch (e) { }
   };
 
   const renderAddressSection = () => {
@@ -189,20 +197,43 @@ export default function CheckoutScreen() {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Delivery Address</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('SelectAddress')}>
-              <Text style={styles.changeText}>Change</Text>
+          <Text style={styles.sectionTitle}>Order Type</Text>
+          <View style={styles.deliveryTypeContainer}>
+            <TouchableOpacity
+              style={[styles.typeOption, deliveryType === 'delivery' && styles.typeOptionSelected]}
+              onPress={() => setDeliveryType('delivery')}
+            >
+              <Icon source="truck-delivery" size={24} color={deliveryType === 'delivery' ? colors.primary : colors.textLight} />
+              <Text style={[styles.typeText, deliveryType === 'delivery' && styles.typeTextSelected]}>Delivery</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.typeOption, deliveryType === 'pickup' && styles.typeOptionSelected]}
+              onPress={() => setDeliveryType('pickup')}
+            >
+              <Icon source="shopping" size={24} color={deliveryType === 'pickup' ? colors.primary : colors.textLight} />
+              <Text style={[styles.typeText, deliveryType === 'pickup' && styles.typeTextSelected]}>Self-Pickup</Text>
             </TouchableOpacity>
           </View>
-          {renderAddressSection()}
-          {detectionError && (
-            <TouchableOpacity onPress={() => detectLocation(true)} style={styles.retryButton}>
-              <Icon source="refresh" size={16} color={colors.primary} />
-              <Text style={styles.retryText}>Retry GPS</Text>
-            </TouchableOpacity>
-          )}
         </View>
+
+        {deliveryType === 'delivery' && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Delivery Address</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('SelectAddress')}>
+                <Text style={styles.changeText}>Change</Text>
+              </TouchableOpacity>
+            </View>
+            {renderAddressSection()}
+            {detectionError && (
+              <TouchableOpacity onPress={() => detectLocation(true)} style={styles.retryButton}>
+                <Icon source="refresh" size={16} color={colors.primary} />
+                <Text style={styles.retryText}>Retry GPS</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Payment Method</Text>
@@ -390,5 +421,33 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
   },
   placeOrderBtn: {
+  },
+  deliveryTypeContainer: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  typeOption: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.md,
+    backgroundColor: colors.gray[50],
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: colors.gray[100],
+    gap: 8,
+  },
+  typeOptionSelected: {
+    backgroundColor: colors.primary + '08',
+    borderColor: colors.primary,
+  },
+  typeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  typeTextSelected: {
+    color: colors.primary,
   },
 });
