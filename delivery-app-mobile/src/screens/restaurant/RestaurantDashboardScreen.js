@@ -6,7 +6,7 @@ import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, Alert } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
-import { fetchOrders } from '../../store/slices/orderSlice';
+import { fetchOwnerOrders } from '../../store/slices/orderSlice';
 import { Button } from '../../components/common/Button';
 import { Loader } from '../../components/common/Loader';
 import { colors } from '../../theme/colors';
@@ -29,14 +29,14 @@ export default function RestaurantDashboardScreen() {
   const { joinRestaurantRoom, leaveRestaurantRoom, subscribeToOrderDelivered } = useSocket();
 
   useEffect(() => {
-    if (restaurantId) dispatch(fetchOrders({}));
+    if (restaurantId) dispatch(fetchOwnerOrders());
   }, [dispatch, restaurantId]);
 
   useEffect(() => {
     if (restaurantId == null) return;
     joinRestaurantRoom(restaurantId);
     const unsubscribe = subscribeToOrderDelivered((data) => {
-      dispatch(fetchOrders({}));
+      dispatch(fetchOwnerOrders());
       if (data?.order_id) {
         Alert.alert(
           'Order delivered',
@@ -51,8 +51,13 @@ export default function RestaurantDashboardScreen() {
     };
   }, [restaurantId, joinRestaurantRoom, leaveRestaurantRoom, subscribeToOrderDelivered, dispatch]);
 
-  const pendingCount = orders.filter((o) => o.order_status === 'pending' || o.order_status === 'confirmed').length;
-  const activeCount = orders.filter((o) => o.order_status === 'preparing' || o.order_status === 'ready').length;
+  const pendingOrders = orders.filter((o) => o.order_status === 'pending' || o.order_status === 'confirmed');
+  const activeOrders = orders.filter((o) => o.order_status === 'preparing' || o.order_status === 'ready');
+  const completedOrders = orders.filter((o) => o.order_status === 'delivered');
+
+  const pendingCount = pendingOrders.length;
+  const activeCount = activeOrders.length;
+  const completedCount = completedOrders.length;
 
   if (isLoading && !orders.length) return <Loader fullScreen />;
 
@@ -75,8 +80,8 @@ export default function RestaurantDashboardScreen() {
 
       <View style={styles.header}>
         <View>
-          <Text style={styles.headerSubtitle}>Good morning,</Text>
-          <Text style={styles.headerTitle}>{user?.restaurant_name || 'Restaurant'}</Text>
+          <Text style={styles.headerSubtitle}>Owner Dashboard</Text>
+          <Text style={styles.headerTitle}>{user?.full_name || 'My Restaurants'}</Text>
         </View>
         <TouchableOpacity
           style={styles.profileButton}
@@ -96,21 +101,33 @@ export default function RestaurantDashboardScreen() {
             value={pendingCount}
             icon="clock-alert-outline"
             color={colors.warning}
-            onPress={() => navigation.navigate('IncomingOrders')}
+            onPress={() => navigation.navigate('BranchOrdersOverview', {
+              orders: pendingOrders,
+              category: 'To Confirm',
+              color: colors.warning
+            })}
           />
           <DashboardCard
             title="Orders in Progress"
             value={activeCount}
             icon="bowl-mix-outline"
             color={colors.primary}
-            onPress={() => navigation.navigate('ActiveOrders')}
+            onPress={() => navigation.navigate('BranchOrdersOverview', {
+              orders: activeOrders,
+              category: 'In Progress',
+              color: colors.primary
+            })}
           />
           <DashboardCard
             title="Completed Today"
-            value={orders.filter(o => o.order_status === 'delivered').length}
+            value={completedCount}
             icon="check-circle-outline"
             color={colors.secondary}
-            onPress={() => navigation.navigate('OrderHistory')}
+            onPress={() => navigation.navigate('BranchOrdersOverview', {
+              orders: completedOrders,
+              category: 'Completed Today',
+              color: colors.secondary
+            })}
           />
         </View>
 

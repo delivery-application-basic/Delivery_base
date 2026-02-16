@@ -26,6 +26,18 @@ export const fetchOrders = createAsyncThunk(
   }
 );
 
+export const fetchOwnerOrders = createAsyncThunk(
+  'order/fetchOwnerOrders',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await orderService.getOwnerOrders();
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.message || 'Failed to fetch owner orders');
+    }
+  }
+);
+
 export const fetchOrderById = createAsyncThunk(
   'order/fetchOrderById',
   async (orderId, { rejectWithValue }) => {
@@ -129,7 +141,7 @@ const orderSlice = createSlice({
         state.isLoading = false;
         state.error = action.payload;
       })
-      
+
       // Fetch orders
       .addCase(fetchOrders.pending, (state) => {
         state.isLoading = true;
@@ -147,7 +159,23 @@ const orderSlice = createSlice({
         state.isLoading = false;
         state.error = action.payload;
       })
-      
+
+      // Fetch owner orders
+      .addCase(fetchOwnerOrders.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchOwnerOrders.fulfilled, (state, action) => {
+        const p = action.payload;
+        state.isLoading = false;
+        state.orders = p.data ?? p.orders ?? [];
+        state.totalCount = state.orders.length;
+      })
+      .addCase(fetchOwnerOrders.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload;
+      })
+
       // Fetch order by ID
       .addCase(fetchOrderById.pending, (state) => {
         state.isLoading = true;
@@ -162,7 +190,7 @@ const orderSlice = createSlice({
         state.isLoading = false;
         state.error = action.payload;
       })
-      
+
       // Fetch order tracking
       .addCase(fetchOrderTracking.pending, (state) => {
         state.isLoading = true;
@@ -177,7 +205,7 @@ const orderSlice = createSlice({
         state.isLoading = false;
         state.error = action.payload;
       })
-      
+
       // Cancel order
       .addCase(cancelOrder.pending, (state) => {
         state.isLoading = true;

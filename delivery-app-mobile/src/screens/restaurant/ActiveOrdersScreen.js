@@ -1,10 +1,10 @@
 import React, { useEffect } from 'react';
 import { View, StyleSheet, FlatList, TouchableOpacity, Text, StatusBar } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { Icon } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { fetchOrders } from '../../store/slices/orderSlice';
+import { fetchOwnerOrders } from '../../store/slices/orderSlice';
 import { OrderCard } from '../../components/order/OrderCard';
 import { Loader } from '../../components/common/Loader';
 import { EmptyState } from '../../components/common/EmptyState';
@@ -18,12 +18,21 @@ const ACTIVE_STATUSES = ['confirmed', 'preparing', 'ready', 'picked_up', 'arrive
 export default function ActiveOrdersScreen() {
   const dispatch = useDispatch();
   const navigation = useNavigation();
+  const route = useRoute();
   const insets = useSafeAreaInsets();
+  const { restaurantId: paramResId, branchName } = route.params || {};
+
   const { orders, isLoading } = useSelector((state) => state.order);
-  const active = orders.filter((o) => ACTIVE_STATUSES.includes(o.order_status));
+  const active = orders.filter((o) => {
+    const matchesStatus = ACTIVE_STATUSES.includes(o.order_status);
+    if (paramResId) {
+      return matchesStatus && o.restaurant_id === paramResId;
+    }
+    return matchesStatus;
+  });
 
   useEffect(() => {
-    dispatch(fetchOrders({}));
+    dispatch(fetchOwnerOrders());
   }, [dispatch]);
 
   if (isLoading && !orders.length) return <Loader fullScreen />;
@@ -37,9 +46,9 @@ export default function ActiveOrdersScreen() {
       >
         <Icon source="arrow-left" size={24} color={colors.text} />
       </TouchableOpacity>
-      <View>
-        <Text style={styles.headerTitle}>In Progress</Text>
-        <Text style={styles.headerSubtitle}>Manage your current orders</Text>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.headerTitle} numberOfLines={1}>{branchName ? `${branchName} Progress` : 'In Progress'}</Text>
+        <Text style={styles.headerSubtitle} numberOfLines={1}>{branchName ? 'Currently preparing' : 'Manage your current orders'}</Text>
       </View>
     </View>
   );
@@ -71,7 +80,7 @@ export default function ActiveOrdersScreen() {
         }
         showsVerticalScrollIndicator={false}
         refreshing={isLoading}
-        onRefresh={() => dispatch(fetchOrders({}))}
+        onRefresh={() => dispatch(fetchOwnerOrders())}
       />
     </View>
   );

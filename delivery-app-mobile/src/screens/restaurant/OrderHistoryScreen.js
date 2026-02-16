@@ -1,10 +1,10 @@
 import React, { useEffect } from 'react';
 import { View, FlatList, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from 'react-native-paper';
-import { fetchOrders } from '../../store/slices/orderSlice';
+import { fetchOwnerOrders } from '../../store/slices/orderSlice';
 import { OrderCard } from '../../components/order/OrderCard';
 import { Loader } from '../../components/common/Loader';
 import { EmptyState } from '../../components/common/EmptyState';
@@ -15,11 +15,18 @@ import { layout, spacing } from '../../theme/spacing';
 export default function OrderHistoryScreen() {
   const dispatch = useDispatch();
   const navigation = useNavigation();
+  const route = useRoute();
   const insets = useSafeAreaInsets();
+  const { restaurantId: paramResId, branchName } = route.params || {};
+
   const { orders, isLoading } = useSelector((state) => state.order);
+  const filteredOrders = orders.filter(o => {
+    if (paramResId) return o.restaurant_id === paramResId;
+    return true;
+  });
 
   useEffect(() => {
-    dispatch(fetchOrders({}));
+    dispatch(fetchOwnerOrders());
   }, [dispatch]);
 
   const renderHeader = () => (
@@ -30,7 +37,9 @@ export default function OrderHistoryScreen() {
       >
         <Icon source="arrow-left" size={24} color={colors.text} />
       </TouchableOpacity>
-      <Text style={styles.headerTitle}>Order History</Text>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.headerTitle} numberOfLines={1}>{branchName ? `${branchName} History` : 'Order History'}</Text>
+      </View>
     </View>
   );
 
@@ -40,7 +49,7 @@ export default function OrderHistoryScreen() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {renderHeader()}
       <FlatList
-        data={orders}
+        data={filteredOrders}
         keyExtractor={(o) => String(o.order_id)}
         renderItem={({ item }) => (
           <OrderCard
@@ -84,10 +93,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   headerTitle: {
-    ...typography.h2,
     color: colors.text,
-    fontWeight: '700',
-    fontSize: 22,
+    fontWeight: '800',
+    fontSize: 20,
   },
   list: {
     padding: layout.screenPadding,

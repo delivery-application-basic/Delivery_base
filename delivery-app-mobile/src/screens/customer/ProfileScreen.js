@@ -59,45 +59,48 @@ export default function ProfileScreen() {
   };
 
   const handleSwitchAccount = async () => {
-    const targetType = userType === USER_TYPES.CUSTOMER ? USER_TYPES.RESTAURANT : USER_TYPES.CUSTOMER;
-    const targetLabel = targetType === USER_TYPES.RESTAURANT ? 'Restaurant Partner' : 'Customer';
+    const performSwitch = async (targetType) => {
+      const targetLabel = targetType === USER_TYPES.RESTAURANT ? 'Restaurant Partner' : 'Driver';
+      try {
+        const resultAction = await dispatch(switchRole(targetType));
+
+        if (switchRole.rejected.match(resultAction)) {
+          const error = resultAction.payload;
+          if (error?.code === 'ROLE_NOT_FOUND') {
+            Alert.alert(
+              'Profile Not Found',
+              `You don't have a ${targetLabel} account yet. Would you like to register as a partner?`,
+              [
+                { text: 'No', style: 'cancel' },
+                {
+                  text: 'Yes, Register',
+                  onPress: () => {
+                    dispatch(logout());
+                  }
+                }
+              ]
+            );
+          } else {
+            Alert.alert('Error', error?.message || 'Failed to switch profile');
+          }
+        }
+      } catch (error) {
+        Alert.alert('Error', 'An unexpected error occurred');
+      }
+    };
 
     Alert.alert(
       'Switch Profile',
-      `Switch to your ${targetLabel} profile?`,
+      'Choose the profile you want to switch to:',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Switch',
-          onPress: async () => {
-            try {
-              const resultAction = await dispatch(switchRole(targetType));
-
-              if (switchRole.rejected.match(resultAction)) {
-                const error = resultAction.payload;
-                if (error?.code === 'ROLE_NOT_FOUND') {
-                  Alert.alert(
-                    'Profile Not Found',
-                    `You don't have a ${targetLabel} account yet. Would you like to register as a partner?`,
-                    [
-                      { text: 'No', style: 'cancel' },
-                      {
-                        text: 'Yes, Register',
-                        onPress: () => {
-                          dispatch(logout());
-                          // AuthNavigator will show login/register
-                        }
-                      }
-                    ]
-                  );
-                } else {
-                  Alert.alert('Error', error?.message || 'Failed to switch profile');
-                }
-              }
-            } catch (error) {
-              Alert.alert('Error', 'An unexpected error occurred');
-            }
-          },
+          text: 'Restaurant Profile',
+          onPress: () => performSwitch(USER_TYPES.RESTAURANT),
+        },
+        {
+          text: 'Driver Profile',
+          onPress: () => performSwitch(USER_TYPES.DRIVER),
         },
       ]
     );

@@ -8,7 +8,8 @@ import { Avatar } from '../../components/common/Avatar';
 import { Loader } from '../../components/common/Loader';
 import { colors } from '../../theme/colors';
 import { layout, spacing } from '../../theme/spacing';
-import { logout } from '../../store/slices/authSlice';
+import { logout, switchRole } from '../../store/slices/authSlice';
+import { USER_TYPES } from '../../utils/constants';
 import { useNavigation } from '@react-navigation/native';
 import { driverService } from '../../api/services/driverService';
 
@@ -114,6 +115,51 @@ export default function DriverProfileScreen() {
       ]
     );
   };
+  const handleSwitchAccount = async () => {
+    const performSwitch = async (targetType) => {
+      const targetLabel = targetType === USER_TYPES.CUSTOMER ? 'Customer' : 'Restaurant Partner';
+      try {
+        const resultAction = await dispatch(switchRole(targetType));
+
+        if (switchRole.rejected.match(resultAction)) {
+          const error = resultAction.payload;
+          if (error?.code === 'ROLE_NOT_FOUND') {
+            Alert.alert(
+              'Profile Not Found',
+              `You don't have a ${targetLabel} account yet. Would you like to logout to create one?`,
+              [
+                { text: 'No', style: 'cancel' },
+                {
+                  text: 'Yes, Logout',
+                  onPress: () => dispatch(logout())
+                }
+              ]
+            );
+          } else {
+            Alert.alert('Error', error?.message || 'Failed to switch profile');
+          }
+        }
+      } catch (error) {
+        Alert.alert('Error', 'An unexpected error occurred');
+      }
+    };
+
+    Alert.alert(
+      'Switch Profile',
+      'Choose the profile you want to switch to:',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Customer Profile',
+          onPress: () => performSwitch(USER_TYPES.CUSTOMER),
+        },
+        {
+          text: 'Restaurant Profile',
+          onPress: () => performSwitch(USER_TYPES.RESTAURANT),
+        },
+      ]
+    );
+  };
 
   if (profileLoading && !profile) {
     return <Loader fullScreen />;
@@ -187,6 +233,15 @@ export default function DriverProfileScreen() {
         </View>
 
         <View style={styles.actionSection}>
+          <TouchableOpacity
+            style={styles.switchAccountButton}
+            onPress={handleSwitchAccount}
+            disabled={isLoggingOut || authLoading}
+          >
+            <Icon source="account-switch" size={24} color={colors.primary} />
+            <Text style={styles.switchAccountText}>Switch Account</Text>
+          </TouchableOpacity>
+
           <TouchableOpacity
             style={[styles.logoutButton, (isLoggingOut || authLoading) && styles.logoutButtonDisabled]}
             onPress={handleLogout}
@@ -349,6 +404,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: layout.screenPadding,
     marginTop: spacing.lg,
     marginBottom: spacing.md,
+  },
+  switchAccountButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
+    paddingVertical: spacing.md,
+    borderRadius: 16,
+    backgroundColor: colors.primary + '15',
+    gap: 8,
+  },
+  switchAccountText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.primary,
   },
   logoutButton: {
     flexDirection: 'row',

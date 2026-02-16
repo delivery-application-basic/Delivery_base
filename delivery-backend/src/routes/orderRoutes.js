@@ -15,6 +15,7 @@ router.use(protect);
 
 router.post('/', authorize('customer'), validateCreateOrder, orderController.createOrder);
 router.get('/', orderController.getMyOrders);
+router.get('/owner', authorize('restaurant'), orderController.getOwnerOrders);
 router.get('/restaurant/:restaurantId', validateRestaurantId, orderController.getRestaurantOrders);
 router.get('/driver/:driverId', validateDriverId, orderController.getDriverOrders);
 router.get('/:id', validateOrderId, orderController.getOrderById);

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity, Image, Alert } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { Icon } from 'react-native-paper';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { restaurantService } from '../../api/services/restaurantService';
 import { Button } from '../../components/common/Button';
@@ -13,17 +13,18 @@ import { validateRequired, validatePhone } from '../../utils/validators';
 
 export default function EditRestaurantScreen() {
     const navigation = useNavigation();
+    const route = useRoute();
     const insets = useSafeAreaInsets();
     const { user } = useSelector((state) => state.auth);
-    const restaurantId = user?.restaurant_id ?? user?.id;
+    const targetRestaurantId = route.params?.restaurantId ?? user?.restaurant_id ?? user?.id;
 
-    const [name, setName] = useState(user?.restaurant_name || '');
-    const [cuisine, setCuisine] = useState(user?.cuisine_type || '');
-    const [phone, setPhone] = useState(user?.phone_number || '');
-    const [address, setAddress] = useState(user?.street_address || '');
-    const [city, setCity] = useState(user?.city || '');
-    const [description, setDescription] = useState(user?.description || '');
-    const [logoUri, setLogoUri] = useState(user?.logo_url || null);
+    const [name, setName] = useState('');
+    const [cuisine, setCuisine] = useState('');
+    const [phone, setPhone] = useState('');
+    const [address, setAddress] = useState('');
+    const [city, setCity] = useState('');
+    const [description, setDescription] = useState('');
+    const [logoUri, setLogoUri] = useState(null);
 
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -33,7 +34,7 @@ export default function EditRestaurantScreen() {
         const fetchProfile = async () => {
             try {
                 setLoading(true);
-                const res = await restaurantService.getMyProfile();
+                const res = await restaurantService.getRestaurantById(targetRestaurantId);
                 const data = res.data?.data ?? res.data;
                 if (data) {
                     setName(data.restaurant_name || '');
@@ -50,8 +51,8 @@ export default function EditRestaurantScreen() {
                 setLoading(false);
             }
         };
-        fetchProfile();
-    }, []);
+        if (targetRestaurantId) fetchProfile();
+    }, [targetRestaurantId]);
 
     const handleSelectLogo = async () => {
         const { launchImageLibrary } = require('react-native-image-picker');
@@ -63,7 +64,7 @@ export default function EditRestaurantScreen() {
             // Upload immediately or wait for save? 
             // Registration uploads after success. Let's upload immediately for better UX
             try {
-                await restaurantService.uploadLogo(restaurantId, selectedUri);
+                await restaurantService.uploadLogo(targetRestaurantId, selectedUri);
                 Alert.alert('Success', 'Logo updated successfully');
             } catch (err) {
                 Alert.alert('Error', 'Failed to upload logo');
@@ -84,7 +85,7 @@ export default function EditRestaurantScreen() {
 
         try {
             setSaving(true);
-            await restaurantService.updateRestaurant(restaurantId, {
+            await restaurantService.updateRestaurant(targetRestaurantId, {
                 restaurant_name: name,
                 cuisine_type: cuisine,
                 phone_number: phone,

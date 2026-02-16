@@ -17,34 +17,8 @@ export default function RestaurantProfileScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const { user } = useSelector((state) => state.auth);
-  const [branches, setBranches] = useState([]);
-  const [showBranchModal, setShowBranchModal] = useState(false);
-
-  useEffect(() => {
-    fetchBranches();
-  }, []);
-
-  const fetchBranches = async () => {
-    try {
-      const res = await authService.getMyBranches();
-      setBranches(res.data.data);
-    } catch (err) {
-      console.error('Failed to fetch branches:', err);
-    }
-  };
-
   const restaurantName = user?.restaurant_name || user?.name || 'Restaurant';
   const ownerName = user?.full_name || 'Owner';
-
-  const handleBranchSwitch = async (branchId) => {
-    try {
-      setShowBranchModal(false);
-      await dispatch(switchBranch(branchId)).unwrap();
-      Alert.alert('Success', 'Switched to branch successfully');
-    } catch (err) {
-      Alert.alert('Error', err || 'Failed to switch branch');
-    }
-  };
 
   const handleLogout = () => {
     Alert.alert(
@@ -62,35 +36,42 @@ export default function RestaurantProfileScreen() {
   };
 
   const handleSwitchAccount = async () => {
+    const performSwitch = async (targetType) => {
+      const targetLabel = targetType === USER_TYPES.CUSTOMER ? 'Customer' : 'Driver';
+      try {
+        const resultAction = await dispatch(switchRole(targetType));
+        if (switchRole.rejected.match(resultAction)) {
+          const error = resultAction.payload;
+          if (error?.code === 'ROLE_NOT_FOUND') {
+            Alert.alert(
+              'Profile Not Found',
+              `You don't have a ${targetLabel} account yet. Would you like to logout to create one?`,
+              [
+                { text: 'No', style: 'cancel' },
+                { text: 'Yes, Logout', onPress: () => dispatch(logout()) }
+              ]
+            );
+          } else {
+            Alert.alert('Error', error?.message || 'Failed to switch profile');
+          }
+        }
+      } catch (error) {
+        Alert.alert('Error', 'An unexpected error occurred');
+      }
+    };
+
     Alert.alert(
       'Switch Profile',
-      'Switch to your Customer profile?',
+      'Choose the profile you want to switch to:',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Switch',
-          onPress: async () => {
-            try {
-              const resultAction = await dispatch(switchRole(USER_TYPES.CUSTOMER));
-              if (switchRole.rejected.match(resultAction)) {
-                const error = resultAction.payload;
-                if (error?.code === 'ROLE_NOT_FOUND') {
-                  Alert.alert(
-                    'Profile Not Found',
-                    "You don't have a Customer account yet. Would you like to logout to create one?",
-                    [
-                      { text: 'No', style: 'cancel' },
-                      { text: 'Yes, Logout', onPress: () => dispatch(logout()) }
-                    ]
-                  );
-                } else {
-                  Alert.alert('Error', error?.message || 'Failed to switch profile');
-                }
-              }
-            } catch (error) {
-              Alert.alert('Error', 'An unexpected error occurred');
-            }
-          },
+          text: 'Customer Profile',
+          onPress: () => performSwitch(USER_TYPES.CUSTOMER),
+        },
+        {
+          text: 'Driver Profile',
+          onPress: () => performSwitch(USER_TYPES.DRIVER),
         },
       ]
     );
@@ -137,30 +118,24 @@ export default function RestaurantProfileScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Business Management</Text>
           <View style={styles.card}>
-            {branches.length > 1 && (
-              <>
-                <ProfileItem
-                  icon="office-building"
-                  title="Switch Branch"
-                  subtitle={`Currently: ${restaurantName}`}
-                  onPress={() => setShowBranchModal(true)}
-                  color={colors.secondary}
-                />
-                <View style={styles.divider} />
-              </>
-            )}
             <ProfileItem
               icon="clock-outline"
               title="Operating Hours"
               subtitle="Manage opening & closing times"
-              onPress={() => navigation.navigate('OperatingHours')}
+              onPress={() => navigation.navigate('SettingsBranchSelect', {
+                targetScreen: 'OperatingHours',
+                title: 'Select Restaurant'
+              })}
             />
             <View style={styles.divider} />
             <ProfileItem
               icon="store-edit-outline"
               title="Restaurant Details"
               subtitle="Address, phone, description"
-              onPress={() => navigation.navigate('EditRestaurant')}
+              onPress={() => navigation.navigate('SettingsBranchSelect', {
+                targetScreen: 'EditRestaurant',
+                title: 'Select Restaurant'
+              })}
             />
             <View style={styles.divider} />
             <ProfileItem
@@ -193,8 +168,8 @@ export default function RestaurantProfileScreen() {
             <View style={styles.divider} />
             <ProfileItem
               icon="account-switch-outline"
-              title="Switch to Customer"
-              subtitle="Use the app as a customer"
+              title="Switch Account"
+              subtitle="Change your active profile"
               onPress={handleSwitchAccount}
               color={colors.primary}
             />
@@ -215,44 +190,6 @@ export default function RestaurantProfileScreen() {
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      <Modal
-        visible={showBranchModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowBranchModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Branch</Text>
-              <TouchableOpacity onPress={() => setShowBranchModal(false)}>
-                <Icon source="close" size={24} color={colors.text} />
-              </TouchableOpacity>
-            </View>
-            <FlatList
-              data={branches}
-              keyExtractor={(item) => String(item.restaurant_id)}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={[
-                    styles.branchItem,
-                    item.restaurant_id === user?.id && styles.activeBranchItem
-                  ]}
-                  onPress={() => handleBranchSwitch(item.restaurant_id)}
-                >
-                  <View style={styles.branchInfo}>
-                    <Text style={styles.branchName}>{item.restaurant_name}</Text>
-                    <Text style={styles.branchAddress}>{item.street_address}, {item.city}</Text>
-                  </View>
-                  {item.restaurant_id === user?.id && (
-                    <Icon source="check-circle" size={24} color={colors.primary} />
-                  )}
-                </TouchableOpacity>
-              )}
-            />
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }

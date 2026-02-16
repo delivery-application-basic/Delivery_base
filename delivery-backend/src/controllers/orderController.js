@@ -277,6 +277,39 @@ exports.cancelOrder = async (req, res, next) => {
 };
 
 /**
+ * Get orders for ALL restaurants owned by the same user (matched by phone_number).
+ * GET /api/v1/orders/owner
+ */
+exports.getOwnerOrders = async (req, res, next) => {
+    try {
+        const { Op } = require('sequelize');
+        if (req.userType !== USER_TYPES.RESTAURANT) {
+            return res.status(403).json({ success: false, message: 'Only restaurant owners can access owner stats' });
+        }
+
+        const phone_number = req.user.phone_number;
+        const myRestaurants = await Restaurant.findAll({
+            where: { phone_number },
+            attributes: ['restaurant_id']
+        });
+
+        const restaurantIds = myRestaurants.map(r => r.restaurant_id);
+
+        const orders = await Order.findAll({
+            where: {
+                restaurant_id: { [Op.in]: restaurantIds }
+            },
+            include: orderIncludeCommon,
+            order: [['order_date', 'DESC']]
+        });
+
+        return res.status(200).json({ success: true, data: orders });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
  * Get orders for a restaurant (restaurant owner or admin).
  * GET /api/v1/orders/restaurant/:restaurantId
  */

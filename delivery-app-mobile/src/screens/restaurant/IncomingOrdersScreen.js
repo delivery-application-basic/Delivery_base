@@ -1,10 +1,10 @@
 import React, { useEffect } from 'react';
 import { View, FlatList, TouchableOpacity, Text, StyleSheet, StatusBar } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { Icon } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { fetchOrders } from '../../store/slices/orderSlice';
+import { fetchOwnerOrders } from '../../store/slices/orderSlice';
 import { useSocket } from '../../hooks/useSocket';
 import { OrderCard } from '../../components/order/OrderCard';
 import { Loader } from '../../components/common/Loader';
@@ -17,28 +17,38 @@ import { shadows } from '../../theme/shadows';
 export default function IncomingOrdersScreen() {
   const dispatch = useDispatch();
   const navigation = useNavigation();
+  const route = useRoute();
   const insets = useSafeAreaInsets();
   const user = useSelector((state) => state.auth.user);
-  const restaurantId = user?.restaurant_id ?? user?.id;
+  const { restaurantId: paramResId, branchName } = route.params || {};
+
   const { orders, isLoading } = useSelector((state) => state.order);
-  const incoming = orders.filter((o) => o.order_status === 'pending' || o.order_status === 'confirmed');
+
+  const incoming = orders.filter((o) => {
+    const matchesStatus = o.order_status === 'pending' || o.order_status === 'confirmed';
+    if (paramResId) {
+      return matchesStatus && o.restaurant_id === paramResId;
+    }
+    return matchesStatus;
+  });
   const { joinRestaurantRoom, leaveRestaurantRoom, subscribeToNewOrders, subscribeToOrderDelivered } = useSocket();
 
   useEffect(() => {
-    dispatch(fetchOrders({}));
+    dispatch(fetchOwnerOrders());
   }, [dispatch]);
 
   useEffect(() => {
-    if (restaurantId == null) return;
-    joinRestaurantRoom(restaurantId);
-    const unsubNew = subscribeToNewOrders(() => dispatch(fetchOrders({})));
-    const unsubDelivered = subscribeToOrderDelivered(() => dispatch(fetchOrders({})));
+    const targetId = paramResId || (user?.restaurant_id ?? user?.id);
+    if (targetId == null) return;
+    joinRestaurantRoom(targetId);
+    const unsubNew = subscribeToNewOrders(() => dispatch(fetchOwnerOrders()));
+    const unsubDelivered = subscribeToOrderDelivered(() => dispatch(fetchOwnerOrders()));
     return () => {
       unsubNew();
       unsubDelivered();
-      leaveRestaurantRoom(restaurantId);
+      leaveRestaurantRoom(targetId);
     };
-  }, [restaurantId, joinRestaurantRoom, leaveRestaurantRoom, subscribeToNewOrders, subscribeToOrderDelivered, dispatch]);
+  }, [paramResId, user, joinRestaurantRoom, leaveRestaurantRoom, subscribeToNewOrders, subscribeToOrderDelivered, dispatch]);
 
   if (isLoading && !orders.length) return <Loader fullScreen />;
 
@@ -51,9 +61,9 @@ export default function IncomingOrdersScreen() {
       >
         <Icon source="arrow-left" size={24} color={colors.text} />
       </TouchableOpacity>
-      <View>
-        <Text style={styles.headerTitle}>Incoming Orders</Text>
-        <Text style={styles.headerSubtitle}>New requests to process</Text>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.headerTitle} numberOfLines={1}>{branchName ? `${branchName} Orders` : 'Incoming Orders'}</Text>
+        <Text style={styles.headerSubtitle} numberOfLines={1}>{branchName ? 'Branch specific requests' : 'New requests to process'}</Text>
       </View>
     </View>
   );
@@ -85,7 +95,7 @@ export default function IncomingOrdersScreen() {
         }
         showsVerticalScrollIndicator={false}
         refreshing={isLoading}
-        onRefresh={() => dispatch(fetchOrders({}))}
+        onRefresh={() => dispatch(fetchOwnerOrders())}
       />
     </View>
   );

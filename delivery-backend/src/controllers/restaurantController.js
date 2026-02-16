@@ -113,7 +113,14 @@ exports.getMyProfile = async (req, res, next) => {
 exports.updateStatus = async (req, res, next) => {
     try {
         const id = parseInt(req.params.id, 10);
-        if (id !== req.user.restaurant_id) {
+        const targetRestaurant = await Restaurant.findByPk(id);
+
+        if (!targetRestaurant) {
+            return res.status(404).json({ success: false, message: 'Restaurant not found' });
+        }
+
+        // Check if owner
+        if (targetRestaurant.phone_number !== req.user.phone_number) {
             return res.status(403).json({ success: false, message: 'Not authorized to update this restaurant' });
         }
         const { is_active } = req.body;
@@ -136,14 +143,15 @@ exports.updateStatus = async (req, res, next) => {
 // @access  Private (Restaurant Owner)
 exports.updateProfile = async (req, res, next) => {
     try {
-        const id = req.params.id;
-        if (parseInt(id) !== req.user.restaurant_id) {
-            return res.status(403).json({ success: false, message: 'Not authorized to update this restaurant' });
-        }
-
+        const id = parseInt(req.params.id, 10);
         let restaurant = await Restaurant.findByPk(id);
         if (!restaurant) {
             return res.status(404).json({ success: false, message: 'Restaurant not found' });
+        }
+
+        // Check if owner
+        if (restaurant.phone_number !== req.user.phone_number) {
+            return res.status(403).json({ success: false, message: 'Not authorized to update this restaurant' });
         }
 
         restaurant = await restaurant.update(req.body);
@@ -163,9 +171,15 @@ exports.updateProfile = async (req, res, next) => {
 exports.updateHours = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { hours } = req.body; // Array of { day_of_week, opening_time, closing_time, is_closed }
+        const { hours } = req.body;
 
-        if (parseInt(id) !== req.user.restaurant_id) {
+        const restaurant = await Restaurant.findByPk(id);
+        if (!restaurant) {
+            return res.status(404).json({ success: false, message: 'Restaurant not found' });
+        }
+
+        // Check if owner
+        if (restaurant.phone_number !== req.user.phone_number) {
             return res.status(403).json({ success: false, message: 'Not authorized to update this restaurant' });
         }
 
@@ -198,13 +212,14 @@ exports.uploadLogo = async (req, res, next) => {
         }
 
         const restaurantId = parseInt(req.params.id, 10);
-        if (restaurantId !== req.user.restaurant_id) {
-            return res.status(403).json({ success: false, message: 'Not authorized' });
-        }
-
         const restaurant = await Restaurant.findByPk(restaurantId);
         if (!restaurant) {
             return res.status(404).json({ success: false, message: 'Restaurant not found' });
+        }
+
+        // Check if owner
+        if (restaurant.phone_number !== req.user.phone_number) {
+            return res.status(403).json({ success: false, message: 'Not authorized' });
         }
 
         const isCloudinaryConfigured = process.env.CLOUDINARY_CLOUD_NAME &&
