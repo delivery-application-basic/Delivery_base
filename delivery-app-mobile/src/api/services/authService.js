@@ -111,4 +111,16 @@ export const authService = {
       target_role: targetRole,
     });
   },
+
+  // Get branches
+  async getMyBranches() {
+    return apiClient.get('/auth/my-branches');
+  },
+
+  // Switch branch
+  async switchBranch(branchId) {
+    return apiClient.post('/auth/switch-branch', {
+      branch_id: branchId,
+    });
+  },
 };

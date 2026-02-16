@@ -17,6 +17,8 @@ import RestaurantProfileScreen from '../screens/restaurant/RestaurantProfileScre
 import OperatingHoursScreen from '../screens/restaurant/OperatingHoursScreen';
 import EditRestaurantScreen from '../screens/restaurant/EditRestaurantScreen';
 import SettingsScreen from '../screens/restaurant/SettingsScreen';
+import BranchesScreen from '../screens/restaurant/BranchesScreen';
+import RegisterBranchScreen from '../screens/restaurant/RegisterBranchScreen';
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { shadows } from '../theme/shadows';
@@ -39,13 +41,15 @@ const DashboardStack = () => (
   </Stack.Navigator>
 );
 
-// Menu Stack
-const MenuStack = () => (
+// Branches/Menu Stack
+const BranchesStack = () => (
   <Stack.Navigator
     screenOptions={{
       headerShown: false,
     }}
   >
+    <Stack.Screen name="BranchesMain" component={BranchesScreen} />
+    <Stack.Screen name="RegisterBranch" component={RegisterBranchScreen} />
     <Stack.Screen name="MenuManagement" component={MenuManagementScreen} />
     <Stack.Screen name="AddMenuItem" component={AddMenuItemScreen} />
     <Stack.Screen name="EditMenuItem" component={EditMenuItemScreen} />
@@ -111,13 +115,13 @@ const RestaurantNavigator = () => {
         }}
       />
       <Tab.Screen
-        name="Menu"
-        component={MenuStack}
+        name="Restaurants"
+        component={BranchesStack}
         options={{
           tabBarIcon: ({ color, size }) => (
-            <Icon source="food" size={size} color={color} />
+            <Icon source="storefront" size={size} color={color} />
           ),
-          tabBarLabel: 'Menu',
+          tabBarLabel: 'Restaurants',
         }}
       />
       <Tab.Screen

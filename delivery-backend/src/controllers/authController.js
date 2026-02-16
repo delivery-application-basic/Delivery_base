@@ -46,16 +46,23 @@ exports.registerRestaurant = async (req, res, next) => {
     try {
         const { restaurant_name, email, phone_number, password, street_address, city, latitude, longitude, cuisine_type, logo_url } = req.body;
 
-        const restaurantExists = await Restaurant.findOne({ where: { phone_number } });
-        if (restaurantExists) {
-            return res.status(400).json({ success: false, message: 'Restaurant already exists with this phone number' });
+        const existingRestaurants = await Restaurant.findAll({ where: { phone_number } });
+        if (existingRestaurants.length > 0) {
+            // Verify password against existing account to ensure it's the same owner
+            const isValid = await existingRestaurants[0].comparePassword(password);
+            if (!isValid) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Mobile number already registered to another owner. Please use correct password to add branch.'
+                });
+            }
         }
 
         const createPayload = {
             restaurant_name,
             email,
             phone_number,
-            password_hash: password,
+            password_hash: password, // Hooks will hash this
             street_address,
             city,
             cuisine_type,
@@ -75,6 +82,8 @@ exports.registerRestaurant = async (req, res, next) => {
             user: {
                 id: restaurant.restaurant_id,
                 restaurant_name: restaurant.restaurant_name,
+                phone_number: restaurant.phone_number,
+                email: restaurant.email,
                 type: USER_TYPES.RESTAURANT
             }
         });
@@ -113,6 +122,8 @@ exports.registerDriver = async (req, res, next) => {
             user: {
                 id: driver.driver_id,
                 full_name: driver.full_name,
+                phone_number: driver.phone_number,
+                email: driver.email,
                 type: USER_TYPES.DRIVER
             }
         });
@@ -164,7 +175,10 @@ exports.login = async (req, res, next) => {
             user: {
                 id: userId,
                 type: user_type,
-                name: user.full_name || user.restaurant_name
+                name: user.full_name || user.restaurant_name,
+                phone_number: user.phone_number,
+                email: user.email,
+                branches_count: user_type === USER_TYPES.RESTAURANT ? (await Restaurant.count({ where: { phone_number } })) : 0
             }
         });
     } catch (error) {
@@ -347,7 +361,83 @@ exports.switchRole = async (req, res, next) => {
             user: {
                 id: userId,
                 type: target_role,
-                name: user.full_name || user.restaurant_name
+                name: user.full_name || user.restaurant_name,
+                phone_number: user.phone_number,
+                email: user.email
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+// @desc    Get all branches for a restaurant owner
+// @route   GET /api/v1/auth/my-branches
+// @access  Private (Restaurant Owner)
+exports.getMyBranches = async (req, res, next) => {
+    try {
+        if (req.userType !== USER_TYPES.RESTAURANT) {
+            return res.status(403).json({ success: false, message: 'Only restaurant owners can have branches' });
+        }
+
+        const branches = await Restaurant.findAll({
+            where: { phone_number: req.user.phone_number },
+            attributes: ['restaurant_id', 'restaurant_name', 'street_address', 'city', 'is_active', 'logo_url']
+        });
+
+        res.status(200).json({
+            success: true,
+            count: branches.length,
+            data: branches
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Switch to a different branch
+// @route   POST /api/v1/auth/switch-branch
+// @access  Private (Restaurant Owner)
+exports.switchBranch = async (req, res, next) => {
+    try {
+        const { branch_id } = req.body;
+
+        if (req.userType !== USER_TYPES.RESTAURANT) {
+            return res.status(403).json({ success: false, message: 'Only restaurant owners can switch branches' });
+        }
+
+        const branch = await Restaurant.findOne({
+            where: {
+                restaurant_id: branch_id,
+                phone_number: req.user.phone_number
+            }
+        });
+
+        if (!branch) {
+            return res.status(404).json({ success: false, message: 'Branch not found or does not belong to you' });
+        }
+
+        const token = generateToken({ id: branch.restaurant_id, type: USER_TYPES.RESTAURANT });
+        const refreshToken = generateRefreshToken({ id: branch.restaurant_id, type: USER_TYPES.RESTAURANT });
+
+        // Save session
+        await UserSession.create({
+            user_type: USER_TYPES.RESTAURANT,
+            user_id: branch.restaurant_id,
+            refresh_token: refreshToken,
+            expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+        });
+
+        res.status(200).json({
+            success: true,
+            token,
+            refreshToken,
+            user: {
+                id: branch.restaurant_id,
+                type: USER_TYPES.RESTAURANT,
+                name: branch.restaurant_name,
+                phone_number: branch.phone_number,
+                email: branch.email,
+                branches_count: await Restaurant.count({ where: { phone_number: req.user.phone_number } })
             }
         });
     } catch (error) {

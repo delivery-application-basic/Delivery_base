@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Image } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from 'react-native-paper';
@@ -9,12 +9,12 @@ import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
 import { menuService } from '../../api/services/menuService';
 import { colors } from '../../theme/colors';
-import { typography } from '../../theme/typography';
 import { layout, spacing } from '../../theme/spacing';
 import { shadows } from '../../theme/shadows';
 
 export default function AddMenuItemScreen() {
   const navigation = useNavigation();
+  const route = useRoute();
   const insets = useSafeAreaInsets();
   const { user } = useSelector((state) => state.auth);
 
@@ -25,6 +25,8 @@ export default function AddMenuItemScreen() {
   const [pickedImage, setPickedImage] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  const targetRestaurantId = route.params?.restaurantId ?? user?.restaurant_id ?? user?.id;
+
   const handlePickImage = async () => {
     const result = await launchImageLibrary({ mediaType: 'photo', quality: 0.8 });
     if (result.didCancel || result.errorCode) return;
@@ -33,8 +35,7 @@ export default function AddMenuItemScreen() {
   };
 
   const handleSave = async () => {
-    const restaurantId = user?.restaurant_id ?? user?.id;
-    if (!restaurantId || !name || !price) {
+    if (!targetRestaurantId || !name || !price) {
       Alert.alert('Error', 'Item name and price are required');
       return;
     }
@@ -42,7 +43,7 @@ export default function AddMenuItemScreen() {
     setIsLoading(true);
     try {
       const res = await menuService.createMenuItem({
-        restaurant_id: restaurantId,
+        restaurant_id: targetRestaurantId,
         item_name: name,
         description: description || undefined,
         price: parseFloat(price),

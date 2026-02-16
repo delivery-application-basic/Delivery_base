@@ -1,7 +1,7 @@
 import React, { useCallback } from 'react';
 import { View, StyleSheet, FlatList, TouchableOpacity, Image, StatusBar } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useNavigation, useFocusEffect, useRoute } from '@react-navigation/native';
 import { Icon } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fetchMenu } from '../../store/slices/menuSlice';
@@ -17,24 +17,29 @@ import { formatCurrency } from '../../utils/helpers';
 export default function MenuManagementScreen() {
   const dispatch = useDispatch();
   const navigation = useNavigation();
+  const route = useRoute();
   const insets = useSafeAreaInsets();
   const { user } = useSelector((state) => state.auth);
-  const { menuItems, isLoading, restaurantId } = useSelector((state) => state.menu);
-  const rid = user?.restaurant_id ?? user?.id ?? restaurantId;
+  const { menuItems, isLoading, restaurantId: sliceRid } = useSelector((state) => state.menu);
+
+  // Priority: route param > active user id > slice rid
+  const targetRestaurantId = route.params?.restaurantId ?? user?.restaurant_id ?? user?.id ?? sliceRid;
+  const targetRestaurantName = route.params?.restaurantName || 'Menu Builder';
 
   useFocusEffect(
     useCallback(() => {
-      if (rid) {
-        dispatch(fetchMenu(rid));
+      if (targetRestaurantId) {
+        dispatch(fetchMenu(targetRestaurantId));
       }
-    }, [dispatch, rid])
+    }, [dispatch, targetRestaurantId])
   );
 
   const renderItem = ({ item }) => (
     <TouchableOpacity
       style={styles.itemCard}
       onPress={() => navigation.navigate('EditMenuItem', {
-        menuItemId: item.item_id ?? item.id ?? item.menu_item_id
+        menuItemId: item.item_id ?? item.id ?? item.menu_item_id,
+        restaurantId: targetRestaurantId
       })}
       activeOpacity={0.8}
     >
@@ -82,13 +87,20 @@ export default function MenuManagementScreen() {
       <StatusBar barStyle="dark-content" backgroundColor={colors.white} />
 
       <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>Menu Builder</Text>
-          <Text style={styles.headerSubtitle}>{menuItems?.length || 0} Products Found</Text>
+        <View style={styles.headerTitleContainer}>
+          {route.params?.restaurantId && (
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+              <Icon source="arrow-left" size={24} color={colors.text} />
+            </TouchableOpacity>
+          )}
+          <View>
+            <Text style={styles.headerTitle}>{targetRestaurantName}</Text>
+            <Text style={styles.headerSubtitle}>{menuItems?.length || 0} Products Found</Text>
+          </View>
         </View>
         <TouchableOpacity
           style={styles.addButton}
-          onPress={() => navigation.navigate('AddMenuItem')}
+          onPress={() => navigation.navigate('AddMenuItem', { restaurantId: targetRestaurantId })}
         >
           <Icon source="plus" size={28} color={colors.white} />
         </TouchableOpacity>
@@ -133,6 +145,14 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
     ...shadows.small,
+  },
+  headerTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  backButton: {
+    marginRight: 12,
+    padding: 4,
   },
   headerTitle: {
     fontSize: 18,

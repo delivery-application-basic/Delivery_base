@@ -1,10 +1,11 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Modal, FlatList } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon, Avatar } from 'react-native-paper';
-import { logout, switchRole } from '../../store/slices/authSlice';
+import { logout, switchRole, switchBranch } from '../../store/slices/authSlice';
+import { authService } from '../../api/services/authService';
 import { USER_TYPES } from '../../utils/constants';
 import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
@@ -16,9 +17,34 @@ export default function RestaurantProfileScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const { user } = useSelector((state) => state.auth);
+  const [branches, setBranches] = useState([]);
+  const [showBranchModal, setShowBranchModal] = useState(false);
+
+  useEffect(() => {
+    fetchBranches();
+  }, []);
+
+  const fetchBranches = async () => {
+    try {
+      const res = await authService.getMyBranches();
+      setBranches(res.data.data);
+    } catch (err) {
+      console.error('Failed to fetch branches:', err);
+    }
+  };
 
   const restaurantName = user?.restaurant_name || user?.name || 'Restaurant';
   const ownerName = user?.full_name || 'Owner';
+
+  const handleBranchSwitch = async (branchId) => {
+    try {
+      setShowBranchModal(false);
+      await dispatch(switchBranch(branchId)).unwrap();
+      Alert.alert('Success', 'Switched to branch successfully');
+    } catch (err) {
+      Alert.alert('Error', err || 'Failed to switch branch');
+    }
+  };
 
   const handleLogout = () => {
     Alert.alert(
@@ -111,6 +137,18 @@ export default function RestaurantProfileScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Business Management</Text>
           <View style={styles.card}>
+            {branches.length > 1 && (
+              <>
+                <ProfileItem
+                  icon="office-building"
+                  title="Switch Branch"
+                  subtitle={`Currently: ${restaurantName}`}
+                  onPress={() => setShowBranchModal(true)}
+                  color={colors.secondary}
+                />
+                <View style={styles.divider} />
+              </>
+            )}
             <ProfileItem
               icon="clock-outline"
               title="Operating Hours"
@@ -176,6 +214,45 @@ export default function RestaurantProfileScreen() {
 
         <View style={{ height: 100 }} />
       </ScrollView>
+
+      <Modal
+        visible={showBranchModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowBranchModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Branch</Text>
+              <TouchableOpacity onPress={() => setShowBranchModal(false)}>
+                <Icon source="close" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={branches}
+              keyExtractor={(item) => String(item.restaurant_id)}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.branchItem,
+                    item.restaurant_id === user?.id && styles.activeBranchItem
+                  ]}
+                  onPress={() => handleBranchSwitch(item.restaurant_id)}
+                >
+                  <View style={styles.branchInfo}>
+                    <Text style={styles.branchName}>{item.restaurant_name}</Text>
+                    <Text style={styles.branchAddress}>{item.street_address}, {item.city}</Text>
+                  </View>
+                  {item.restaurant_id === user?.id && (
+                    <Icon source="check-circle" size={24} color={colors.primary} />
+                  )}
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -308,5 +385,54 @@ const styles = StyleSheet.create({
   versionText: {
     fontSize: 11,
     color: colors.textLight,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: colors.white,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    padding: spacing.xl,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.xl,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: colors.text,
+  },
+  branchItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.md,
+    borderRadius: 16,
+    marginBottom: spacing.sm,
+    backgroundColor: colors.gray[50],
+  },
+  activeBranchItem: {
+    backgroundColor: colors.primary + '10',
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  branchInfo: {
+    flex: 1,
+  },
+  branchName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  branchAddress: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 2,
   },
 });

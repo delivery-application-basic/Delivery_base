@@ -127,6 +127,27 @@ export const switchRole = createAsyncThunk(
   }
 );
 
+export const switchBranch = createAsyncThunk(
+  'auth/switchBranch',
+  async (branchId, { rejectWithValue }) => {
+    try {
+      const response = await authService.switchBranch(branchId);
+      const data = response.data;
+      const token = data.token;
+      const refreshToken = data.refreshToken ?? data.refresh_token;
+      const user = data.user ? { ...data.user, user_type: data.user.type } : null;
+
+      await storage.setAuthToken(token);
+      if (refreshToken) await storage.setRefreshToken(refreshToken);
+      await storage.setUserData(user);
+      await storage.setUserType(user?.user_type);
+      return { token, refresh_token: refreshToken, user };
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to switch branch');
+    }
+  }
+);
+
 // Initial state
 const initialState = {
   user: null,
@@ -262,6 +283,25 @@ const authSlice = createSlice({
         state.isLoading = false;
         // Don't log out on switch rejection, just show error
         state.error = action.payload?.message || action.payload;
+      })
+
+      // Switch Branch
+      .addCase(switchBranch.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(switchBranch.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.user = action.payload.user;
+        state.token = action.payload.token;
+        state.refreshToken = action.payload.refresh_token;
+        state.userType = action.payload.user?.user_type ?? action.payload.user?.type;
+        state.isAuthenticated = true;
+        state.error = null;
+      })
+      .addCase(switchBranch.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload;
       });
   },
 });

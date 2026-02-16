@@ -21,12 +21,13 @@ exports.createOrder = async (req, res, next) => {
             return res.status(403).json({ success: false, message: 'Only customers can place orders' });
         }
         const customerId = req.user.customer_id;
-        const { address_id, payment_method, special_instructions } = req.body;
+        const { address_id, payment_method, special_instructions, delivery_type } = req.body;
 
         const order = await orderService.createOrderFromCart(customerId, {
             address_id,
             payment_method,
-            special_instructions
+            special_instructions,
+            delivery_type
         });
 
         const fullOrder = await Order.findByPk(order.order_id, {
@@ -192,7 +193,7 @@ exports.updateOrderStatus = async (req, res, next) => {
 
         // Pool flow only: no auto-assign. Orders appear at preparing/ready for drivers to accept in GET /drivers/orders/available
         const updated = await Order.findByPk(orderId, { include: orderIncludeCommon });
-        
+
         // Emit simplified tracking update
         const trackingStage = getTrackingStage(updated);
         emitTrackingUpdate(orderId, trackingStage, updated);
@@ -206,7 +207,7 @@ exports.updateOrderStatus = async (req, res, next) => {
         } catch (e) {
             console.error('Socket emit order status:', e.message);
         }
-        
+
         return res.status(200).json({ success: true, data: updated });
     } catch (error) {
         next(error);
@@ -330,7 +331,7 @@ exports.getDriverOrders = async (req, res, next) => {
 exports.getOrderTracking = async (req, res, next) => {
     try {
         const orderId = parseInt(req.params.id, 10);
-        
+
         // Check authorization
         const order = await Order.findByPk(orderId);
         if (!order) {
