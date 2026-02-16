@@ -51,7 +51,7 @@ function isPeakHour() {
     const dinnerEndMinutes = dinnerEndH * 60 + dinnerEndM;
 
     return (currentMinutes >= lunchStartMinutes && currentMinutes <= lunchEndMinutes) ||
-           (currentMinutes >= dinnerStartMinutes && currentMinutes <= dinnerEndMinutes);
+        (currentMinutes >= dinnerStartMinutes && currentMinutes <= dinnerEndMinutes);
 }
 
 /**
@@ -59,7 +59,7 @@ function isPeakHour() {
  */
 async function calculateDemandMultiplier() {
     const activeOrderStatuses = [ORDER_STATUS.PENDING, ORDER_STATUS.CONFIRMED, ORDER_STATUS.PREPARING, ORDER_STATUS.READY, ORDER_STATUS.IN_TRANSIT];
-    
+
     const activeOrdersCount = await Order.count({
         where: {
             order_status: {
@@ -229,7 +229,7 @@ async function calculateSmartDeliveryFee(restaurant, address) {
 /**
  * Create order from customer's cart. Validates cart, address, availability; creates order + order items; clears cart; records status history.
  */
-async function createOrderFromCart(customerId, { address_id, payment_method, special_instructions }) {
+async function createOrderFromCart(customerId, { address_id, payment_method, special_instructions, delivery_type }) {
     const cart = await Cart.findOne({
         where: { customer_id: customerId },
         include: [
@@ -243,13 +243,16 @@ async function createOrderFromCart(customerId, { address_id, payment_method, spe
         throw err;
     }
 
-    const address = await Address.findOne({
-        where: { address_id, customer_id: customerId }
-    });
-    if (!address) {
-        const err = new Error('Delivery address not found or does not belong to you');
-        err.statusCode = 400;
-        throw err;
+    let address = null;
+    if (delivery_type !== 'pickup' || address_id) {
+        address = await Address.findOne({
+            where: { address_id, customer_id: customerId }
+        });
+        if (!address && delivery_type !== 'pickup') {
+            const err = new Error('Delivery address not found or does not belong to you');
+            err.statusCode = 400;
+            throw err;
+        }
     }
 
     let subtotal = 0;
@@ -296,7 +299,7 @@ async function createOrderFromCart(customerId, { address_id, payment_method, spe
     const discountedSubtotal = Math.max(0, subtotal - happyHourDiscount);
 
     // Calculate smart delivery fee
-    const deliveryFee = await calculateSmartDeliveryFee(restaurant, address);
+    const deliveryFee = delivery_type === 'pickup' ? 0 : await calculateSmartDeliveryFee(restaurant, address);
     const serviceFee = calculateServiceFee();
     const totalAmount = Math.round((discountedSubtotal + deliveryFee + serviceFee) * 100) / 100;
 
@@ -306,7 +309,7 @@ async function createOrderFromCart(customerId, { address_id, payment_method, spe
     const order = await Order.create({
         customer_id: customerId,
         restaurant_id: cart.restaurant_id,
-        address_id: address.address_id,
+        address_id: address?.address_id || null,
         subtotal: discountedSubtotal, // Store discounted subtotal (after happy hour discount)
         delivery_fee: deliveryFee,
         service_fee: serviceFee,
@@ -314,6 +317,7 @@ async function createOrderFromCart(customerId, { address_id, payment_method, spe
         discount_amount: happyHourDiscount, // Store discount amount for transparency
         total_amount: totalAmount,
         order_status: ORDER_STATUS.PENDING,
+        delivery_type: delivery_type || 'delivery',
         payment_status: 'pending',
         payment_method,
         special_instructions: special_instructions || null,

@@ -136,6 +136,7 @@ export default function EditMenuItemScreen() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
+        style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
       >
         <View style={styles.formCard}>
@@ -229,10 +230,10 @@ export default function EditMenuItemScreen() {
           </Text>
         </View>
 
-        <View style={{ height: 100 }} />
+        <View style={{ height: 20 }} />
       </ScrollView>
 
-      <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
         <Button
           title="Save Changes"
           onPress={handleSave}
@@ -346,6 +347,9 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: 'row',
+  },
+  scrollView: {
+    flex: 1,
   },
   infoBox: {
     flexDirection: 'row',

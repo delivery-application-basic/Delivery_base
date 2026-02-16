@@ -13,7 +13,7 @@ const { getMenuByRestaurant } = require('../controllers/menuController');
 const { protect, authorize } = require('../middleware/auth');
 const { USER_TYPES } = require('../utils/constants');
 
-const { upload } = require('../middleware/upload');
+const upload = require('../middleware/upload');
 
 router.get('/', getRestaurants);
 router.get('/search', searchRestaurants);

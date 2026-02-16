@@ -4,7 +4,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon, Avatar } from 'react-native-paper';
-import { logout } from '../../store/slices/authSlice';
+import { logout, switchRole } from '../../store/slices/authSlice';
+import { USER_TYPES } from '../../utils/constants';
 import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
 import { layout, spacing } from '../../theme/spacing';
@@ -30,6 +31,41 @@ export default function RestaurantProfileScreen() {
           style: 'destructive',
           onPress: () => dispatch(logout())
         }
+      ]
+    );
+  };
+
+  const handleSwitchAccount = async () => {
+    Alert.alert(
+      'Switch Profile',
+      'Switch to your Customer profile?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Switch',
+          onPress: async () => {
+            try {
+              const resultAction = await dispatch(switchRole(USER_TYPES.CUSTOMER));
+              if (switchRole.rejected.match(resultAction)) {
+                const error = resultAction.payload;
+                if (error?.code === 'ROLE_NOT_FOUND') {
+                  Alert.alert(
+                    'Profile Not Found',
+                    "You don't have a Customer account yet. Would you like to logout to create one?",
+                    [
+                      { text: 'No', style: 'cancel' },
+                      { text: 'Yes, Logout', onPress: () => dispatch(logout()) }
+                    ]
+                  );
+                } else {
+                  Alert.alert('Error', error?.message || 'Failed to switch profile');
+                }
+              }
+            } catch (error) {
+              Alert.alert('Error', 'An unexpected error occurred');
+            }
+          },
+        },
       ]
     );
   };
@@ -86,7 +122,7 @@ export default function RestaurantProfileScreen() {
               icon="store-edit-outline"
               title="Restaurant Details"
               subtitle="Address, phone, description"
-              onPress={() => { }}
+              onPress={() => navigation.navigate('EditRestaurant')}
             />
             <View style={styles.divider} />
             <ProfileItem
@@ -115,6 +151,14 @@ export default function RestaurantProfileScreen() {
               subtitle="FAQs and customer support"
               onPress={() => { }}
               color={colors.info}
+            />
+            <View style={styles.divider} />
+            <ProfileItem
+              icon="account-switch-outline"
+              title="Switch to Customer"
+              subtitle="Use the app as a customer"
+              onPress={handleSwitchAccount}
+              color={colors.primary}
             />
             <View style={styles.divider} />
             <ProfileItem

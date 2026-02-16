@@ -71,10 +71,10 @@ export const refreshToken = createAsyncThunk(
       if (!refresh_token) {
         throw new Error('No refresh token available');
       }
-      
+
       const response = await authService.refreshToken(refresh_token);
       const { token } = response.data;
-      
+
       await storage.setAuthToken(token);
       return token;
     } catch (error) {
@@ -93,13 +93,36 @@ export const loadUserFromStorage = createAsyncThunk(
         storage.getUserData(),
         storage.getUserType(),
       ]);
-      
+
       if (token && userData) {
         return { token, user: userData, userType };
       }
       return null;
     } catch (error) {
       return rejectWithValue(error.message || 'Failed to load user data');
+    }
+  }
+);
+
+export const switchRole = createAsyncThunk(
+  'auth/switchRole',
+  async (targetType, { rejectWithValue }) => {
+    try {
+      const response = await authService.switchRole(targetType);
+      const data = response.data;
+      const token = data.token;
+      const refreshToken = data.refreshToken ?? data.refresh_token;
+      const user = data.user ? { ...data.user, user_type: data.user.type || targetType } : null;
+
+      await storage.setAuthToken(token);
+      if (refreshToken) await storage.setRefreshToken(refreshToken);
+      await storage.setUserData(user);
+      await storage.setUserType(user?.user_type);
+      return { token, refresh_token: refreshToken, user };
+    } catch (error) {
+      const message = error.response?.data?.message || 'Failed to switch role';
+      const code = error.response?.data?.code;
+      return rejectWithValue({ message, code });
     }
   }
 );
@@ -154,7 +177,7 @@ const authSlice = createSlice({
         state.error = action.payload;
         state.isAuthenticated = false;
       })
-      
+
       // Register
       .addCase(register.pending, (state) => {
         state.isLoading = true;
@@ -174,7 +197,7 @@ const authSlice = createSlice({
         state.error = action.payload;
         state.isAuthenticated = false;
       })
-      
+
       // Logout
       .addCase(logout.pending, (state) => {
         state.isLoading = true;
@@ -198,7 +221,7 @@ const authSlice = createSlice({
         state.userType = null;
         state.isAuthenticated = false;
       })
-      
+
       // Refresh token
       .addCase(refreshToken.fulfilled, (state, action) => {
         state.token = action.payload;
@@ -210,7 +233,7 @@ const authSlice = createSlice({
         state.userType = null;
         state.isAuthenticated = false;
       })
-      
+
       // Load user from storage
       .addCase(loadUserFromStorage.fulfilled, (state, action) => {
         if (action.payload) {
@@ -219,6 +242,26 @@ const authSlice = createSlice({
           state.userType = action.payload.userType;
           state.isAuthenticated = true;
         }
+      })
+
+      // Switch Role
+      .addCase(switchRole.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(switchRole.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.user = action.payload.user;
+        state.token = action.payload.token;
+        state.refreshToken = action.payload.refresh_token;
+        state.userType = action.payload.user?.user_type ?? action.payload.user?.type;
+        state.isAuthenticated = true;
+        state.error = null;
+      })
+      .addCase(switchRole.rejected, (state, action) => {
+        state.isLoading = false;
+        // Don't log out on switch rejection, just show error
+        state.error = action.payload?.message || action.payload;
       });
   },
 });

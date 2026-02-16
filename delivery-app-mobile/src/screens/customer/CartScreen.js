@@ -28,8 +28,12 @@ export default function CartScreen() {
   const { items, subtotal, restaurantName, isLoading } = useSelector((state) => state.cart);
 
   useEffect(() => {
-    dispatch(fetchCart());
-  }, [dispatch]);
+    // Only fetch if we don't have items to avoid redundant calls 
+    // when coming from Add to Cart (which now returns full data)
+    if (items.length === 0) {
+      dispatch(fetchCart());
+    }
+  }, [dispatch, items.length]);
 
   if (isLoading && items.length === 0) return <Loader fullScreen />;
   if (!items.length) return <EmptyCart onBrowseRestaurants={() => navigation.navigate('HomeMain')} />;

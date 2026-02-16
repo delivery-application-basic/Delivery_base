@@ -2,13 +2,14 @@
  * HomeScreen - Featured restaurants, search. Backend: GET /restaurants
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, StyleSheet, FlatList, ScrollView, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
 import { Icon } from 'react-native-paper';
-import { fetchRestaurants, setSearchQuery } from '../../store/slices/restaurantSlice';
+import { fetchRestaurants, setSearchQuery, setFilters } from '../../store/slices/restaurantSlice';
+import useLocation from '../../hooks/useLocation';
 import { SearchBar } from '../../components/common/SearchBar';
 import { RestaurantCard } from '../../components/restaurant/RestaurantCard';
 import { EmptyState } from '../../components/common/EmptyState';
@@ -19,7 +20,6 @@ import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
 import { layout, spacing } from '../../theme/spacing';
 import { shadows } from '../../theme/shadows';
-
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function HomeScreen() {
@@ -29,7 +29,7 @@ export default function HomeScreen() {
   const { restaurants, isLoading, error, searchQuery, filters } = useSelector((state) => state.restaurant);
   const { user } = useSelector((state) => state.auth);
   const [refreshing, setRefreshing] = useState(false);
-  const { location, getCurrentPosition } = require('../../hooks/useLocation').default();
+  const { location, getCurrentPosition } = useLocation();
 
   const loadData = useCallback(async (loc = location) => {
     const params = {
@@ -45,10 +45,12 @@ export default function HomeScreen() {
     dispatch(fetchRestaurants(params));
   }, [dispatch, searchQuery, filters, location]);
 
+  // Handle initial load and filter changes
   useEffect(() => {
     loadData();
   }, [loadData]);
 
+  // Request location once on mount
   useEffect(() => {
     getCurrentPosition();
   }, [getCurrentPosition]);

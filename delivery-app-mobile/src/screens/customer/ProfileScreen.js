@@ -8,7 +8,8 @@ import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
 import { layout, spacing } from '../../theme/spacing';
 import { shadows } from '../../theme/shadows';
-import { logout } from '../../store/slices/authSlice';
+import { logout, switchRole } from '../../store/slices/authSlice';
+import { USER_TYPES } from '../../utils/constants';
 import { useNavigation } from '@react-navigation/native';
 
 export default function ProfileScreen() {
@@ -58,25 +59,43 @@ export default function ProfileScreen() {
   };
 
   const handleSwitchAccount = async () => {
+    const targetType = userType === USER_TYPES.CUSTOMER ? USER_TYPES.RESTAURANT : USER_TYPES.CUSTOMER;
+    const targetLabel = targetType === USER_TYPES.RESTAURANT ? 'Restaurant Partner' : 'Customer';
+
     Alert.alert(
-      'Switch Account',
-      'You will be logged out and can login as a different user type.',
+      'Switch Profile',
+      `Switch to your ${targetLabel} profile?`,
       [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
+        { text: 'Cancel', style: 'cancel' },
         {
           text: 'Switch',
           onPress: async () => {
             try {
-              setIsLoggingOut(true);
-              await dispatch(logout()).unwrap();
-              // Navigation will happen automatically via AppNavigator
+              const resultAction = await dispatch(switchRole(targetType));
+
+              if (switchRole.rejected.match(resultAction)) {
+                const error = resultAction.payload;
+                if (error?.code === 'ROLE_NOT_FOUND') {
+                  Alert.alert(
+                    'Profile Not Found',
+                    `You don't have a ${targetLabel} account yet. Would you like to register as a partner?`,
+                    [
+                      { text: 'No', style: 'cancel' },
+                      {
+                        text: 'Yes, Register',
+                        onPress: () => {
+                          dispatch(logout());
+                          // AuthNavigator will show login/register
+                        }
+                      }
+                    ]
+                  );
+                } else {
+                  Alert.alert('Error', error?.message || 'Failed to switch profile');
+                }
+              }
             } catch (error) {
-              Alert.alert('Error', 'Failed to logout. Please try again.');
-            } finally {
-              setIsLoggingOut(false);
+              Alert.alert('Error', 'An unexpected error occurred');
             }
           },
         },

@@ -15,6 +15,7 @@ import AddMenuItemScreen from '../screens/restaurant/AddMenuItemScreen';
 import EditMenuItemScreen from '../screens/restaurant/EditMenuItemScreen';
 import RestaurantProfileScreen from '../screens/restaurant/RestaurantProfileScreen';
 import OperatingHoursScreen from '../screens/restaurant/OperatingHoursScreen';
+import EditRestaurantScreen from '../screens/restaurant/EditRestaurantScreen';
 import SettingsScreen from '../screens/restaurant/SettingsScreen';
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -60,6 +61,7 @@ const ProfileStack = () => (
   >
     <Stack.Screen name="ProfileMain" component={RestaurantProfileScreen} />
     <Stack.Screen name="OperatingHours" component={OperatingHoursScreen} />
+    <Stack.Screen name="EditRestaurant" component={EditRestaurantScreen} />
     <Stack.Screen name="Settings" component={SettingsScreen} />
   </Stack.Navigator>
 );

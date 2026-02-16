@@ -206,6 +206,16 @@ export default function SettingsScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Account & Privacy</Text>
           <View style={styles.card}>
+            <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('EditRestaurant')}>
+              <View style={styles.itemMain}>
+                <View style={[styles.iconContainer, { backgroundColor: colors.gray[100] }]}>
+                  <Icon source="store-edit-outline" size={22} color={colors.gray[600]} />
+                </View>
+                <Text style={styles.settingTitle}>Restaurant Profile</Text>
+              </View>
+              <Icon source="chevron-right" size={20} color={colors.gray[300]} />
+            </TouchableOpacity>
+            <View style={styles.dividerInner} />
             <TouchableOpacity style={styles.menuItem} onPress={handleChangePasswordPress}>
               <View style={styles.itemMain}>
                 <View style={[styles.iconContainer, { backgroundColor: colors.gray[100] }]}>

@@ -4,6 +4,11 @@ import { MAP_CONFIG } from '../utils/constants';
 
 const { SimpleLocation } = NativeModules;
 
+const defaultCenter = {
+  latitude: MAP_CONFIG.DEFAULT_LATITUDE,
+  longitude: MAP_CONFIG.DEFAULT_LONGITUDE,
+};
+
 /**
  * useLocation - Custom Native Location hook
  * Uses a project-internal Kotlin module for 100% Bridgeless compatibility in RN 0.83.
@@ -58,11 +63,6 @@ export const useLocation = () => {
     }
     return getCurrentPosition();
   }, [requestPermissions, getCurrentPosition]);
-
-  const defaultCenter = {
-    latitude: MAP_CONFIG.DEFAULT_LATITUDE,
-    longitude: MAP_CONFIG.DEFAULT_LONGITUDE,
-  };
 
   return {
     location: location || defaultCenter,

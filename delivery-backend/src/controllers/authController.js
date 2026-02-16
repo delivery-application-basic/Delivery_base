@@ -46,6 +46,11 @@ exports.registerRestaurant = async (req, res, next) => {
     try {
         const { restaurant_name, email, phone_number, password, street_address, city, latitude, longitude, cuisine_type, logo_url } = req.body;
 
+        const restaurantExists = await Restaurant.findOne({ where: { phone_number } });
+        if (restaurantExists) {
+            return res.status(400).json({ success: false, message: 'Restaurant already exists with this phone number' });
+        }
+
         const createPayload = {
             restaurant_name,
             email,
@@ -84,6 +89,11 @@ exports.registerRestaurant = async (req, res, next) => {
 exports.registerDriver = async (req, res, next) => {
     try {
         const { full_name, email, phone_number, password, driver_license_number, id_card_number, vehicle_type } = req.body;
+
+        const driverExists = await Driver.findOne({ where: { phone_number } });
+        if (driverExists) {
+            return res.status(400).json({ success: false, message: 'Driver already exists with this phone number' });
+        }
 
         const driver = await Driver.create({
             full_name,
@@ -281,6 +291,65 @@ exports.changePassword = async (req, res, next) => {
         user.password_hash = new_password;
         await user.save();
         res.status(200).json({ success: true, message: 'Password updated successfully' });
+    } catch (error) {
+        next(error);
+    }
+};
+// @desc    Switch user role (if account exists under same phone)
+// @route   POST /api/v1/auth/switch-role
+// @access  Private
+exports.switchRole = async (req, res, next) => {
+    try {
+        const { target_role } = req.body;
+        const currentPhone = req.user.phone_number;
+
+        if (!currentPhone) {
+            return res.status(400).json({ success: false, message: 'Phone number not found for current session' });
+        }
+
+        let user;
+        let userId;
+
+        if (target_role === USER_TYPES.CUSTOMER) {
+            user = await Customer.findOne({ where: { phone_number: currentPhone } });
+            if (user) userId = user.customer_id;
+        } else if (target_role === USER_TYPES.RESTAURANT) {
+            user = await Restaurant.findOne({ where: { phone_number: currentPhone } });
+            if (user) userId = user.restaurant_id;
+        } else if (target_role === USER_TYPES.DRIVER) {
+            user = await Driver.findOne({ where: { phone_number: currentPhone } });
+            if (user) userId = user.driver_id;
+        }
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                code: 'ROLE_NOT_FOUND',
+                message: `You don't have a ${target_role} profile registered with this phone number.`
+            });
+        }
+
+        const token = generateToken({ id: userId, type: target_role });
+        const refreshToken = generateRefreshToken({ id: userId, type: target_role });
+
+        // Save session
+        await UserSession.create({
+            user_type: target_role,
+            user_id: userId,
+            refresh_token: refreshToken,
+            expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+        });
+
+        res.status(200).json({
+            success: true,
+            token,
+            refreshToken,
+            user: {
+                id: userId,
+                type: target_role,
+                name: user.full_name || user.restaurant_name
+            }
+        });
     } catch (error) {
         next(error);
     }

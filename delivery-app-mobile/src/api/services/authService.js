@@ -9,32 +9,32 @@ export const authService = {
       password,
       user_type: userType,
     };
-    
+
     if (phone) {
       payload.phone_number = phone;
     }
     if (email) {
       payload.email = email;
     }
-    
+
     return apiClient.post('/auth/login', payload);
   },
-  
+
   // Register - Customer
   async registerCustomer(data) {
     return apiClient.post('/auth/register/customer', data);
   },
-  
+
   // Register - Restaurant
   async registerRestaurant(data) {
     return apiClient.post('/auth/register/restaurant', data);
   },
-  
+
   // Register - Driver
   async registerDriver(data) {
     return apiClient.post('/auth/register/driver', data);
   },
-  
+
   // Generic register method
   async register(userType, registrationData) {
     switch (userType) {
@@ -48,32 +48,32 @@ export const authService = {
         throw new Error('Invalid user type');
     }
   },
-  
+
   // Logout
   async logout() {
     // Get refreshToken from storage if available
     const refreshToken = await storage.getRefreshToken();
-    
+
     // Send refreshToken in body if available, otherwise send empty object
     return apiClient.post('/auth/logout', refreshToken ? { refreshToken } : {});
   },
-  
+
   // Refresh token (backend expects refreshToken in body)
   async refreshToken(refreshToken) {
     return apiClient.post('/auth/refresh-token', {
       refreshToken,
     });
   },
-  
+
   // Forgot password
   async forgotPassword(phone, email) {
     const payload = {};
     if (phone) payload.phone_number = phone;
     if (email) payload.email = email;
-    
+
     return apiClient.post('/auth/forgot-password', payload);
   },
-  
+
   // Reset password
   async resetPassword(token, newPassword) {
     return apiClient.post('/auth/reset-password', {
@@ -97,11 +97,18 @@ export const authService = {
       verification_code: verificationCode,
     });
   },
-  
+
   // Resend verification code
   async resendVerificationCode(phoneNumber) {
     return apiClient.post('/auth/resend-verification', {
       phone_number: phoneNumber,
+    });
+  },
+
+  // Switch role
+  async switchRole(targetRole) {
+    return apiClient.post('/auth/switch-role', {
+      target_role: targetRole,
     });
   },
 };
