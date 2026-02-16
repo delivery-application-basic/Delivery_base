@@ -378,7 +378,8 @@ exports.getAvailableOrders = async (req, res) => {
         const orders = await Order.findAll({
             where: {
                 order_status: { [Op.in]: ['preparing', 'ready'] },
-                driver_id: null
+                driver_id: null,
+                delivery_type: 'delivery'
             },
             include: [
                 {

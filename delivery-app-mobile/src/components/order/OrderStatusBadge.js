@@ -25,8 +25,11 @@ const STATUS_COLORS = {
   [ORDER_STATUS.CANCELLED]: '#D32F2F', // Red
 };
 
-export const OrderStatusBadge = ({ status }) => {
-  const label = STATUS_LABELS[status] || status;
+export const OrderStatusBadge = ({ status, deliveryType }) => {
+  let label = STATUS_LABELS[status] || status;
+  if (status === ORDER_STATUS.READY && deliveryType === 'pickup') {
+    label = 'Ready for Pickup';
+  }
   const color = STATUS_COLORS[status] || '#757575';
 
   return (

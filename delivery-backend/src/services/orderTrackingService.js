@@ -27,19 +27,20 @@ const TRACKING_STAGES = {
 function getTrackingStage(order) {
     const orderStatus = order.order_status;
     const paymentStatus = order.payment_status;
+    const isPickup = order.delivery_type === 'pickup';
 
     // Stage 5: Delivered
     if (orderStatus === ORDER_STATUS.DELIVERED) {
         return TRACKING_STAGES.DELIVERED;
     }
 
-    // Stage 4: Delivery On The Way
-    if ([ORDER_STATUS.PICKED_UP, ORDER_STATUS.IN_TRANSIT].includes(orderStatus)) {
+    // Stage 4: Delivery On The Way / Ready for Pickup
+    if ([ORDER_STATUS.PICKED_UP, ORDER_STATUS.IN_TRANSIT].includes(orderStatus) || (isPickup && orderStatus === ORDER_STATUS.READY)) {
         return TRACKING_STAGES.DELIVERY_ON_THE_WAY;
     }
 
     // Stage 3: Processing Food
-    if ([ORDER_STATUS.CONFIRMED, ORDER_STATUS.PREPARING, ORDER_STATUS.READY].includes(orderStatus)) {
+    if ([ORDER_STATUS.CONFIRMED, ORDER_STATUS.PREPARING].includes(orderStatus) || (!isPickup && orderStatus === ORDER_STATUS.READY)) {
         return TRACKING_STAGES.PROCESSING_FOOD;
     }
 
@@ -69,12 +70,13 @@ function getStageNumber(stage) {
 /**
  * Get user-friendly stage label
  */
-function getStageLabel(stage) {
+function getStageLabel(stage, deliveryType = 'delivery') {
+    const isPickup = deliveryType === 'pickup';
     const labels = {
         [TRACKING_STAGES.ORDER_ISSUED]: 'Order Issued',
         [TRACKING_STAGES.PAYMENT_VERIFIED]: 'Payment Verified',
         [TRACKING_STAGES.PROCESSING_FOOD]: 'Processing Food',
-        [TRACKING_STAGES.DELIVERY_ON_THE_WAY]: 'Delivery On The Way',
+        [TRACKING_STAGES.DELIVERY_ON_THE_WAY]: isPickup ? 'Ready for Pickup' : 'Delivery On The Way',
         [TRACKING_STAGES.DELIVERED]: 'Delivered'
     };
     return labels[stage] || 'Unknown';
@@ -103,11 +105,11 @@ async function getOrderTracking(orderId) {
 
     const currentStage = getTrackingStage(order);
     const stageNumber = getStageNumber(currentStage);
-    
+
     // Calculate estimated delivery time (average 25 minutes for Ethiopian market)
-    const estimatedDeliveryTime = 25; // minutes
+    const estimatedDeliveryTime = order.delivery_type === 'pickup' ? 15 : 25; // minutes
     let estimatedDeliveryAt = null;
-    
+
     if (order.confirmed_at) {
         estimatedDeliveryAt = new Date(order.confirmed_at);
         estimatedDeliveryAt.setMinutes(estimatedDeliveryAt.getMinutes() + estimatedDeliveryTime);
@@ -115,12 +117,12 @@ async function getOrderTracking(orderId) {
 
     // Build simplified timeline
     const timeline = [];
-    
+
     // Stage 1: Order Issued
     timeline.push({
         stage: TRACKING_STAGES.ORDER_ISSUED,
         stageNumber: 1,
-        label: getStageLabel(TRACKING_STAGES.ORDER_ISSUED),
+        label: getStageLabel(TRACKING_STAGES.ORDER_ISSUED, order.delivery_type),
         completed: true,
         timestamp: order.created_at
     });
@@ -130,7 +132,7 @@ async function getOrderTracking(orderId) {
     timeline.push({
         stage: TRACKING_STAGES.PAYMENT_VERIFIED,
         stageNumber: 2,
-        label: getStageLabel(TRACKING_STAGES.PAYMENT_VERIFIED),
+        label: getStageLabel(TRACKING_STAGES.PAYMENT_VERIFIED, order.delivery_type),
         completed: paymentVerified,
         timestamp: paymentVerified ? (order.paid_at || order.created_at) : null
     });
@@ -140,9 +142,9 @@ async function getOrderTracking(orderId) {
     timeline.push({
         stage: TRACKING_STAGES.PROCESSING_FOOD,
         stageNumber: 3,
-        label: getStageLabel(TRACKING_STAGES.PROCESSING_FOOD),
+        label: getStageLabel(TRACKING_STAGES.PROCESSING_FOOD, order.delivery_type),
         completed: processingFood,
-        timestamp: processingFood ? (order.confirmed_at || order.created_at) : null
+        timestamp: processingFood ? (order.preparing_at || order.confirmed_at || order.created_at) : null
     });
 
     // Stage 4: Delivery On The Way
@@ -150,9 +152,9 @@ async function getOrderTracking(orderId) {
     timeline.push({
         stage: TRACKING_STAGES.DELIVERY_ON_THE_WAY,
         stageNumber: 4,
-        label: getStageLabel(TRACKING_STAGES.DELIVERY_ON_THE_WAY),
+        label: getStageLabel(TRACKING_STAGES.DELIVERY_ON_THE_WAY, order.delivery_type),
         completed: deliveryOnWay,
-        timestamp: deliveryOnWay ? (order.delivery?.picked_up_at || order.delivery?.assigned_at) : null
+        timestamp: deliveryOnWay ? (order.delivery?.picked_up_at || order.delivery?.assigned_at || (order.delivery_type === 'pickup' ? order.ready_at : null)) : null
     });
 
     // Stage 5: Delivered
@@ -160,7 +162,7 @@ async function getOrderTracking(orderId) {
     timeline.push({
         stage: TRACKING_STAGES.DELIVERED,
         stageNumber: 5,
-        label: getStageLabel(TRACKING_STAGES.DELIVERED),
+        label: getStageLabel(TRACKING_STAGES.DELIVERED, order.delivery_type),
         completed: delivered,
         timestamp: delivered ? (order.delivered_at || order.delivery?.delivered_at) : null
     });
@@ -169,7 +171,7 @@ async function getOrderTracking(orderId) {
         order_id: order.order_id,
         current_stage: currentStage,
         current_stage_number: stageNumber,
-        current_stage_label: getStageLabel(currentStage),
+        current_stage_label: getStageLabel(currentStage, order.delivery_type),
         timeline,
         estimated_delivery_time: estimatedDeliveryTime,
         estimated_delivery_at: estimatedDeliveryAt,
@@ -211,7 +213,7 @@ function emitTrackingUpdate(orderId, trackingStage, order = null) {
         order_id: orderId,
         current_stage: trackingStage,
         current_stage_number: getStageNumber(trackingStage),
-        current_stage_label: getStageLabel(trackingStage),
+        current_stage_label: getStageLabel(trackingStage, order?.delivery_type || 'delivery'),
         timestamp: new Date()
     };
 

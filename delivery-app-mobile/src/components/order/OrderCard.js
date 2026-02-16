@@ -16,6 +16,7 @@ export const OrderCard = ({
   restaurantName,
   customerName,
   onPress,
+  deliveryType,
 }) => {
   return (
     <TouchableOpacity
@@ -27,7 +28,7 @@ export const OrderCard = ({
         <View style={styles.idContainer}>
           <Text style={styles.orderId}>#{orderId}</Text>
         </View>
-        <OrderStatusBadge status={status} />
+        <OrderStatusBadge status={status} deliveryType={deliveryType} />
       </View>
 
       <View style={styles.content}>

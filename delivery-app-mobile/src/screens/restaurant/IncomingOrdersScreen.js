@@ -81,7 +81,8 @@ export default function IncomingOrdersScreen() {
             status={item.order_status}
             totalAmount={item.total_amount}
             createdAt={item.order_date}
-            customerName={item.user?.full_name}
+            customerName={item.customer?.full_name ?? item.user?.full_name}
+            deliveryType={item.delivery_type}
             onPress={() => navigation.navigate('OrderDetails', { orderId: item.order_id })}
           />
         )}

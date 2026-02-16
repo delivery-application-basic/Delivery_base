@@ -15,19 +15,19 @@ import { colors } from '../../theme/colors';
 import { shadows } from '../../theme/shadows';
 import { formatCurrency } from '../../utils/helpers';
 
-const NEXT_STATUS = {
+const NEXT_STATUS = (isPickup) => ({
   pending: 'confirmed',
   confirmed: 'preparing',
   preparing: 'ready',
-  ready: 'picked_up' // Ready for delivery
-};
+  ready: isPickup ? 'delivered' : 'picked_up'
+});
 
-const STATUS_TEXT = {
+const STATUS_TEXT = (isPickup) => ({
   pending: 'Confirm Order',
   confirmed: 'Start Preparing',
   preparing: 'Mark as Ready',
-  ready: 'Out for Delivery'
-};
+  ready: isPickup ? 'Handover to Customer' : 'Out for Delivery'
+});
 
 export default function OrderDetailsScreen() {
   const dispatch = useDispatch();
@@ -51,7 +51,8 @@ export default function OrderDetailsScreen() {
   }, [orderId, subscribeToOrderTracking, dispatch]);
 
   const handleUpdateStatus = async () => {
-    const next = NEXT_STATUS[selectedOrder?.order_status];
+    const isPickup = selectedOrder?.delivery_type === 'pickup';
+    const next = NEXT_STATUS(isPickup)[selectedOrder?.order_status];
     if (!next || !orderId) return;
 
     Alert.alert(
@@ -78,7 +79,8 @@ export default function OrderDetailsScreen() {
   if (!selectedOrder) return null;
 
   const o = selectedOrder;
-  const nextStatus = NEXT_STATUS[o.order_status];
+  const isPickup = o.delivery_type === 'pickup';
+  const nextStatus = NEXT_STATUS(isPickup)[o.order_status];
   const items = o.items || [];
   const customerName = o.customer?.full_name ?? o.user?.full_name ?? 'Guest';
   const customerPhone = o.customer?.phone_number ?? o.user?.phone_number ?? 'N/A';
@@ -114,7 +116,7 @@ export default function OrderDetailsScreen() {
               {o.order_date ? new Date(o.order_date).toLocaleString() : '—'}
             </Text>
           </View>
-          <OrderStatusBadge status={o.order_status} />
+          <OrderStatusBadge status={o.order_status} deliveryType={o.delivery_type} />
         </View>
 
         <View style={styles.section}>
@@ -188,10 +190,10 @@ export default function OrderDetailsScreen() {
           </View>
         </View>
 
-        {nextStatus && nextStatus !== 'picked_up' ? (
+        {nextStatus && (isPickup || nextStatus !== 'picked_up') ? (
           <View style={[styles.footerInline, { marginBottom: insets.bottom + 16 }]}>
             <Button
-              title={STATUS_TEXT[o.order_status] || `Mark as ${nextStatus}`}
+              title={STATUS_TEXT(isPickup)[o.order_status] || `Mark as ${nextStatus}`}
               onPress={handleUpdateStatus}
               loading={isLoading}
               style={styles.actionButton}
@@ -200,7 +202,9 @@ export default function OrderDetailsScreen() {
         ) : o.order_status === 'ready' ? (
           <View style={[styles.footerInline, styles.waitingFooter, { marginBottom: insets.bottom + 16 }]}>
             <Text style={styles.waitingText}>
-              {o.driver_id ? 'Out for delivery — driver assigned' : 'Waiting for a driver to accept'}
+              {isPickup
+                ? 'Waiting for customer to pick up'
+                : o.driver_id ? 'Out for delivery — driver assigned' : 'Waiting for a driver to accept'}
             </Text>
           </View>
         ) : null}

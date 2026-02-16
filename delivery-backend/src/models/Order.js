@@ -75,6 +75,12 @@ const Order = sequelize.define('Order', {
     confirmed_at: {
         type: DataTypes.DATE
     },
+    preparing_at: {
+        type: DataTypes.DATE
+    },
+    ready_at: {
+        type: DataTypes.DATE
+    },
     delivered_at: {
         type: DataTypes.DATE
     },

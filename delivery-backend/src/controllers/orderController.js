@@ -7,7 +7,8 @@ const { USER_TYPES, ORDER_STATUS } = require('../utils/constants');
 const orderIncludeCommon = [
     { model: OrderItem, as: 'items' },
     { model: Address, as: 'delivery_address', attributes: ['address_id', 'address_label', 'street_address', 'city', 'sub_city', 'landmark', 'latitude', 'longitude'] },
-    { model: Restaurant, as: 'restaurant', attributes: ['restaurant_id', 'restaurant_name', 'phone_number', 'street_address', 'city', 'latitude', 'longitude'] }
+    { model: Restaurant, as: 'restaurant', attributes: ['restaurant_id', 'restaurant_name', 'phone_number', 'street_address', 'city', 'latitude', 'longitude'] },
+    { model: Customer, as: 'customer', attributes: ['customer_id', 'full_name', 'phone_number'] }
 ];
 
 /**
@@ -128,7 +129,7 @@ exports.updateOrderStatus = async (req, res, next) => {
             [ORDER_STATUS.PENDING]: [ORDER_STATUS.CONFIRMED, ORDER_STATUS.CANCELLED],
             [ORDER_STATUS.CONFIRMED]: [ORDER_STATUS.PREPARING, ORDER_STATUS.CANCELLED],
             [ORDER_STATUS.PREPARING]: [ORDER_STATUS.READY],
-            [ORDER_STATUS.READY]: [ORDER_STATUS.PICKED_UP, ORDER_STATUS.CANCELLED],
+            [ORDER_STATUS.READY]: [ORDER_STATUS.PICKED_UP, ORDER_STATUS.DELIVERED, ORDER_STATUS.CANCELLED],
             [ORDER_STATUS.PICKED_UP]: [ORDER_STATUS.IN_TRANSIT],
             [ORDER_STATUS.IN_TRANSIT]: [ORDER_STATUS.DELIVERED],
             [ORDER_STATUS.DELIVERED]: [],
@@ -145,6 +146,9 @@ exports.updateOrderStatus = async (req, res, next) => {
 
         if (req.userType === USER_TYPES.RESTAURANT) {
             const allowedRestaurant = [ORDER_STATUS.CONFIRMED, ORDER_STATUS.PREPARING, ORDER_STATUS.READY];
+            if (order.delivery_type === 'pickup') {
+                allowedRestaurant.push(ORDER_STATUS.DELIVERED);
+            }
             if (!allowedRestaurant.includes(order_status)) {
                 return res.status(403).json({ success: false, message: 'Restaurant cannot set this status' });
             }
@@ -174,6 +178,12 @@ exports.updateOrderStatus = async (req, res, next) => {
         if (order_status === ORDER_STATUS.CONFIRMED) {
             order.confirmed_at = new Date();
         }
+        if (order_status === ORDER_STATUS.PREPARING) {
+            order.preparing_at = new Date();
+        }
+        if (order_status === ORDER_STATUS.READY) {
+            order.ready_at = new Date();
+        }
         if (order_status === ORDER_STATUS.DELIVERED) {
             order.delivered_at = new Date();
         }
@@ -201,7 +211,7 @@ exports.updateOrderStatus = async (req, res, next) => {
         try {
             emitOrderStatusEvent(orderId, order_status);
             const { emitOrderAvailableToDrivers } = require('../services/socketEventService');
-            if (order_status === 'preparing' || order_status === 'ready') {
+            if ((order_status === 'preparing' || order_status === 'ready') && order.delivery_type === 'delivery') {
                 emitOrderAvailableToDrivers(orderId, order_status);
             }
         } catch (e) {
