@@ -193,13 +193,13 @@ exports.updateHours = async (req, res, next) => {
 // @access  Private (Restaurant Owner)
 exports.uploadLogo = async (req, res, next) => {
     try {
-        if (!req.file) {
+        if (!req.file || !req.file.buffer) {
             return res.status(400).json({ success: false, message: 'Please upload a file' });
         }
 
         const restaurantId = parseInt(req.params.id, 10);
         if (restaurantId !== req.user.restaurant_id) {
-            return res.status(403).json({ success: false, message: 'Not authorized to update this restaurant' });
+            return res.status(403).json({ success: false, message: 'Not authorized' });
         }
 
         const restaurant = await Restaurant.findByPk(restaurantId);
@@ -207,13 +207,44 @@ exports.uploadLogo = async (req, res, next) => {
             return res.status(404).json({ success: false, message: 'Restaurant not found' });
         }
 
-        // The file is already uploaded to cloudinary by the middleware
-        await restaurant.update({ logo_url: req.file.path });
+        const isCloudinaryConfigured = process.env.CLOUDINARY_CLOUD_NAME &&
+            process.env.CLOUDINARY_API_KEY &&
+            process.env.CLOUDINARY_API_SECRET &&
+            !process.env.CLOUDINARY_API_KEY.includes('your_');
+
+        let imageUrl;
+        if (isCloudinaryConfigured) {
+            const cloudinary = require('../config/cloudinary');
+            const b64 = Buffer.from(req.file.buffer).toString('base64');
+            const dataUri = `data:${req.file.mimetype};base64,${b64}`;
+            const result = await cloudinary.uploader.upload(dataUri, {
+                folder: 'restaurants',
+                resource_type: 'image'
+            });
+            imageUrl = result.secure_url;
+        } else {
+            const fs = require('fs');
+            const path = require('path');
+            const uploadsDir = path.join(__dirname, '../../uploads/restaurants');
+            if (!fs.existsSync(uploadsDir)) {
+                fs.mkdirSync(uploadsDir, { recursive: true });
+            }
+            const ext = (req.file.mimetype || '').includes('png') ? 'png' : 'jpg';
+            const filename = `logo-${restaurantId}-${Date.now()}.${ext}`;
+            const filepath = path.join(uploadsDir, filename);
+            fs.writeFileSync(filepath, req.file.buffer);
+
+            const host = req.get('host') || 'localhost:5000';
+            const protocol = req.protocol || 'http';
+            imageUrl = `${protocol}://${host}/uploads/restaurants/${filename}`;
+        }
+
+        await restaurant.update({ logo_url: imageUrl });
 
         res.status(200).json({
             success: true,
             data: {
-                logo_url: req.file.path
+                logo_url: imageUrl
             }
         });
     } catch (error) {

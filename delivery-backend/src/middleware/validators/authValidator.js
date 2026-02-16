@@ -5,7 +5,13 @@ const { USER_TYPES } = require('../../utils/constants');
 const validationHandler = (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        return res.status(400).json({ success: false, errors: errors.array() });
+        const errorArray = errors.array();
+        console.error('Validation Errors:', errorArray);
+        return res.status(400).json({
+            success: false,
+            message: errorArray[0].msg, // Return the first error message
+            errors: errorArray
+        });
     }
     next();
 };
@@ -18,13 +24,13 @@ const baseRegisterRules = [
 const customerRegisterRules = [
     ...baseRegisterRules,
     body('full_name').trim().notEmpty().withMessage('Full name is required').isLength({ max: 100 }).withMessage('Full name must be at most 100 characters'),
-    body('email').optional().isEmail().withMessage('Invalid email format'),
+    body('email').optional({ checkFalsy: true }).isEmail().withMessage('Invalid email format'),
 ];
 
 const restaurantRegisterRules = [
     ...baseRegisterRules,
     body('restaurant_name').trim().notEmpty().withMessage('Restaurant name is required').isLength({ max: 150 }).withMessage('Restaurant name must be at most 150 characters'),
-    body('email').optional().isEmail().withMessage('Invalid email format'),
+    body('email').optional({ checkFalsy: true }).isEmail().withMessage('Invalid email format'),
     body('street_address').trim().notEmpty().withMessage('Street address is required'),
     body('city').trim().notEmpty().withMessage('City is required'),
     body('latitude')
@@ -42,7 +48,7 @@ const restaurantRegisterRules = [
 const driverRegisterRules = [
     ...baseRegisterRules,
     body('full_name').trim().notEmpty().withMessage('Full name is required').isLength({ max: 100 }).withMessage('Full name must be at most 100 characters'),
-    body('email').optional().isEmail().withMessage('Invalid email format'),
+    body('email').optional({ checkFalsy: true }).isEmail().withMessage('Invalid email format'),
     body('driver_license_number').trim().notEmpty().withMessage('Driver license number is required'),
     body('id_card_number').trim().notEmpty().withMessage('ID card number is required'),
     body('vehicle_type').trim().notEmpty().withMessage('Vehicle type is required'),

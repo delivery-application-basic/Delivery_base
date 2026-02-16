@@ -19,7 +19,11 @@ const Cart = sequelize.define('Cart', {
     tableName: 'carts',
     timestamps: true,
     updatedAt: 'updated_at',
-    createdAt: false
+    createdAt: false,
+    indexes: [
+        { name: 'idx_cart_customer', fields: ['customer_id'] },
+        { name: 'idx_cart_restaurant', fields: ['restaurant_id'] }
+    ]
 });
 
 module.exports = Cart;

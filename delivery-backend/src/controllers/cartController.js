@@ -3,6 +3,49 @@ const { Op } = require('sequelize');
 const { USER_TYPES } = require('../utils/constants');
 
 /**
+ * Helper to fetch full cart data with includes and subtotal.
+ */
+async function getFullCartData(customerId) {
+    const cart = await Cart.findOne({
+        where: { customer_id: customerId },
+        include: [
+            { model: Restaurant, as: 'restaurant', attributes: ['restaurant_id', 'restaurant_name', 'street_address', 'city'] },
+            {
+                model: CartItem,
+                as: 'items',
+                include: [{ model: MenuItem, as: 'product', attributes: ['item_id', 'item_name', 'price', 'image_url', 'is_available'] }]
+            }
+        ]
+    });
+
+    if (!cart) {
+        return { cart: null, items: [], subtotal: 0, restaurant: null };
+    }
+
+    const items = cart.items || [];
+    let subtotal = 0;
+    for (const ci of items) {
+        if (ci.product) {
+            subtotal += parseFloat(ci.product.price) * (ci.quantity || 0);
+        }
+    }
+
+    return {
+        cart_id: cart.cart_id,
+        restaurant_id: cart.restaurant_id,
+        restaurant: cart.restaurant,
+        items: items.map((ci) => ({
+            cart_item_id: ci.cart_item_id,
+            item_id: ci.item_id,
+            quantity: ci.quantity,
+            product: ci.product,
+            line_total: parseFloat(ci.product?.price || 0) * (ci.quantity || 0)
+        })),
+        subtotal: Math.round(subtotal * 100) / 100
+    };
+}
+
+/**
  * Get customer's cart with items and menu details.
  * GET /api/v1/cart
  */
@@ -11,56 +54,8 @@ exports.getCart = async (req, res, next) => {
         if (req.userType !== USER_TYPES.CUSTOMER) {
             return res.status(403).json({ success: false, message: 'Only customers can view cart' });
         }
-        const customerId = req.user.customer_id;
-
-        const cart = await Cart.findOne({
-            where: { customer_id: customerId },
-            include: [
-                { model: Restaurant, as: 'restaurant', attributes: ['restaurant_id', 'restaurant_name', 'street_address', 'city'] },
-                {
-                    model: CartItem,
-                    as: 'items',
-                    include: [{ model: MenuItem, as: 'product', attributes: ['item_id', 'item_name', 'price', 'image_url', 'is_available'] }]
-                }
-            ]
-        });
-
-        if (!cart) {
-            return res.status(200).json({
-                success: true,
-                data: { cart: null, items: [], subtotal: 0, restaurant: null }
-            });
-        }
-
-        const items = cart.items || [];
-        let subtotal = 0;
-        const invalidItems = [];
-
-        for (const ci of items) {
-            const product = ci.product;
-            if (!product) {
-                invalidItems.push(ci.cart_item_id);
-                continue;
-            }
-            const lineTotal = parseFloat(product.price) * (ci.quantity || 0);
-            subtotal += lineTotal;
-        }
-
-        const response = {
-            cart_id: cart.cart_id,
-            restaurant_id: cart.restaurant_id,
-            restaurant: cart.restaurant,
-            items: items.map((ci) => ({
-                cart_item_id: ci.cart_item_id,
-                item_id: ci.item_id,
-                quantity: ci.quantity,
-                product: ci.product,
-                line_total: parseFloat(ci.product?.price || 0) * (ci.quantity || 0)
-            })),
-            subtotal: Math.round(subtotal * 100) / 100
-        };
-
-        return res.status(200).json({ success: true, data: response });
+        const data = await getFullCartData(req.user.customer_id);
+        return res.status(200).json({ success: true, data });
     } catch (error) {
         next(error);
     }
@@ -109,19 +104,16 @@ exports.addItem = async (req, res, next) => {
         if (existing) {
             existing.quantity = (existing.quantity || 0) + quantity;
             await existing.save();
-            return res.status(200).json({
-                success: true,
-                data: { cart_item: existing, message: 'Cart item quantity updated' }
+        } else {
+            await CartItem.create({
+                cart_id: cart.cart_id,
+                item_id,
+                quantity
             });
         }
 
-        const cartItem = await CartItem.create({
-            cart_id: cart.cart_id,
-            item_id,
-            quantity
-        });
-
-        return res.status(201).json({ success: true, data: { cart_item: cartItem } });
+        const data = await getFullCartData(customerId);
+        return res.status(existing ? 200 : 201).json({ success: true, data });
     } catch (error) {
         next(error);
     }
@@ -156,55 +148,8 @@ exports.updateItem = async (req, res, next) => {
         cartItem.quantity = quantity;
         await cartItem.save();
 
-        // Fetch the updated cart with items
-        const updatedCart = await Cart.findOne({
-            where: { customer_id: customerId },
-            include: [
-                { model: Restaurant, as: 'restaurant', attributes: ['restaurant_id', 'restaurant_name', 'street_address', 'city'] },
-                {
-                    model: CartItem,
-                    as: 'items',
-                    include: [{ model: MenuItem, as: 'product', attributes: ['item_id', 'item_name', 'price', 'image_url', 'is_available'] }]
-                }
-            ]
-        });
-
-        if (!updatedCart) {
-            return res.status(200).json({
-                success: true,
-                data: { cart: null, items: [], subtotal: 0, restaurant: null }
-            });
-        }
-
-        const items = updatedCart.items || [];
-        let subtotal = 0;
-        const invalidItems = [];
-
-        for (const ci of items) {
-            const product = ci.product;
-            if (!product) {
-                invalidItems.push(ci.cart_item_id);
-                continue;
-            }
-            const lineTotal = parseFloat(product.price) * (ci.quantity || 0);
-            subtotal += lineTotal;
-        }
-
-        const response = {
-            cart_id: updatedCart.cart_id,
-            restaurant_id: updatedCart.restaurant_id,
-            restaurant: updatedCart.restaurant,
-            items: items.map((ci) => ({
-                cart_item_id: ci.cart_item_id,
-                item_id: ci.item_id,
-                quantity: ci.quantity,
-                product: ci.product,
-                line_total: parseFloat(ci.product?.price || 0) * (ci.quantity || 0)
-            })),
-            subtotal: Math.round(subtotal * 100) / 100
-        };
-
-        return res.status(200).json({ success: true, data: response });
+        const data = await getFullCartData(customerId);
+        return res.status(200).json({ success: true, data });
     } catch (error) {
         next(error);
     }
@@ -240,7 +185,8 @@ exports.removeItem = async (req, res, next) => {
             await cart.destroy();
         }
 
-        return res.status(200).json({ success: true, message: 'Item removed from cart' });
+        const data = await getFullCartData(customerId);
+        return res.status(200).json({ success: true, data });
     } catch (error) {
         next(error);
     }

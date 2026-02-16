@@ -13,8 +13,7 @@ const Restaurant = sequelize.define('Restaurant', {
         allowNull: false
     },
     email: {
-        type: DataTypes.STRING(100),
-        unique: true
+        type: DataTypes.STRING(100)
     },
     phone_number: {
         type: DataTypes.STRING(20),
