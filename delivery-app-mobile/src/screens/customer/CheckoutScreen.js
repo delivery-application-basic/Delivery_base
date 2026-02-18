@@ -35,7 +35,9 @@ export default function CheckoutScreen() {
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
   const [detectionError, setDetectionError] = useState(null);
 
-  const { getLocationWithPermission } = useLocation();
+  const [hasTriedAutoDetect, setHasTriedAutoDetect] = useState(false);
+
+  const { getLocationWithPermission, checkLocationService } = useLocation();
 
   // Load address details when addressId changes
   useEffect(() => {
@@ -71,6 +73,10 @@ export default function CheckoutScreen() {
     try {
       setIsDetectingLocation(true);
       setDetectionError(null);
+
+      if (!(await checkLocationService())) {
+        throw new Error('Location services are disabled. Please enable GPS and try again.');
+      }
 
       const coords = await getLocationWithPermission();
 
@@ -110,13 +116,14 @@ export default function CheckoutScreen() {
     } finally {
       setIsDetectingLocation(false);
     }
-  }, [addressId, getLocationWithPermission, isDetectingLocation]);
+  }, [addressId, getLocationWithPermission, isDetectingLocation, checkLocationService]);
 
   useEffect(() => {
-    if (!addressId) {
+    if (!addressId && !hasTriedAutoDetect) {
       detectLocation();
+      setHasTriedAutoDetect(true);
     }
-  }, [addressId, detectLocation]);
+  }, [addressId, detectLocation, hasTriedAutoDetect]);
 
   const handlePlaceOrder = async () => {
     const numAddressId = parseInt(addressId, 10);
