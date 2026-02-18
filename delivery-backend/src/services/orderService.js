@@ -230,167 +230,179 @@ async function calculateSmartDeliveryFee(restaurant, address) {
  * Create order from customer's cart. Validates cart, address, availability; creates order + order items; clears cart; records status history.
  */
 async function createOrderFromCart(customerId, { address_id, payment_method, special_instructions, delivery_type }) {
-    const cart = await Cart.findOne({
-        where: { customer_id: customerId },
-        include: [
-            { model: CartItem, as: 'items', include: [{ model: MenuItem, as: 'product' }] }
-        ]
-    });
+    const { sequelize } = require('../config/database');
+    const transaction = await sequelize.transaction();
 
-    if (!cart || !cart.items || cart.items.length === 0) {
-        const err = new Error('Cart is empty');
-        err.statusCode = 400;
-        throw err;
-    }
-
-    let address = null;
-    if (delivery_type !== 'pickup' || address_id) {
-        address = await Address.findOne({
-            where: { address_id, customer_id: customerId }
+    try {
+        const cart = await Cart.findOne({
+            where: { customer_id: customerId },
+            include: [
+                { model: CartItem, as: 'items', include: [{ model: MenuItem, as: 'product' }] }
+            ],
+            transaction
         });
-        if (!address && delivery_type !== 'pickup') {
-            const err = new Error('Delivery address not found or does not belong to you');
+
+        if (!cart || !cart.items || cart.items.length === 0) {
+            const err = new Error('Cart is empty');
             err.statusCode = 400;
             throw err;
         }
-    }
 
-    let subtotal = 0;
-    const orderItemsPayload = [];
+        let address = null;
+        if (delivery_type !== 'pickup' || address_id) {
+            address = await Address.findOne({
+                where: { address_id, customer_id: customerId },
+                transaction
+            });
+            if (!address && delivery_type !== 'pickup') {
+                const err = new Error('Delivery address not found or does not belong to you');
+                err.statusCode = 400;
+                throw err;
+            }
+        }
 
-    for (const ci of cart.items) {
-        const product = ci.product;
-        if (!product) {
-            const err = new Error(`Menu item not found for cart item ${ci.cart_item_id}`);
+        let subtotal = 0;
+        const orderItemsPayload = [];
+
+        for (const ci of cart.items) {
+            const product = ci.product;
+            if (!product) {
+                const err = new Error(`Menu item not found for cart item ${ci.cart_item_id}`);
+                err.statusCode = 400;
+                throw err;
+            }
+            if (!product.is_available) {
+                const err = new Error(`Item "${product.item_name}" is no longer available`);
+                err.statusCode = 400;
+                throw err;
+            }
+            const unitPrice = parseFloat(product.price);
+            const qty = ci.quantity || 1;
+            const lineSubtotal = unitPrice * qty;
+            subtotal += lineSubtotal;
+            orderItemsPayload.push({
+                // order_id will be added after order creation
+                item_id: product.item_id,
+                item_name: product.item_name,
+                quantity: qty,
+                unit_price: unitPrice,
+                subtotal: lineSubtotal,
+                special_instructions: null
+            });
+        }
+
+        subtotal = Math.round(subtotal * 100) / 100;
+
+        // Get restaurant for delivery fee calculation
+        const restaurant = await Restaurant.findByPk(cart.restaurant_id, { transaction });
+        if (!restaurant) {
+            const err = new Error('Restaurant not found');
             err.statusCode = 400;
             throw err;
         }
-        if (!product.is_available) {
-            const err = new Error(`Item "${product.item_name}" is no longer available`);
-            err.statusCode = 400;
-            throw err;
+
+        // Calculate happy hour discount (applied to subtotal)
+        const happyHourDiscount = calculateHappyHourDiscount(restaurant, subtotal);
+        const discountedSubtotal = Math.max(0, subtotal - happyHourDiscount);
+
+        // Calculate smart delivery fee
+        const deliveryFee = delivery_type === 'pickup' ? 0 : await calculateSmartDeliveryFee(restaurant, address);
+        const serviceFee = calculateServiceFee();
+        const totalAmount = Math.round((discountedSubtotal + deliveryFee + serviceFee) * 100) / 100;
+
+        // Determine order flow type based on restaurant partnership status
+        const orderFlowType = await determineOrderFlowType(cart.restaurant_id);
+
+        const order = await Order.create({
+            customer_id: customerId,
+            restaurant_id: cart.restaurant_id,
+            address_id: address?.address_id || null,
+            subtotal: discountedSubtotal, // Store discounted subtotal (after happy hour discount)
+            delivery_fee: deliveryFee,
+            service_fee: serviceFee,
+            driver_tip: 0,
+            discount_amount: happyHourDiscount, // Store discount amount for transparency
+            total_amount: totalAmount,
+            order_status: ORDER_STATUS.PENDING,
+            delivery_type: delivery_type || 'delivery',
+            payment_status: 'pending',
+            payment_method,
+            special_instructions: special_instructions || null,
+            order_flow_type: orderFlowType,
+            estimated_total_amount: orderFlowType === 'non_partnered' ? totalAmount : null // For non-partnered orders
+        }, { transaction });
+
+        // Add order_id to payloads
+        const itemsWithId = orderItemsPayload.map(item => ({ ...item, order_id: order.order_id }));
+
+        // Bulk create items (Fix A: N+1)
+        await OrderItem.bulkCreate(itemsWithId, { transaction });
+
+        await recordStatusChange(
+            order.order_id,
+            null,
+            ORDER_STATUS.PENDING,
+            'customer',
+            customerId,
+            transaction
+        );
+
+        await CartItem.destroy({ where: { cart_id: cart.cart_id }, transaction });
+        await cart.destroy({ transaction });
+
+        // Commit transaction (Fix B: Transactions)
+        await transaction.commit();
+
+        // --- Post-transaction actions (notifications, etc) ---
+
+        // Generate verification code for delivery
+        try {
+            const { generateOrderVerificationCode, sendVerificationCode } = require('./verificationCodeService');
+            await generateOrderVerificationCode(order.order_id);
+            // Send code to customer immediately
+            await sendVerificationCode(order.order_id);
+        } catch (error) {
+            console.error(`Failed to generate/send verification code for order ${order.order_id}:`, error.message);
+            // Don't fail order creation if code generation fails
         }
-        const unitPrice = parseFloat(product.price);
-        const qty = ci.quantity || 1;
-        const lineSubtotal = unitPrice * qty;
-        subtotal += lineSubtotal;
-        orderItemsPayload.push({
-            item_id: product.item_id,
-            item_name: product.item_name,
-            quantity: qty,
-            unit_price: unitPrice,
-            subtotal: lineSubtotal,
-            special_instructions: null
-        });
-    }
 
-    subtotal = Math.round(subtotal * 100) / 100;
+        // Emit initial tracking update (Stage 1: Order Issued)
+        try {
+            const { emitTrackingUpdate, getTrackingStage } = require('./orderTrackingService');
+            const trackingStage = getTrackingStage(order);
+            emitTrackingUpdate(order.order_id, trackingStage, order);
+        } catch (error) {
+            console.error(`Failed to emit tracking update for order ${order.order_id}:`, error.message);
+        }
 
-    // Get restaurant for delivery fee calculation
-    const restaurant = await Restaurant.findByPk(cart.restaurant_id);
-    if (!restaurant) {
-        const err = new Error('Restaurant not found');
-        err.statusCode = 400;
-        throw err;
-    }
+        // Notify restaurant of new order (real-time)
+        try {
+            const { emitOrderCreated } = require('./socketEventService');
+            emitOrderCreated(order, order.restaurant_id);
+        } catch (error) {
+            console.error(`Failed to emit order:created for order ${order.order_id}:`, error.message);
+        }
 
-    // Calculate happy hour discount (applied to subtotal)
-    const happyHourDiscount = calculateHappyHourDiscount(restaurant, subtotal);
-    const discountedSubtotal = Math.max(0, subtotal - happyHourDiscount);
+        // Pool flow: drivers see orders when restaurant sets preparing/ready and accept from GET /drivers/orders/available
+        return order;
 
-    // Calculate smart delivery fee
-    const deliveryFee = delivery_type === 'pickup' ? 0 : await calculateSmartDeliveryFee(restaurant, address);
-    const serviceFee = calculateServiceFee();
-    const totalAmount = Math.round((discountedSubtotal + deliveryFee + serviceFee) * 100) / 100;
-
-    // Determine order flow type based on restaurant partnership status
-    const orderFlowType = await determineOrderFlowType(cart.restaurant_id);
-
-    const order = await Order.create({
-        customer_id: customerId,
-        restaurant_id: cart.restaurant_id,
-        address_id: address?.address_id || null,
-        subtotal: discountedSubtotal, // Store discounted subtotal (after happy hour discount)
-        delivery_fee: deliveryFee,
-        service_fee: serviceFee,
-        driver_tip: 0,
-        discount_amount: happyHourDiscount, // Store discount amount for transparency
-        total_amount: totalAmount,
-        order_status: ORDER_STATUS.PENDING,
-        delivery_type: delivery_type || 'delivery',
-        payment_status: 'pending',
-        payment_method,
-        special_instructions: special_instructions || null,
-        order_flow_type: orderFlowType,
-        estimated_total_amount: orderFlowType === 'non_partnered' ? totalAmount : null // For non-partnered orders
-    });
-
-    for (const item of orderItemsPayload) {
-        await OrderItem.create({
-            order_id: order.order_id,
-            item_id: item.item_id,
-            item_name: item.item_name,
-            quantity: item.quantity,
-            unit_price: item.unit_price,
-            subtotal: item.subtotal,
-            special_instructions: item.special_instructions
-        });
-    }
-
-    await OrderStatusHistory.create({
-        order_id: order.order_id,
-        old_status: null,
-        new_status: ORDER_STATUS.PENDING,
-        changed_by_type: 'customer',
-        changed_by_id: customerId
-    });
-
-    await CartItem.destroy({ where: { cart_id: cart.cart_id } });
-    await cart.destroy();
-
-    // Generate verification code for delivery
-    try {
-        const { generateOrderVerificationCode, sendVerificationCode } = require('./verificationCodeService');
-        await generateOrderVerificationCode(order.order_id);
-        // Send code to customer immediately
-        await sendVerificationCode(order.order_id);
     } catch (error) {
-        console.error(`Failed to generate/send verification code for order ${order.order_id}:`, error.message);
-        // Don't fail order creation if code generation fails
+        await transaction.rollback();
+        throw error;
     }
-
-    // Emit initial tracking update (Stage 1: Order Issued)
-    try {
-        const { emitTrackingUpdate, getTrackingStage } = require('./orderTrackingService');
-        const trackingStage = getTrackingStage(order);
-        emitTrackingUpdate(order.order_id, trackingStage, order);
-    } catch (error) {
-        console.error(`Failed to emit tracking update for order ${order.order_id}:`, error.message);
-    }
-
-    // Notify restaurant of new order (real-time)
-    try {
-        const { emitOrderCreated } = require('./socketEventService');
-        emitOrderCreated(order, order.restaurant_id);
-    } catch (error) {
-        console.error(`Failed to emit order:created for order ${order.order_id}:`, error.message);
-    }
-
-    // Pool flow: drivers see orders when restaurant sets preparing/ready and accept from GET /drivers/orders/available
-    return order;
 }
 
 /**
  * Record order status change in history.
  */
-async function recordStatusChange(orderId, oldStatus, newStatus, changedByType, changedById) {
+async function recordStatusChange(orderId, oldStatus, newStatus, changedByType, changedById, transaction = null) {
     await OrderStatusHistory.create({
         order_id: orderId,
         old_status: oldStatus,
         new_status: newStatus,
         changed_by_type: changedByType,
         changed_by_id: changedById
-    });
+    }, { transaction });
 }
 
 module.exports = {

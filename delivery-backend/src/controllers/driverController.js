@@ -58,6 +58,48 @@ exports.getProfile = async (req, res) => {
 };
 
 /**
+ * Driver heartbeat (update last seen)
+ * POST /api/v1/drivers/heartbeat
+ * Access: Driver only
+ */
+exports.heartbeat = async (req, res) => {
+    try {
+        const driverId = req.user?.driver_id;
+
+        if (!driverId) {
+            return res.status(401).json({
+                success: false,
+                message: 'Driver authentication required'
+            });
+        }
+
+        const driver = await Driver.findByPk(driverId);
+        if (!driver) {
+            return res.status(404).json({
+                success: false,
+                message: 'Driver not found'
+            });
+        }
+
+        const now = new Date();
+        await driver.update({ last_seen_at: now });
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                driver_id: driverId,
+                last_seen_at: now
+            }
+        });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: error.message || 'Failed to update heartbeat'
+        });
+    }
+};
+
+/**
  * Upload driver profile picture
  * POST /api/v1/drivers/profile/picture
  * Access: Driver only
@@ -315,8 +357,11 @@ exports.toggleAvailability = async (req, res) => {
             });
         }
 
-        // Toggle availability
-        const newAvailability = !driver.is_available;
+        // Use value from body if provided, otherwise toggle
+        const newAvailability = req.body.is_available !== undefined
+            ? req.body.is_available
+            : !driver.is_available;
+
         await driver.update({ is_available: newAvailability });
 
         res.status(200).json({
@@ -558,6 +603,65 @@ exports.handleExpiredAssignments = async (req, res) => {
         res.status(error.statusCode || 500).json({
             success: false,
             message: error.message || 'Failed to handle expired assignments'
+        });
+    }
+};
+/**
+ * Update driver live location
+ * PATCH /api/v1/drivers/location
+ * Body: { latitude, longitude }
+ */
+exports.updateLocation = async (req, res) => {
+    try {
+        const { latitude, longitude } = req.body;
+        const driver = req.user;
+
+        if (!latitude || !longitude) {
+            return res.status(400).json({ success: false, message: 'Latitude and longitude are required' });
+        }
+
+        // Efficiency Check: Only update DB if movement is significant (e.g. > 10 meters)
+        // A difference of 0.0001 in lat/lon is roughly 11 meters
+        const lastLat = parseFloat(driver.current_latitude);
+        const lastLon = parseFloat(driver.current_longitude);
+        const hasMoved = !lastLat || !lastLon ||
+            Math.abs(lastLat - latitude) > 0.0001 ||
+            Math.abs(lastLon - longitude) > 0.0001;
+
+        if (hasMoved) {
+            await driver.update({
+                current_latitude: latitude,
+                current_longitude: longitude
+            });
+        }
+
+        // Real-time broadcast: Find active order and notify customer
+        const activeOrder = await Order.findOne({
+            where: {
+                driver_id: driver.driver_id,
+                order_status: { [Op.in]: ['picked_up', 'in_transit'] }
+            },
+            attributes: ['order_id']
+        });
+
+        if (activeOrder) {
+            try {
+                const { emitDriverLocationUpdate } = require('../services/socketEventService');
+                emitDriverLocationUpdate(activeOrder.order_id, driver.driver_id, { latitude, longitude });
+            } catch (e) {
+                console.error('Failed to emit location update:', e.message);
+            }
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Location updated successfully',
+            data: { latitude, longitude, db_updated: hasMoved }
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Failed to update location'
         });
     }
 };

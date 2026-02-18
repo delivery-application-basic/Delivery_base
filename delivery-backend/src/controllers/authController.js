@@ -111,7 +111,8 @@ exports.registerDriver = async (req, res, next) => {
             password_hash: password,
             driver_license_number,
             id_card_number,
-            vehicle_type
+            vehicle_type,
+            is_available: false // Default to inactive until they toggle online
         });
 
         const token = generateToken({ id: driver.driver_id, type: USER_TYPES.DRIVER });
@@ -155,6 +156,11 @@ exports.login = async (req, res, next) => {
 
         if (!user || !(await user.comparePassword(password))) {
             return res.status(401).json({ success: false, message: 'Invalid credentials' });
+        }
+
+        // Important: Reset availability to false on login (driver must manually go active)
+        if (user_type === USER_TYPES.DRIVER) {
+            await user.update({ is_available: false });
         }
 
         const token = generateToken({ id: userId, type: user_type });

@@ -64,6 +64,18 @@ export const updateDriverAvailability = createAsyncThunk(
   }
 );
 
+export const sendDriverHeartbeat = createAsyncThunk(
+  'driver/heartbeat',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await driverService.heartbeat();
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.message || 'Failed to send heartbeat');
+    }
+  }
+);
+
 export const fetchDriverEarnings = createAsyncThunk(
   'driver/fetchEarnings',
   async ({ startDate, endDate }, { rejectWithValue }) => {
@@ -76,11 +88,23 @@ export const fetchDriverEarnings = createAsyncThunk(
   }
 );
 
+export const fetchDriverProfile = createAsyncThunk(
+  'driver/fetchProfile',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await driverService.getDriverProfile();
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.message || 'Failed to fetch driver profile');
+    }
+  }
+);
+
 // Initial state
 const initialState = {
   availableOrders: [],
   activeDelivery: null,
-  isAvailable: true,
+  isAvailable: false,
   earnings: null,
   isLoading: false,
   error: null,
@@ -116,7 +140,7 @@ const driverSlice = createSlice({
         state.isLoading = false;
         state.error = action.payload;
       })
-      
+
       // Accept order
       .addCase(acceptOrder.pending, (state) => {
         state.isLoading = true;
@@ -135,7 +159,7 @@ const driverSlice = createSlice({
         state.isLoading = false;
         state.error = action.payload;
       })
-      
+
       // Reject order
       .addCase(rejectOrder.fulfilled, (state, action) => {
         state.availableOrders = state.availableOrders.filter(
@@ -146,12 +170,18 @@ const driverSlice = createSlice({
       .addCase(releaseOrder.fulfilled, (state) => {
         state.activeDelivery = null;
       })
-      
+
       // Update availability
       .addCase(updateDriverAvailability.fulfilled, (state, action) => {
-        state.isAvailable = action.payload.is_available;
+        const data = action.payload?.data ?? action.payload;
+        state.isAvailable = data?.is_available ?? state.isAvailable;
       })
-      
+
+      // Heartbeat (no UI state change required)
+      .addCase(sendDriverHeartbeat.rejected, (state, action) => {
+        state.error = action.payload;
+      })
+
       // Fetch earnings
       .addCase(fetchDriverEarnings.pending, (state) => {
         state.isLoading = true;
@@ -164,6 +194,12 @@ const driverSlice = createSlice({
       .addCase(fetchDriverEarnings.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload;
+      })
+
+      // Fetch profile
+      .addCase(fetchDriverProfile.fulfilled, (state, action) => {
+        const data = action.payload?.data ?? action.payload;
+        state.isAvailable = data?.is_available ?? state.isAvailable;
       });
   },
 });

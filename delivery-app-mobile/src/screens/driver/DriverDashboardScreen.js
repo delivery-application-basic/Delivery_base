@@ -5,6 +5,8 @@ import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from 'react-native-paper';
 import { fetchOrders } from '../../store/slices/orderSlice';
+import { updateDriverAvailability, fetchDriverProfile } from '../../store/slices/driverSlice';
+import { useDriverLocationTracker } from '../../hooks/useDriverLocationTracker';
 import { Loader } from '../../components/common/Loader';
 import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
@@ -18,18 +20,38 @@ export default function DriverDashboardScreen() {
   const { user } = useSelector((state) => state.auth);
   const driverName = (user?.full_name ?? user?.name ?? 'Driver').trim().split(' ')[0] || 'Driver';
   const { orders, isLoading } = useSelector((state) => state.order);
+  const { activeDelivery: activeDeliveryFromRedux, isAvailable } = useSelector((state) => state.driver);
 
+  // Determine if driver is currently on an active delivery
+  const activeOrderFromList = orders.find((o) =>
+    ['picked_up', 'in_transit'].includes(o.order_status)
+  );
+  const isOnDelivery = !!(activeOrderFromList || activeDeliveryFromRedux?.order_id);
+
+  // Location tracker: handles GPS check, alerts, and sending updates
+  // - ACTIVE + idle: every 3 minutes
+  // - ACTIVE + on delivery: every 1 minute
+  // - INACTIVE: stops all tracking
+  const { retryTracking, lastLocation, lastPlaceName } = useDriverLocationTracker(isAvailable, isOnDelivery);
+
+  // Fetch initial data
   useEffect(() => {
     dispatch(fetchOrders({}));
+    dispatch(fetchDriverProfile());
   }, [dispatch]);
+
+  const handleToggleAvailability = () => {
+    dispatch(updateDriverAvailability(!isAvailable));
+  };
 
   const today = new Date().toDateString();
   const todayOrders = orders.filter((o) => new Date(o.order_date).toDateString() === today);
-  const { activeDelivery: activeDeliveryFromRedux } = useSelector((state) => state.driver);
-  const activeOrderFromList = orders.find((o) =>
+  // activeOrderFromList is already declared above for isOnDelivery — reuse it here
+  // but we also want to show 'ready' orders in the active delivery card
+  const activeDeliveryOrder = orders.find((o) =>
     ['ready', 'picked_up', 'in_transit'].includes(o.order_status)
   );
-  const activeDelivery = activeOrderFromList || (activeDeliveryFromRedux?.order_id
+  const activeDelivery = activeDeliveryOrder || (activeDeliveryFromRedux?.order_id
     ? { order_id: activeDeliveryFromRedux.order_id }
     : null);
 
@@ -50,10 +72,36 @@ export default function DriverDashboardScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <View>
-          <Text style={styles.headerSubtitle}>Ready for a shift?</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.headerSubtitle}>{isAvailable ? 'You are currently active' : 'Ready for a shift?'}</Text>
           <Text style={styles.headerTitle}>Hello, {driverName}</Text>
+          {lastLocation ? (
+            <Text style={styles.locationPill} numberOfLines={1} ellipsizeMode="tail">
+              {'\uD83D\uDCCD'} {lastPlaceName}
+            </Text>
+          ) : null}
         </View>
+        <TouchableOpacity
+          style={[
+            styles.availabilityButton,
+            isAvailable ? styles.buttonOnline : styles.buttonOffline,
+            { position: 'absolute', right: layout.screenPadding, top: spacing.lg }
+          ]}
+          onPress={handleToggleAvailability}
+          activeOpacity={0.8}
+        >
+          <Icon
+            source={isAvailable ? "access-point" : "access-point-off"}
+            size={20}
+            color={isAvailable ? colors.success : colors.textLight}
+          />
+          <Text style={[
+            styles.availabilityText,
+            isAvailable ? styles.textOnline : styles.textOffline
+          ]}>
+            {isAvailable ? 'ACTIVE' : 'INACTIVE'}
+          </Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -148,7 +196,6 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: layout.screenPadding,
     paddingVertical: spacing.lg,
@@ -163,6 +210,41 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: colors.text,
     fontWeight: '800',
+  },
+  locationPill: {
+    fontSize: 10,
+    color: colors.textLight,
+    marginTop: 3,
+    letterSpacing: 0.2,
+    maxWidth: 200,
+  },
+  availabilityButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 6,
+    borderWidth: 1.5,
+  },
+  buttonOnline: {
+    backgroundColor: colors.success + '10',
+    borderColor: colors.success,
+  },
+  buttonOffline: {
+    backgroundColor: colors.gray[100],
+    borderColor: colors.gray[300],
+  },
+  availabilityText: {
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  textOnline: {
+    color: colors.success,
+  },
+  textOffline: {
+    color: colors.textLight,
   },
   scrollContent: {
     padding: layout.screenPadding,

@@ -130,6 +130,21 @@ function emitOrderDeliveredToRestaurant(orderId, restaurantId) {
     });
 }
 
+/**
+ * Notify order room of driver's live location (driver:location_update)
+ */
+function emitDriverLocationUpdate(orderId, driverId, location) {
+    const io = getIOOrNull();
+    if (!io || !orderId) return;
+    io.to(`order:${orderId}`).emit('driver:location_update', {
+        order_id: orderId,
+        driver_id: driverId,
+        latitude: location.latitude,
+        longitude: location.longitude,
+        timestamp: new Date()
+    });
+}
+
 module.exports = {
     emitOrderCreated,
     emitOrderStatusEvent,
@@ -138,5 +153,6 @@ module.exports = {
     emitOrderAssigned,
     emitOrderTakenToDrivers,
     emitOrderAvailableToDrivers,
-    emitOrderDeliveredToRestaurant
+    emitOrderDeliveredToRestaurant,
+    emitDriverLocationUpdate
 };

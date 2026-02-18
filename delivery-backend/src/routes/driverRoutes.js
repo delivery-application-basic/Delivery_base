@@ -10,11 +10,13 @@ const {
     rejectOrder,
     releaseOrder,
     toggleAvailability,
+    heartbeat,
     getAvailableDrivers,
     getAvailableOrders,
     getPendingAssignments,
     getAssignmentHistory,
-    handleExpiredAssignments
+    handleExpiredAssignments,
+    updateLocation
 } = require('../controllers/driverController');
 const { protect, authorize } = require('../middleware/auth');
 const { USER_TYPES } = require('../utils/constants');
@@ -36,6 +38,18 @@ router.get(
     protect,
     authorize(USER_TYPES.DRIVER),
     getProfile
+);
+
+/**
+ * Heartbeat (update last seen)
+ * POST /api/v1/drivers/heartbeat
+ * Access: Driver only
+ */
+router.post(
+    '/heartbeat',
+    protect,
+    authorize(USER_TYPES.DRIVER),
+    heartbeat
 );
 
 /**
@@ -139,6 +153,18 @@ router.get(
     authorize(USER_TYPES.ADMIN, USER_TYPES.RESTAURANT),
     validateGetAvailableDrivers,
     getAvailableDrivers
+);
+
+/**
+ * Update driver live location
+ * PATCH /api/v1/drivers/location
+ * Access: Driver only
+ */
+router.patch(
+    '/location',
+    protect,
+    authorize(USER_TYPES.DRIVER),
+    updateLocation
 );
 
 /**

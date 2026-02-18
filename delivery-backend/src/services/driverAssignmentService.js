@@ -13,118 +13,92 @@ const ASSIGNMENT_TIMEOUT_SECONDS = 60; // 60 seconds timeout for driver response
  * @returns {Promise<Array>} Array of drivers sorted by distance
  */
 async function findNearestAvailableDrivers(orderId, maxDrivers = 5) {
-    // Get order with restaurant
+    // Get order with restaurant and address to calculate delivery distance
     const order = await Order.findOne({
         where: { order_id: orderId },
         include: [
-            { model: Restaurant, as: 'restaurant', attributes: ['restaurant_id', 'latitude', 'longitude', 'restaurant_name', 'street_address', 'city'] },
+            { model: Restaurant, as: 'restaurant', attributes: ['restaurant_id', 'latitude', 'longitude'] },
             { model: Address, as: 'delivery_address', attributes: ['address_id', 'latitude', 'longitude'] }
         ]
     });
 
-    if (!order) {
-        const err = new Error('Order not found');
-        err.statusCode = 404;
-        throw err;
+    if (!order || !order.restaurant || !order.delivery_address) {
+        return [];
     }
 
-    const address = order.delivery_address;
+    const restLat = parseFloat(order.restaurant.latitude);
+    const restLon = parseFloat(order.restaurant.longitude);
+    const delivLat = parseFloat(order.delivery_address.latitude);
+    const delivLon = parseFloat(order.delivery_address.longitude);
 
-    if (!order.restaurant || !address) {
-        const err = new Error('Order missing restaurant or delivery address information');
-        err.statusCode = 400;
-        throw err;
+    // 1. Calculate Delivery Distance (Restaurant -> Customer)
+    const deliveryDistanceKm = calculateDistance(restLat, restLon, delivLat, delivLon);
+
+    // 2. Determine Eligible Vehicle Types (Step B: Gatekeeper)
+    let eligibleVehicles = ['bicycle', 'scooter', 'motorcycle', 'car', 'van'];
+    if (deliveryDistanceKm > 3) {
+        // Exclude slow vehicles for medium/long hauls
+        eligibleVehicles = ['motorcycle', 'car', 'van'];
     }
 
-    const restaurantLat = parseFloat(order.restaurant.latitude);
-    const restaurantLon = parseFloat(order.restaurant.longitude);
-    const deliveryLat = parseFloat(address.latitude);
-    const deliveryLon = parseFloat(address.longitude);
-
-    if (!restaurantLat || !restaurantLon || !deliveryLat || !deliveryLon) {
-        const err = new Error('Restaurant or delivery address missing coordinates');
-        err.statusCode = 400;
-        throw err;
-    }
-
-    // Get all available drivers
+    // 3. Get all available eligible drivers
     const availableDrivers = await Driver.findAll({
         where: {
             is_available: true,
             is_active: true,
             verification_status: 'approved',
+            vehicle_type: { [Op.in]: eligibleVehicles },
             current_latitude: { [Op.not]: null },
             current_longitude: { [Op.not]: null }
         },
         attributes: [
-            'driver_id',
-            'full_name',
-            'phone_number',
-            'vehicle_type',
-            'current_latitude',
-            'current_longitude',
-            'average_rating',
-            'total_deliveries'
+            'driver_id', 'full_name', 'phone_number', 'vehicle_type',
+            'current_latitude', 'current_longitude', 'average_rating', 'total_deliveries'
         ]
     });
 
-    if (availableDrivers.length === 0) {
-        return [];
-    }
+    if (availableDrivers.length === 0) return [];
 
-    // Calculate distance from restaurant to each driver
-    // Calculate priority score based on distance and rating (all drivers use bicycles)
-    const driversWithDistance = availableDrivers
+    // 4. Calculate Scores (Step C: Ranking)
+    const driversWithScores = availableDrivers
         .map(driver => {
             const driverLat = parseFloat(driver.current_latitude);
             const driverLon = parseFloat(driver.current_longitude);
+            const pickupDistance = calculateDistance(restLat, restLon, driverLat, driverLon);
 
-            if (!driverLat || !driverLon) {
-                return null;
-            }
+            // Filter by radius (max 10km for pickup)
+            if (pickupDistance === null || pickupDistance > DEFAULT_DELIVERY_RADIUS_KM) return null;
 
-            // Calculate distance from restaurant to driver
-            const distanceToRestaurant = calculateDistance(restaurantLat, restaurantLon, driverLat, driverLon);
-
-            if (distanceToRestaurant === null || distanceToRestaurant > DEFAULT_DELIVERY_RADIUS_KM) {
-                return null; // Driver is too far from restaurant
-            }
-
-            // Rating score (0-5, higher is better)
             const rating = parseFloat(driver.average_rating) || 0;
 
-            // Calculate priority score: 80% distance, 20% rating
-            // All drivers use bicycles, so vehicle type is not considered
-            // Lower score = higher priority
-            const distanceScore = distanceToRestaurant * 0.8;
-            const ratingScore = (5 - rating) * 0.2; // Invert rating so lower is better
-            const priorityScore = distanceScore + ratingScore;
+            // Vehicle Speed Bonus (lower is better)
+            let vehicleBonus = 0;
+            switch (driver.vehicle_type?.toLowerCase()) {
+                case 'motorcycle': vehicleBonus = -0.5; break; // Best for traffic
+                case 'car': vehicleBonus = -0.2; break;
+                case 'van': vehicleBonus = -0.1; break;
+                default: vehicleBonus = 0;
+            }
+
+            // SCORE FORMULA: (Pickup Distance * 0.6) + (Vehicle Bonus * 0.2) + (Driver Rating Inverted * 0.2)
+            // Rating 0-5. 5 is best. Inverted: (5-rating).
+            const distanceScore = pickupDistance * 0.6;
+            const ratingScore = (5 - rating) * 0.2;
+            const speedScore = vehicleBonus * 0.2;
+
+            const priorityScore = distanceScore + ratingScore + speedScore;
 
             return {
-                driver_id: driver.driver_id,
-                full_name: driver.full_name,
-                phone_number: driver.phone_number,
-                vehicle_type: driver.vehicle_type,
-                current_latitude: driver.current_latitude,
-                current_longitude: driver.current_longitude,
-                average_rating: driver.average_rating,
-                total_deliveries: driver.total_deliveries,
-                distance_km: distanceToRestaurant,
-                priority_score: priorityScore // For sorting
+                ...driver.toJSON(),
+                distance_km: pickupDistance,
+                priority_score: priorityScore
             };
         })
-        .filter(driver => driver !== null)
-        .sort((a, b) => {
-            // Primary sort: priority score (lower is better)
-            if (a.priority_score !== b.priority_score) {
-                return a.priority_score - b.priority_score;
-            }
-            // Secondary sort: distance (nearest first)
-            return a.distance_km - b.distance_km;
-        })
-        .slice(0, maxDrivers); // Limit to maxDrivers
+        .filter(d => d !== null)
+        .sort((a, b) => a.priority_score - b.priority_score)
+        .slice(0, maxDrivers);
 
-    return driversWithDistance;
+    return driversWithScores;
 }
 
 /**
@@ -606,10 +580,14 @@ async function rejectAssignment(orderId, driverId) {
  * @returns {Promise<Array>} List of available drivers
  */
 async function getAvailableDrivers(filters = {}) {
+    const offlineTimeoutMinutes = parseInt(process.env.DRIVER_OFFLINE_TIMEOUT_MINUTES || '6', 10);
+    const lastSeenCutoff = new Date(Date.now() - offlineTimeoutMinutes * 60 * 1000);
+
     const whereClause = {
         is_available: true,
         is_active: true,
-        verification_status: 'approved'
+        verification_status: 'approved',
+        last_seen_at: { [Op.gte]: lastSeenCutoff }
     };
 
     const drivers = await Driver.findAll({
@@ -623,7 +601,8 @@ async function getAvailableDrivers(filters = {}) {
             'current_longitude',
             'average_rating',
             'total_deliveries',
-            'is_available'
+            'is_available',
+            'last_seen_at'
         ],
         order: [['average_rating', 'DESC'], ['total_deliveries', 'DESC']]
     });

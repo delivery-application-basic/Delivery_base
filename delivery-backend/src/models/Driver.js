@@ -97,6 +97,10 @@ const Driver = sequelize.define('Driver', {
     total_earnings: {
         type: DataTypes.DECIMAL(10, 2),
         defaultValue: 0
+    },
+    last_seen_at: {
+        type: DataTypes.DATE,
+        allowNull: true
     }
 }, {
     tableName: 'drivers',
@@ -105,6 +109,7 @@ const Driver = sequelize.define('Driver', {
     updatedAt: 'updated_at',
     indexes: [
         { name: 'idx_driver_available', fields: ['is_available'] },
+        { name: 'idx_driver_last_seen', fields: ['last_seen_at'] },
         { name: 'idx_driver_location', fields: ['current_latitude', 'current_longitude'] },
         { name: 'idx_driver_verification', fields: ['verification_status'] }
     ],

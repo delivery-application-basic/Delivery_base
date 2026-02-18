@@ -36,6 +36,11 @@ export const driverService = {
       is_available: isAvailable,
     });
   },
+
+  // Heartbeat (update last seen)
+  async heartbeat() {
+    return apiClient.post('/drivers/heartbeat');
+  },
   
   // Get driver earnings
   async getEarnings(startDate, endDate) {

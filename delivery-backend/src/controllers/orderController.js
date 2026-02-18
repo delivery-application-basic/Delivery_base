@@ -61,13 +61,28 @@ exports.getMyOrders = async (req, res, next) => {
             return res.status(403).json({ success: false, message: 'Not authorized to list orders' });
         }
 
-        const orders = await Order.findAll({
+        const page = parseInt(req.query.page, 10) || 1;
+        const limit = parseInt(req.query.limit, 10) || 20;
+        const offset = (page - 1) * limit;
+
+        const { count, rows } = await Order.findAndCountAll({
             where,
             include: orderIncludeCommon,
-            order: [['order_date', 'DESC']]
+            order: [['order_date', 'DESC']],
+            limit,
+            offset
         });
 
-        return res.status(200).json({ success: true, data: orders });
+        return res.status(200).json({
+            success: true,
+            data: rows,
+            pagination: {
+                total: count,
+                page,
+                limit,
+                pages: Math.ceil(count / limit)
+            }
+        });
     } catch (error) {
         next(error);
     }
@@ -201,19 +216,28 @@ exports.updateOrderStatus = async (req, res, next) => {
             req.userType === USER_TYPES.CUSTOMER ? req.user.customer_id : req.userType === USER_TYPES.RESTAURANT ? req.user.restaurant_id : req.user.driver_id
         );
 
-        // Pool flow only: no auto-assign. Orders appear at preparing/ready for drivers to accept in GET /drivers/orders/available
+        // Score-Based Assignment Trigger
+        if ((order_status === ORDER_STATUS.PREPARING || order_status === ORDER_STATUS.READY) &&
+            order.delivery_type === 'delivery' && !order.driver_id) {
+            try {
+                const driverAssignmentService = require('../services/driverAssignmentService');
+                await driverAssignmentService.autoAssignDriver(orderId);
+            } catch (e) {
+                console.error(`Auto-assignment failed for order ${orderId}: ${e.message}`);
+                // If auto-assign fails (no drivers), we can still fallback to pool-style visibility 
+                // by emitting available to all, or just wait for periodic retry.
+                // For now, let's just log and let manual/periodic retry handle it.
+            }
+        }
+
         const updated = await Order.findByPk(orderId, { include: orderIncludeCommon });
 
-        // Emit simplified tracking update
-        const trackingStage = getTrackingStage(updated);
-        emitTrackingUpdate(orderId, trackingStage, updated);
         // Emit Step 13 status events for real-time UI
         try {
             emitOrderStatusEvent(orderId, order_status);
-            const { emitOrderAvailableToDrivers } = require('../services/socketEventService');
-            if ((order_status === 'preparing' || order_status === 'ready') && order.delivery_type === 'delivery') {
-                emitOrderAvailableToDrivers(orderId, order_status);
-            }
+            // Emit simplified tracking update for the UI timeline
+            const trackingStage = getTrackingStage(updated);
+            emitTrackingUpdate(orderId, trackingStage, updated);
         } catch (e) {
             console.error('Socket emit order status:', e.message);
         }
@@ -305,15 +329,30 @@ exports.getOwnerOrders = async (req, res, next) => {
 
         const restaurantIds = myRestaurants.map(r => r.restaurant_id);
 
-        const orders = await Order.findAll({
+        const page = parseInt(req.query.page, 10) || 1;
+        const limit = parseInt(req.query.limit, 10) || 20;
+        const offset = (page - 1) * limit;
+
+        const { count, rows } = await Order.findAndCountAll({
             where: {
                 restaurant_id: { [Op.in]: restaurantIds }
             },
             include: orderIncludeCommon,
-            order: [['order_date', 'DESC']]
+            order: [['order_date', 'DESC']],
+            limit,
+            offset
         });
 
-        return res.status(200).json({ success: true, data: orders });
+        return res.status(200).json({
+            success: true,
+            data: rows,
+            pagination: {
+                total: count,
+                page,
+                limit,
+                pages: Math.ceil(count / limit)
+            }
+        });
     } catch (error) {
         next(error);
     }

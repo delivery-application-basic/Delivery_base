@@ -5,6 +5,7 @@ import { ActivityIndicator, View } from 'react-native';
 import { loadUserFromStorage } from '../store/slices/authSlice';
 import { colors } from '../theme/colors';
 import { USER_TYPES } from '../utils/constants';
+import { sendDriverHeartbeat } from '../store/slices/driverSlice';
 
 // Navigators
 import AuthNavigator from './AuthNavigator';
@@ -15,11 +16,24 @@ import DriverNavigator from './DriverNavigator';
 const AppNavigator = () => {
   const dispatch = useDispatch();
   const { isAuthenticated, userType, isLoading } = useSelector((state) => state.auth);
+  const { isAvailable } = useSelector((state) => state.driver);
 
   useEffect(() => {
     // Load user data from storage on app start
     dispatch(loadUserFromStorage());
   }, [dispatch]);
+
+  useEffect(() => {
+    if (!isAuthenticated || userType !== USER_TYPES.DRIVER || !isAvailable) return;
+
+    // Send immediately once, then every 3 minutes
+    dispatch(sendDriverHeartbeat());
+    const intervalId = setInterval(() => {
+      dispatch(sendDriverHeartbeat());
+    }, 180000);
+
+    return () => clearInterval(intervalId);
+  }, [dispatch, isAuthenticated, userType, isAvailable]);
 
   // Show loading screen while checking auth state
   if (isLoading) {
