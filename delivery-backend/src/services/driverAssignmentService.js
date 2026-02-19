@@ -4,7 +4,7 @@ const { calculateDistance } = require('./distanceCalculator');
 const { Op } = require('sequelize');
 
 const DEFAULT_DELIVERY_RADIUS_KM = parseFloat(process.env.DEFAULT_DELIVERY_RADIUS_KM) || 10.0;
-const ASSIGNMENT_TIMEOUT_SECONDS = 60; // 60 seconds timeout for driver response
+const ASSIGNMENT_TIMEOUT_SECONDS = 45; // 45 seconds timeout for driver response
 
 /**
  * Find nearest available drivers for an order
@@ -36,7 +36,7 @@ async function findNearestAvailableDrivers(orderId, maxDrivers = 5) {
 
     // 2. Determine Eligible Vehicle Types (Step B: Gatekeeper)
     let eligibleVehicles = ['bicycle', 'scooter', 'motorcycle', 'car', 'van'];
-    if (deliveryDistanceKm > 3) {
+    if (deliveryDistanceKm >= 3) {
         // Exclude slow vehicles for medium/long hauls
         eligibleVehicles = ['motorcycle', 'car', 'van'];
     }
@@ -69,21 +69,26 @@ async function findNearestAvailableDrivers(orderId, maxDrivers = 5) {
             // Filter by radius (max 10km for pickup)
             if (pickupDistance === null || pickupDistance > DEFAULT_DELIVERY_RADIUS_KM) return null;
 
-            const rating = parseFloat(driver.average_rating) || 0;
-
             // Vehicle Speed Bonus (lower is better)
             let vehicleBonus = 0;
             switch (driver.vehicle_type?.toLowerCase()) {
                 case 'motorcycle': vehicleBonus = -0.5; break; // Best for traffic
                 case 'car': vehicleBonus = -0.2; break;
-                case 'van': vehicleBonus = -0.1; break;
+                case 'van': vehicleBonus = 0; break;
                 default: vehicleBonus = 0;
             }
 
-            // SCORE FORMULA: (Pickup Distance * 0.6) + (Vehicle Bonus * 0.2) + (Driver Rating Inverted * 0.2)
-            // Rating 0-5. 5 is best. Inverted: (5-rating).
+            // Long haul bonus for cars/vans
+            if (deliveryDistanceKm > 10 && ['car', 'van'].includes(driver.vehicle_type?.toLowerCase())) {
+                vehicleBonus -= 0.1;
+            }
+
+            const rating = parseFloat(driver.average_rating) || 0;
+
+            // SCORE FORMULA: (Pickup Distance * 0.6) + (Vehicle Bonus * 0.2) + (Rating Advantage * 0.2)
+            // Rating advantage: -0.1 per star (higher rating gets lower score)
             const distanceScore = pickupDistance * 0.6;
-            const ratingScore = (5 - rating) * 0.2;
+            const ratingScore = -0.1 * rating;
             const speedScore = vehicleBonus * 0.2;
 
             const priorityScore = distanceScore + ratingScore + speedScore;
@@ -157,6 +162,13 @@ async function autoAssignDriver(orderId, excludeDriverIds = []) {
         throw err;
     }
 
+    // Check for self-pickup orders
+    if (order.delivery_type === 'pickup') {
+        const err = new Error('Pickup orders do not require driver assignment');
+        err.statusCode = 400;
+        throw err;
+    }
+
     // Check for existing pending assignments
     const existingAssignment = await DriverAssignment.findOne({
         where: {
@@ -192,6 +204,13 @@ async function autoAssignDriver(orderId, excludeDriverIds = []) {
         },
         attributes: ['driver_id']
     });
+
+    // Check maximum assignment attempts
+    if (previousAssignments.length >= 5) {
+        const err = new Error('Maximum assignment attempts reached. No more drivers available.');
+        err.statusCode = 404;
+        throw err;
+    }
 
     const alreadyOfferedDriverIds = previousAssignments.map(a => a.driver_id);
     // Combine with explicitly excluded driver IDs
@@ -565,6 +584,13 @@ async function rejectAssignment(orderId, driverId) {
         responded_at: new Date()
     });
 
+    // Trigger sequential assignment to next driver
+    try {
+        await autoAssignDriver(orderId, [driverId]);
+    } catch (e) {
+        console.error(`Failed to reassign order ${orderId} after rejection: ${e.message}`);
+    }
+
     return {
         assignment_id: assignment.assignment_id,
         order_id: orderId,
@@ -728,7 +754,13 @@ async function handleExpiredAssignments() {
             });
 
             expired.push(assignment);
-            // Pool flow: no re-offer; order remains in pool for drivers to accept
+
+            // Trigger sequential assignment to next driver
+            try {
+                await autoAssignDriver(assignment.order_id, [assignment.driver_id]);
+            } catch (e) {
+                console.error(`Failed to reassign order ${assignment.order_id} after expiration: ${e.message}`);
+            }
         }
     }
 

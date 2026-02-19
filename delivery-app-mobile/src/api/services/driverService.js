@@ -82,4 +82,14 @@ export const driverService = {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
+
+  // Accept assignment
+  async acceptAssignment(orderId) {
+    return apiClient.post(`/drivers/assignments/${orderId}/accept`);
+  },
+
+  // Reject assignment
+  async rejectAssignment(orderId) {
+    return apiClient.post(`/drivers/assignments/${orderId}/reject`);
+  },
 };
