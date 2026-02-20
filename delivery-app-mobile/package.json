@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "android": "react-native run-android",
+    "android": "node scripts/run-android-usb.js",
     "android:check": "node scripts/check-android-device.js",
     "android:env-check": "node scripts/check-android-env.js",
     "ios": "react-native run-ios",

@@ -41,13 +41,17 @@ async function findNearestAvailableDrivers(orderId, maxDrivers = 5) {
         eligibleVehicles = ['motorcycle', 'car', 'van'];
     }
 
-    // 3. Get all available eligible drivers
+    // 3. Get all available eligible drivers (vehicle_type is case-insensitive)
+    const { sequelize } = require('../config/database');
     const availableDrivers = await Driver.findAll({
         where: {
             is_available: true,
             is_active: true,
             verification_status: 'approved',
-            vehicle_type: { [Op.in]: eligibleVehicles },
+            [Op.and]: sequelize.where(
+                sequelize.fn('LOWER', sequelize.col('vehicle_type')),
+                { [Op.in]: eligibleVehicles }
+            ),
             current_latitude: { [Op.not]: null },
             current_longitude: { [Op.not]: null }
         },
@@ -57,7 +61,15 @@ async function findNearestAvailableDrivers(orderId, maxDrivers = 5) {
         ]
     });
 
-    if (availableDrivers.length === 0) return [];
+    console.log(`[FindDrivers] Order ${orderId}: deliveryDist=${deliveryDistanceKm.toFixed(2)}km, eligibleVehicles=[${eligibleVehicles}], matchingDrivers=${availableDrivers.length}`);
+    if (availableDrivers.length === 0) {
+        const allDrivers = await Driver.findAll({
+            attributes: ['driver_id', 'full_name', 'is_available', 'is_active', 'verification_status', 'vehicle_type', 'current_latitude', 'current_longitude']
+        });
+        console.log(`[FindDrivers] DEBUG: All drivers in DB (${allDrivers.length}):`);
+        allDrivers.forEach(d => console.log(`  driver_id=${d.driver_id}, name=${d.full_name}, available=${d.is_available}, active=${d.is_active}, verified=${d.verification_status}, vehicle=${d.vehicle_type}, lat=${d.current_latitude}, lng=${d.current_longitude}`));
+        return [];
+    }
 
     // 4. Calculate Scores (Step C: Ranking)
     const driversWithScores = availableDrivers
@@ -120,6 +132,8 @@ async function findNearestAvailableDrivers(orderId, maxDrivers = 5) {
  * @returns {Promise<Object>} Assignment details
  */
 async function autoAssignDriver(orderId, excludeDriverIds = []) {
+    console.log(`[AutoAssign] Starting for order ${orderId}, excludeDriverIds: [${excludeDriverIds}]`);
+
     // Check if order exists
     const order = await Order.findByPk(orderId);
     if (!order) {
@@ -127,6 +141,8 @@ async function autoAssignDriver(orderId, excludeDriverIds = []) {
         err.statusCode = 404;
         throw err;
     }
+
+    console.log(`[AutoAssign] Order ${orderId}: flow_type=${order.order_flow_type}, status=${order.order_status}, delivery_type=${order.delivery_type}, driver_id=${order.driver_id}`);
 
     // Check order flow type and status requirements
     const isPartnered = order.order_flow_type === 'partnered';
@@ -140,9 +156,10 @@ async function autoAssignDriver(orderId, excludeDriverIds = []) {
             throw err;
         }
     } else if (isNonPartnered) {
-        // Non-Partnered: Can assign immediately (driver will place order)
-        if (![ORDER_STATUS.PENDING, ORDER_STATUS.CONFIRMED].includes(order.order_status)) {
-            const err = new Error(`Non-partnered order can only be assigned when status is 'pending' or 'confirmed'. Current status: ${order.order_status}`);
+        // Non-Partnered: assignable at any pre-pickup status (trigger fires on preparing/ready)
+        const assignableStatuses = [ORDER_STATUS.PENDING, ORDER_STATUS.CONFIRMED, ORDER_STATUS.PREPARING, ORDER_STATUS.READY];
+        if (!assignableStatuses.includes(order.order_status)) {
+            const err = new Error(`Non-partnered order cannot be assigned in '${order.order_status}' status.`);
             err.statusCode = 400;
             throw err;
         }
@@ -217,12 +234,15 @@ async function autoAssignDriver(orderId, excludeDriverIds = []) {
     const allExcludedDriverIds = [...new Set([...alreadyOfferedDriverIds, ...excludeDriverIds])];
 
     // Find nearest available drivers (excluding already offered/rejected ones)
-    const nearestDrivers = await findNearestAvailableDrivers(orderId, 10); // Get more drivers to have options
+    const nearestDrivers = await findNearestAvailableDrivers(orderId, 10);
+    console.log(`[AutoAssign] Order ${orderId}: findNearestAvailableDrivers returned ${nearestDrivers.length} driver(s)`);
+    nearestDrivers.forEach(d => console.log(`  - driver_id=${d.driver_id}, name=${d.full_name}, dist=${d.distance_km?.toFixed(2)}km, score=${d.priority_score?.toFixed(3)}`));
 
     // Filter out excluded drivers
     const availableDrivers = nearestDrivers.filter(
         driver => !allExcludedDriverIds.includes(driver.driver_id)
     );
+    console.log(`[AutoAssign] Order ${orderId}: after exclusions, ${availableDrivers.length} driver(s) remain (excluded IDs: [${allExcludedDriverIds}])`);
 
     if (availableDrivers.length === 0) {
         const err = new Error('No available drivers found within delivery radius. All nearby drivers have been offered or rejected.');
@@ -231,7 +251,7 @@ async function autoAssignDriver(orderId, excludeDriverIds = []) {
     }
 
     // Try to assign to nearest available driver
-    const driver = availableDrivers[0]; // Nearest driver after filtering
+    const driver = availableDrivers[0];
 
     // Double-check driver doesn't have pending assignment
     const existingDriverAssignment = await DriverAssignment.findOne({
@@ -271,14 +291,16 @@ async function autoAssignDriver(orderId, excludeDriverIds = []) {
 
     try {
         const { emitDriverAssignment } = require('./socketEventService');
+        console.log(`[AutoAssign] Emitting driver:assignment to driver_id=${driver.driver_id} for order ${orderId}`);
         emitDriverAssignment(driver.driver_id, {
             assignment_id: assignment.assignment_id,
             order_id: orderId,
             distance_km: driver.distance_km,
             timeout_seconds: ASSIGNMENT_TIMEOUT_SECONDS
         });
+        console.log(`[AutoAssign] Socket event emitted successfully for order ${orderId}`);
     } catch (error) {
-        console.error(`Failed to emit driver:assignment for order ${orderId}:`, error.message);
+        console.error(`[AutoAssign] Failed to emit driver:assignment for order ${orderId}:`, error.message);
     }
 
     return result;
@@ -302,15 +324,15 @@ async function manualAssignDriver(orderId, driverId) {
     // Check order status based on flow type
     const isPartnered = order.order_flow_type === 'partnered';
     const isNonPartnered = order.order_flow_type === 'non_partnered';
+    const manualAssignableStatuses = isNonPartnered
+        ? [ORDER_STATUS.PENDING, ORDER_STATUS.CONFIRMED, ORDER_STATUS.PREPARING, ORDER_STATUS.READY]
+        : [ORDER_STATUS.PREPARING, ORDER_STATUS.READY];
 
-    if (isPartnered && order.order_status !== ORDER_STATUS.READY) {
-        const err = new Error(`Partnered order must be in 'ready' status. Current status: ${order.order_status}`);
-        err.statusCode = 400;
-        throw err;
-    }
-
-    if (isNonPartnered && ![ORDER_STATUS.PENDING, ORDER_STATUS.CONFIRMED].includes(order.order_status)) {
-        const err = new Error(`Non-partnered order can only be assigned when status is 'pending' or 'confirmed'. Current status: ${order.order_status}`);
+    if (!manualAssignableStatuses.includes(order.order_status)) {
+        const flowLabel = isNonPartnered ? 'Non-partnered' : 'Partnered';
+        const err = new Error(
+            `${flowLabel} order must be in one of [${manualAssignableStatuses.join(', ')}] for assignment. Current status: ${order.order_status}`
+        );
         err.statusCode = 400;
         throw err;
     }
