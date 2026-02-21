@@ -233,13 +233,28 @@ export default function EditMenuItemScreen() {
         <View style={{ height: 20 }} />
       </ScrollView>
 
-      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
-        <Button
-          title="Save Changes"
+      <View style={[styles.footer, { paddingBottom: insets.bottom + 80 }]}>
+        <TouchableOpacity
+          style={{
+            backgroundColor: colors.primary,
+            borderRadius: 8,
+            paddingVertical: 12,
+            height: 60,
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
           onPress={handleSave}
-          loading={isSaving}
-          style={styles.mainButton}
-        />
+          disabled={isSaving}
+        >
+          <Text style={{
+            fontSize: 16,
+            fontWeight: '600',
+            color: colors.white,
+            textAlign: 'center',
+          }}>
+            {isSaving ? 'Saving...' : 'Save Changes'}
+          </Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -370,8 +385,5 @@ const styles = StyleSheet.create({
     padding: layout.screenPadding,
     backgroundColor: colors.white,
     ...shadows.medium,
-  },
-  mainButton: {
-    height: 56,
   },
 });

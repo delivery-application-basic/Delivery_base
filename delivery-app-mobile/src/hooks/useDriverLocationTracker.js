@@ -82,8 +82,8 @@ export const useDriverLocationTracker = (isAvailable, isOnDelivery) => {
 
         const coords = await getCurrentPosition();
 
-        if (!coords) {
-            // getCurrentPosition returns null when GPS is off (E_LOCATION_NULL)
+        if (!coords || !coords.latitude || !coords.longitude) {
+            // GPS is off or returned invalid coordinates
             handleLocationDisabled();
             return false;
         }

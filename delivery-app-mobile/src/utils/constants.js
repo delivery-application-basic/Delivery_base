@@ -100,7 +100,7 @@ export const DELIVERY = {
 
 // Geocoding Configuration
 export const GEOCODE_CONFIG = {
-  API_KEY: 'ge-4f68755edf209e9b',
+  API_KEY: 'ge-d478c93ec439a770',
   BASE_URL: 'https://api.geocode.earth/v1',
 };
 

@@ -50,7 +50,6 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    lineHeight: 18,
     textAlign: 'center',
   },
 });

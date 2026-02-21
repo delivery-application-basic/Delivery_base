@@ -31,6 +31,13 @@ async function findNearestAvailableDrivers(orderId, maxDrivers = 5) {
     const delivLat = parseFloat(order.delivery_address.latitude);
     const delivLon = parseFloat(order.delivery_address.longitude);
 
+    if (isNaN(restLat) || isNaN(restLon) || isNaN(delivLat) || isNaN(delivLon)) {
+        let missing = [];
+        if (isNaN(restLat) || isNaN(restLon)) missing.push('restaurant');
+        if (isNaN(delivLat) || isNaN(delivLon)) missing.push('delivery address');
+        throw new Error(`${missing.join(' and ')} has invalid or missing coordinates`);
+    }
+
     // 1. Calculate Delivery Distance (Restaurant -> Customer)
     const deliveryDistanceKm = calculateDistance(restLat, restLon, delivLat, delivLon);
 
@@ -95,15 +102,11 @@ async function findNearestAvailableDrivers(orderId, maxDrivers = 5) {
                 vehicleBonus -= 0.1;
             }
 
-            const rating = parseFloat(driver.average_rating) || 0;
+            // SCORE FORMULA: (Pickup Distance * 0.7) + (Vehicle Bonus * 0.3)
+            const distanceScore = pickupDistance * 0.7;
+            const speedScore = vehicleBonus * 0.3;
 
-            // SCORE FORMULA: (Pickup Distance * 0.6) + (Vehicle Bonus * 0.2) + (Rating Advantage * 0.2)
-            // Rating advantage: -0.1 per star (higher rating gets lower score)
-            const distanceScore = pickupDistance * 0.6;
-            const ratingScore = -0.1 * rating;
-            const speedScore = vehicleBonus * 0.2;
-
-            const priorityScore = distanceScore + ratingScore + speedScore;
+            const priorityScore = distanceScore + speedScore;
 
             return {
                 ...driver.toJSON(),
@@ -252,6 +255,8 @@ async function autoAssignDriver(orderId, excludeDriverIds = []) {
 
     // Try to assign to nearest available driver
     const driver = availableDrivers[0];
+
+    console.log(`Sequential dispatch: Picked driver ${driver.driver_id} (${driver.full_name}) for order ${orderId}, score: ${driver.priority_score}`);
 
     // Double-check driver doesn't have pending assignment
     const existingDriverAssignment = await DriverAssignment.findOne({

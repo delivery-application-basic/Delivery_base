@@ -216,7 +216,7 @@ exports.updateOrderStatus = async (req, res, next) => {
             req.userType === USER_TYPES.CUSTOMER ? req.user.customer_id : req.userType === USER_TYPES.RESTAURANT ? req.user.restaurant_id : req.user.driver_id
         );
 
-        // Score-Based Assignment Trigger
+        // Hybrid Dispatch: Sequential modal offers + Pool broadcast
         if ((order_status === ORDER_STATUS.PREPARING || order_status === ORDER_STATUS.READY) &&
             order.delivery_type === 'delivery' && !order.driver_id) {
             try {
@@ -227,6 +227,13 @@ exports.updateOrderStatus = async (req, res, next) => {
                 // If auto-assign fails (no drivers), we can still fallback to pool-style visibility 
                 // by emitting available to all, or just wait for periodic retry.
                 // For now, let's just log and let manual/periodic retry handle it.
+            }
+            // Always broadcast to pool for drivers to see in find new orders
+            try {
+                const { emitOrderAvailableToEligibleDrivers } = require('../services/socketEventService');
+                emitOrderAvailableToEligibleDrivers(orderId, order_status);
+            } catch (e) {
+                console.error(`Failed to broadcast order availability for order ${orderId}:`, e.message);
             }
         }
 

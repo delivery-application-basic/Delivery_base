@@ -24,7 +24,7 @@ export const geocodingService = {
             'size': 1,
             'layers': 'address,venue,neighbourhood'
           },
-          timeout: 10000 // 10s timeout for geocoding
+          timeout: 2000 // 2s timeout for geocoding
         });
 
         if (response.data && response.data.features && response.data.features.length > 0) {

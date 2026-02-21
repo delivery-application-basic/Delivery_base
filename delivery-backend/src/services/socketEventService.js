@@ -104,15 +104,26 @@ function emitOrderTakenToDrivers(orderId) {
 }
 
 /**
- * Notify all drivers that a new order is available (preparing or ready) so they refetch the list
+ * Notify eligible drivers that a new order is available (preparing or ready), filtered by vehicle type and distance
  */
-function emitOrderAvailableToDrivers(orderId, orderStatus) {
+function emitOrderAvailableToEligibleDrivers(orderId, orderStatus) {
     const io = getIOOrNull();
     if (!io || !orderId) return;
-    io.to('drivers').emit('order:available', {
-        order_id: orderId,
-        order_status: orderStatus,
-        timestamp: new Date()
+
+    // Get eligible drivers for this order
+    const { findNearestAvailableDrivers } = require('./driverAssignmentService');
+    findNearestAvailableDrivers(orderId).then(drivers => {
+        drivers.forEach(driver => {
+            io.to(`driver:${driver.driver_id}`).emit('order:available', {
+                order_id: orderId,
+                order_status: orderStatus,
+                distance_km: driver.distance_km,
+                priority_score: driver.priority_score,
+                timestamp: new Date()
+            });
+        });
+    }).catch(error => {
+        console.error(`Failed to find eligible drivers for order ${orderId}:`, error.message);
     });
 }
 
@@ -152,7 +163,7 @@ module.exports = {
     emitDriverAssignment,
     emitOrderAssigned,
     emitOrderTakenToDrivers,
-    emitOrderAvailableToDrivers,
+    emitOrderAvailableToEligibleDrivers,
     emitOrderDeliveredToRestaurant,
     emitDriverLocationUpdate
 };

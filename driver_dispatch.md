@@ -1,7 +1,7 @@
-# Driver Dispatching Logic
+# Hybrid Driver Dispatch System
 
 ## Overview
-This document defines the driver dispatching strategy for the delivery system. The system uses **sequential score-based dispatching** with vehicle type filtering to ensure efficient and appropriate driver assignments.
+This document defines the hybrid driver dispatching strategy combining **sequential modal offers** with **pool broadcast** to ensure efficient and appropriate driver assignments. The system uses score-based dispatching with vehicle type filtering.
 
 **Note:** This logic applies only to orders with `delivery_type` set to `'delivery'`. Self-pickup orders (`delivery_type: 'pickup'`) bypass dispatching entirely and are handled directly by the restaurant, with notifications sent to the customer when ready.
 
@@ -29,20 +29,20 @@ Before evaluating nearby drivers, classify the order by delivery distance (Resta
 - Bonus Logic: Cars/Vans get a slight priority boost for highway safety/speed
 
 ### Step C: Score Calculation 🏆
-From the filtered driver pool, calculate a score to find the single best driver:
+From the filtered driver pool, calculate a score to find the single best driver for sequential offers:
 
 ```
-Score = (Distance to Restaurant × 0.6) + (Vehicle Speed Bonus × 0.2) + (Driver Rating × 0.2)
+Score = (Distance to Restaurant × 0.7) + (Vehicle Speed Bonus × 0.3)
 ```
 
 **Components:**
-- **Distance to Restaurant**: Primary factor (60% weight). Closer drivers get better scores.
-- **Vehicle Speed Bonus** (20% weight):
+- **Distance to Restaurant**: Primary factor (70% weight). Closer drivers get better scores.
+- **Vehicle Speed Bonus** (30% weight):
   - motorcycle: -0.5 points (Fastest in traffic)
   - car: -0.2 points (Fast, but affected by traffic)
+  - van: 0 points (Standard for heavy loads)
   - bicycle: 0 points (Standard)
   - *Lower score is always better*
-- **Driver Rating** (20% weight): High-rated drivers get a small advantage (-0.1 per star).
 
 ### Step D: The Offer (The "Ring") 📲
 - System selects **Driver #1** (winner with the lowest score).
@@ -58,20 +58,28 @@ If Driver #1 declines or times out:
 3. Select the next best driver (Driver #2).
 4. Repeat until a driver accepts or no eligible drivers remain.
 
+### Step F: Pool Broadcast 📡
+Simultaneously with sequential offers:
+- Broadcast the order to all eligible drivers (filtered by vehicle type and distance).
+- Eligible drivers see the order in their "find new orders" list.
+- Drivers can accept manually (first-come-first-served).
+- If accepted from pool, sequential offers stop and order is assigned.
+
 ## Key Behaviors
 
 ### Sequential vs Pool
-- **Sequential**: Offers are sent to one driver at a time, not broadcast to all.
-- **Advantages**: Reduces driver notification fatigue, ensures clear assignment order.
+- **Sequential**: Targeted modal offers sent to one driver at a time based on score.
+- **Pool**: Concurrent broadcast to all eligible drivers for manual acceptance.
+- **Hybrid Advantages**: Combines proactive driver selection with opportunity for all drivers to find orders, reducing wait times and improving coverage.
 
 ### Assignment Timeout
-- Each driver has **45 seconds** to respond to an offer.
+- Each driver has **60 seconds** to respond to a modal offer.
 - Automatic rejection if no response within timeout.
 
 ### Vehicle Priority
-- Distance is the dominant factor (60%).
+- Distance is the dominant factor (70%).
 - Vehicle type matters based on delivery distance.
-- Driver rating provides a small quality boost.
+- No rating-based adjustments in scoring.
 
 ## Edge Cases
 
@@ -93,13 +101,12 @@ If Driver #1 declines or times out:
 ## Configuration
 
 ### Timeouts
-- `ASSIGNMENT_TIMEOUT_SECONDS`: 45 (default)
+- `ASSIGNMENT_TIMEOUT_SECONDS`: 60 (default)
 - `DRIVER_OFFLINE_TIMEOUT_MINUTES`: 6 (heartbeat)
 
 ### Weights
-- Distance weight: 0.6
-- Vehicle bonus weight: 0.2
-- Rating weight: 0.2
+- Distance weight: 0.7
+- Vehicle bonus weight: 0.3
 
 ### Distance Thresholds
 - Short haul: < 3km

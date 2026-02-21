@@ -83,7 +83,7 @@ export default function MenuManagementScreen() {
   );
 
   return (
-    <View style={[styles.container, { paddingTop: Math.max(insets.top, 16) }]}>
+    <View style={[styles.container, { paddingTop: Math.max(insets.top + 10, 26) }]}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.white} />
 
       <View style={styles.header}>
@@ -122,7 +122,7 @@ export default function MenuManagementScreen() {
           }
           contentContainerStyle={styles.listContent}
           refreshing={isLoading}
-          onRefresh={() => rid && dispatch(fetchMenu(rid))}
+          onRefresh={() => targetRestaurantId && dispatch(fetchMenu(targetRestaurantId))}
           showsVerticalScrollIndicator={false}
         />
       )}
@@ -140,10 +140,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: layout.screenPadding,
-    paddingBottom: 20,
+    paddingVertical: 20,
     backgroundColor: colors.white,
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
     ...shadows.small,
   },
   headerTitleContainer: {
