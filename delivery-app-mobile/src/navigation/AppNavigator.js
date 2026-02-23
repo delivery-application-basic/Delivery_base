@@ -8,7 +8,7 @@ import { USER_TYPES } from '../utils/constants';
 import { sendDriverHeartbeat } from '../store/slices/driverSlice';
 import { Button } from '../components/common/Button';
 import { useSocket } from '../hooks/useSocket';
-import driverService from '../api/services/driverService';
+import { driverService } from '../api/services/driverService';
 
 // Navigators
 import AuthNavigator from './AuthNavigator';

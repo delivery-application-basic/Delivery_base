@@ -111,7 +111,7 @@ exports.getOrderById = async (req, res, next) => {
         if (req.userType === USER_TYPES.CUSTOMER && order.customer_id !== req.user.customer_id) {
             return res.status(403).json({ success: false, message: 'Not authorized to view this order' });
         }
-        if (req.userType === USER_TYPES.RESTAURANT && order.restaurant_id !== req.user.restaurant_id) {
+        if (req.userType === USER_TYPES.RESTAURANT && order.restaurant_id !== req.user.restaurant_id && order.restaurant?.phone_number !== req.user.phone_number) {
             return res.status(403).json({ success: false, message: 'Not authorized to view this order' });
         }
         if (req.userType === USER_TYPES.DRIVER && (order.driver_id !== req.user.driver_id && order.order_status !== ORDER_STATUS.READY)) {
@@ -134,7 +134,9 @@ exports.updateOrderStatus = async (req, res, next) => {
         const orderId = parseInt(req.params.id, 10);
         const { order_status } = req.body;
 
-        const order = await Order.findByPk(orderId);
+        const order = await Order.findByPk(orderId, {
+            include: [{ model: Restaurant, as: 'restaurant', attributes: ['phone_number'] }]
+        });
         if (!order) {
             return res.status(404).json({ success: false, message: 'Order not found' });
         }
@@ -167,7 +169,7 @@ exports.updateOrderStatus = async (req, res, next) => {
             if (!allowedRestaurant.includes(order_status)) {
                 return res.status(403).json({ success: false, message: 'Restaurant cannot set this status' });
             }
-            if (order.restaurant_id !== req.user.restaurant_id) {
+            if (order.restaurant_id !== req.user.restaurant_id && order.restaurant?.phone_number !== req.user.phone_number) {
                 return res.status(403).json({ success: false, message: 'Not your restaurant order' });
             }
         } else if (req.userType === USER_TYPES.DRIVER) {
@@ -265,7 +267,9 @@ exports.cancelOrder = async (req, res, next) => {
         const orderId = parseInt(req.params.id, 10);
         const { cancellation_reason } = req.body || {};
 
-        const order = await Order.findByPk(orderId);
+        const order = await Order.findByPk(orderId, {
+            include: [{ model: Restaurant, as: 'restaurant', attributes: ['phone_number'] }]
+        });
         if (!order) {
             return res.status(404).json({ success: false, message: 'Order not found' });
         }
@@ -283,7 +287,7 @@ exports.cancelOrder = async (req, res, next) => {
                 return res.status(403).json({ success: false, message: 'Not your order' });
             }
         } else if (req.userType === USER_TYPES.RESTAURANT) {
-            if (order.restaurant_id !== req.user.restaurant_id) {
+            if (order.restaurant_id !== req.user.restaurant_id && order.restaurant?.phone_number !== req.user.phone_number) {
                 return res.status(403).json({ success: false, message: 'Not your restaurant order' });
             }
         } else {
@@ -374,7 +378,10 @@ exports.getRestaurantOrders = async (req, res, next) => {
         const restaurantId = parseInt(req.params.restaurantId, 10);
 
         if (req.userType === USER_TYPES.RESTAURANT && req.user.restaurant_id !== restaurantId) {
-            return res.status(403).json({ success: false, message: 'Not authorized to view this restaurant orders' });
+            const targetRestaurant = await Restaurant.findByPk(restaurantId);
+            if (!targetRestaurant || targetRestaurant.phone_number !== req.user.phone_number) {
+                return res.status(403).json({ success: false, message: 'Not authorized to view this restaurant orders' });
+            }
         }
 
         const orders = await Order.findAll({
@@ -422,7 +429,9 @@ exports.getOrderTracking = async (req, res, next) => {
         const orderId = parseInt(req.params.id, 10);
 
         // Check authorization
-        const order = await Order.findByPk(orderId);
+        const order = await Order.findByPk(orderId, {
+            include: [{ model: Restaurant, as: 'restaurant', attributes: ['phone_number'] }]
+        });
         if (!order) {
             return res.status(404).json({ success: false, message: 'Order not found' });
         }
@@ -431,7 +440,7 @@ exports.getOrderTracking = async (req, res, next) => {
         if (req.userType === USER_TYPES.CUSTOMER && order.customer_id !== req.user.customer_id) {
             return res.status(403).json({ success: false, message: 'Not authorized to view this order tracking' });
         }
-        if (req.userType === USER_TYPES.RESTAURANT && order.restaurant_id !== req.user.restaurant_id) {
+        if (req.userType === USER_TYPES.RESTAURANT && order.restaurant_id !== req.user.restaurant_id && order.restaurant?.phone_number !== req.user.phone_number) {
             return res.status(403).json({ success: false, message: 'Not authorized to view this order tracking' });
         }
         if (req.userType === USER_TYPES.DRIVER && order.driver_id !== req.user.driver_id) {

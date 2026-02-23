@@ -200,7 +200,17 @@ const driverSlice = createSlice({
       .addCase(fetchDriverProfile.fulfilled, (state, action) => {
         const data = action.payload?.data ?? action.payload;
         state.isAvailable = data?.is_available ?? state.isAvailable;
-      });
+      })
+
+      // Reset state on logout or switch
+      .addMatcher(
+        (action) => [
+          'auth/logout/fulfilled',
+          'auth/switchRole/fulfilled',
+          'auth/switchBranch/fulfilled'
+        ].includes(action.type),
+        () => initialState
+      );
   },
 });
 

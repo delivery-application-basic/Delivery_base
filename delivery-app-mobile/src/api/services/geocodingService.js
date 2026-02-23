@@ -30,7 +30,7 @@ export const geocodingService = {
         if (response.data && response.data.features && response.data.features.length > 0) {
           const feature = response.data.features[0];
           const props = feature.properties;
-          
+
           return {
             street_address: props.name || props.street || props.label,
             sub_city: props.neighbourhood || props.borough || props.county || '',
@@ -55,6 +55,51 @@ export const geocodingService = {
         longitude,
         formatted_address: 'Current Location'
       };
+    }
+  },
+
+  /**
+   * Search for locations using autocomplete
+   * @param {string} text - Search query
+   * @returns {Promise<Array>} List of location suggestions
+   */
+  async autocomplete(text) {
+    if (!text || text.length < 3) return [];
+
+    try {
+      if (GEOCODE_CONFIG.API_KEY) {
+        const response = await axios.get(`${GEOCODE_CONFIG.BASE_URL}/autocomplete`, {
+          params: {
+            'text': text,
+            'api_key': GEOCODE_CONFIG.API_KEY,
+            'size': 10,
+            'boundary.country': 'ETH', // Prefer results in Ethiopia
+            'focus.point.lat': 9.145,   // Focus on Addis Ababa
+            'focus.point.lon': 38.7614
+          },
+          timeout: 4000
+        });
+
+        if (response.data && response.data.features) {
+          return response.data.features.map(feature => {
+            const props = feature.properties;
+            const [lon, lat] = feature.geometry.coordinates;
+            return {
+              id: props.id || Math.random().toString(),
+              street_address: props.name || props.street || props.label,
+              city: props.city || props.locality || 'Addis Ababa',
+              sub_city: props.neighbourhood || props.borough || props.county || '',
+              latitude: lat,
+              longitude: lon,
+              formatted_address: props.label
+            };
+          });
+        }
+      }
+      return [];
+    } catch (error) {
+      console.error('Autocomplete error:', error);
+      return [];
     }
   }
 };

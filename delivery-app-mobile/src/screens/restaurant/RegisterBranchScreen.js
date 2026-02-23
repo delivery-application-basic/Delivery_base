@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity, Image, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity, Image, Alert, ActivityIndicator } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -7,9 +7,12 @@ import { Icon } from 'react-native-paper';
 import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
 import { authService } from '../../api/services/authService';
+import { geocodingService } from '../../api/services/geocodingService';
+import { useLocation } from '../../hooks/useLocation';
 import { colors } from '../../theme/colors';
 import { layout, spacing } from '../../theme/spacing';
 import { shadows } from '../../theme/shadows';
+import { MAP_CONFIG } from '../../utils/constants';
 import { validateRequired, validateLatitude, validateLongitude } from '../../utils/validators';
 
 const FOCUS_SCROLL_OFFSET = 100;
@@ -26,20 +29,25 @@ export default function RegisterBranchScreen() {
     const [latitude, setLatitude] = useState('');
     const [longitude, setLongitude] = useState('');
     const [cuisine_type, setCuisineType] = useState('');
-    const [password, setPassword] = useState(''); // Need password to verify owner
+    const [password, setPassword] = useState('');
     const [logoUri, setLogoUri] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [isDetecting, setIsDetecting] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [suggestions, setSuggestions] = useState([]);
     const [errors, setErrors] = useState({});
+
+    const { getLocationWithPermission, checkLocationService } = useLocation();
 
     const scrollRef = useRef(null);
     const fieldLayouts = useRef({});
 
-    const handleFieldLayout = useCallback((key) => (e) => {
+    const handleFieldLayout = (key) => (e) => {
         const { y, height } = e.nativeEvent.layout;
         fieldLayouts.current[key] = { y, height };
-    }, []);
+    };
 
-    const scrollToFocusedInput = useCallback((key) => () => {
+    const scrollToFocusedInput = (key) => () => {
         setTimeout(() => {
             const layout = fieldLayouts.current[key];
             if (scrollRef.current && layout != null) {
@@ -47,11 +55,60 @@ export default function RegisterBranchScreen() {
                 scrollRef.current.scrollTo({ y: scrollY, animated: true });
             }
         }, SCROLL_DELAY_MS);
-    }, []);
+    };
+
+    const handleDetectLocation = async () => {
+        try {
+            setIsDetecting(true);
+            const serviceStatus = await checkLocationService();
+            if (serviceStatus !== 'enabled') {
+                Alert.alert('Location Disabled', 'Please enable GPS/Location services on your device.');
+                return;
+            }
+
+            const coords = await getLocationWithPermission();
+            if (coords) {
+                setLatitude(coords.latitude.toString());
+                setLongitude(coords.longitude.toString());
+
+                const addressData = await geocodingService.reverseGeocode(coords.latitude, coords.longitude);
+                if (addressData) {
+                    if (addressData.street_address) {
+                        setStreetAddress(addressData.street_address);
+                        setSearchQuery(addressData.street_address);
+                    }
+                    if (addressData.city) setCity(addressData.city);
+                    Alert.alert('Location Detected', 'Coordinates and address have been updated.');
+                }
+            }
+        } catch (err) {
+            Alert.alert('Error', 'Could not detect your current location.');
+        } finally {
+            setIsDetecting(false);
+        }
+    };
+
+    const handleSearchChange = async (text) => {
+        setSearchQuery(text);
+        if (text.length > 2) {
+            const results = await geocodingService.autocomplete(text);
+            setSuggestions(results);
+        } else {
+            setSuggestions([]);
+        }
+    };
+
+    const handleSelectSuggestion = (item) => {
+        setStreetAddress(item.street_address);
+        setCity(item.city);
+        setLatitude(item.latitude.toString());
+        setLongitude(item.longitude.toString());
+        setSearchQuery(item.formatted_address || item.street_address);
+        setSuggestions([]);
+    };
 
     const handleRegister = async () => {
         const phone = user?.phone_number;
-
         if (!phone) {
             Alert.alert('Error', 'Could not detect your phone number. Please log out and log in again.');
             return;
@@ -85,27 +142,22 @@ export default function RegisterBranchScreen() {
                 email: user?.email || undefined
             };
 
-            console.log('Registering branch with data:', registrationData);
             const response = await authService.registerRestaurant(registrationData);
-            console.log('Registration response:', response.data);
-
             const newRes = response.data;
             const newRestaurantId = newRes.user?.id || newRes.user?.restaurant_id;
 
             if (newRestaurantId && logoUri) {
                 try {
-                    console.log('Uploading logo for restaurant:', newRestaurantId);
                     const { restaurantService } = require('../../api/services/restaurantService');
                     await restaurantService.uploadLogo(newRestaurantId, logoUri);
                 } catch (logoErr) {
-                    console.error('Logo upload failed detail:', logoErr);
+                    console.error('Logo upload failed:', logoErr);
                 }
             }
 
             Alert.alert('Success', 'New branch registered successfully!');
             navigation.goBack();
         } catch (e) {
-            console.error('Registration error detail:', e.response?.data || e.message);
             const msg = e.response?.data?.message || e.response?.data?.errors?.[0]?.msg || 'Failed to register branch';
             Alert.alert('Error', msg);
         } finally {
@@ -172,31 +224,52 @@ export default function RegisterBranchScreen() {
 
                     <View style={styles.infoRow}>
                         <Icon source="information-outline" size={20} color={colors.primary} />
-                        <Text style={styles.infoLabel}>Using phone: {user.phone_number}</Text>
+                        <Text style={styles.infoLabel}>Using phone: {user?.phone_number}</Text>
                     </View>
 
-                    <Input
-                        label="Street Address"
-                        value={street_address}
-                        onChangeText={setStreetAddress}
-                        error={errors.street_address}
-                    />
+                    <View style={styles.locationHeader}>
+                        <Text style={styles.sectionTitleLabel}>Location Details</Text>
+                        <TouchableOpacity style={styles.detectBtn} onPress={handleDetectLocation} disabled={isDetecting}>
+                            {isDetecting ? <ActivityIndicator size={12} color={colors.primary} /> : <Icon source="target" size={16} color={colors.primary} />}
+                            <Text style={styles.detectText}>Detect Location</Text>
+                        </TouchableOpacity>
+                    </View>
 
-                    <View onLayout={handleFieldLayout('city')} collapsable={false}>
+                    <View style={styles.searchContainer}>
                         <Input
-                            label="City"
-                            value={city}
-                            onChangeText={setCity}
-                            error={errors.city}
-                            onFocus={scrollToFocusedInput('city')}
+                            label="Location"
+                            value={searchQuery}
+                            onChangeText={handleSearchChange}
+                            placeholder="Search for branch location..."
+                            leftIcon="map-marker"
+                            onFocus={scrollToFocusedInput('search')}
+                            onLayout={handleFieldLayout('search')}
+                            error={errors.street_address}
                         />
+                        {suggestions.length > 0 && (
+                            <View style={styles.suggestionsContainer}>
+                                {suggestions.map((item) => (
+                                    <TouchableOpacity
+                                        key={item.id}
+                                        style={styles.suggestionItem}
+                                        onPress={() => handleSelectSuggestion(item)}
+                                    >
+                                        <Icon source="map-marker-outline" size={20} color={colors.primary} />
+                                        <View style={styles.suggestionContent}>
+                                            <Text style={styles.suggestionTitle} numberOfLines={1}>{item.street_address}</Text>
+                                            <Text style={styles.suggestionSub} numberOfLines={1}>{item.city}{item.sub_city ? `, ${item.sub_city}` : ''}</Text>
+                                        </View>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        )}
                     </View>
 
                     <View style={styles.row}>
                         <View style={{ flex: 1 }} onLayout={handleFieldLayout('latitude')}>
                             <Input
                                 label="Latitude"
-                                value={latitude}
+                                value={latitude.toString()}
                                 onChangeText={setLatitude}
                                 error={errors.latitude}
                                 placeholder="8.7525"
@@ -208,7 +281,7 @@ export default function RegisterBranchScreen() {
                         <View style={{ flex: 1 }} onLayout={handleFieldLayout('longitude')}>
                             <Input
                                 label="Longitude"
-                                value={longitude}
+                                value={longitude.toString()}
                                 onChangeText={setLongitude}
                                 error={errors.longitude}
                                 placeholder="38.9785"
@@ -344,5 +417,97 @@ const styles = StyleSheet.create({
     btn: {
         backgroundColor: colors.primary,
         ...shadows.medium,
+        marginTop: spacing.md,
+        marginBottom: 80,
     },
+    locationHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginTop: spacing.md,
+        marginBottom: spacing.xs,
+    },
+    sectionTitleLabel: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: colors.text,
+    },
+    detectBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: colors.primary + '10',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 12,
+        gap: 4,
+    },
+    detectText: {
+        fontSize: 11,
+        fontWeight: '700',
+        color: colors.primary,
+    },
+    searchContainer: {
+        marginBottom: spacing.md,
+        zIndex: 10,
+    },
+    suggestionsContainer: {
+        backgroundColor: colors.white,
+        borderRadius: 12,
+        marginTop: -spacing.sm,
+        borderWidth: 1,
+        borderColor: colors.gray[200],
+        elevation: 4,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        maxHeight: 250,
+        overflow: 'hidden',
+    },
+    suggestionItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: spacing.md,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.gray[100],
+        gap: 12,
+    },
+    suggestionContent: {
+        flex: 1,
+    },
+    suggestionTitle: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: colors.text,
+    },
+    suggestionSub: {
+        fontSize: 12,
+        color: colors.textSecondary,
+        marginTop: 2,
+    },
+    coordRow: {
+        flexDirection: 'row',
+        gap: spacing.sm,
+        marginTop: -spacing.xs,
+        marginBottom: spacing.md,
+    },
+    coordPill: {
+        flexDirection: 'row',
+        backgroundColor: colors.gray[50],
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: colors.gray[100],
+    },
+    coordLabel: {
+        fontSize: 10,
+        fontWeight: '700',
+        color: colors.textSecondary,
+    },
+    coordValue: {
+        fontSize: 10,
+        color: colors.text,
+        fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    }
 });

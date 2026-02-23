@@ -1,10 +1,11 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { Alert } from 'react-native';
-import { useDispatch } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { useLocation } from './useLocation';
 import { driverService } from '../api/services/driverService';
 import { sendDriverHeartbeat } from '../store/slices/driverSlice';
 import { geocodingService } from '../api/services/geocodingService';
+import { USER_TYPES } from '../utils/constants';
 
 // How often to send location updates in each mode
 const IDLE_INTERVAL_MS = 3 * 60 * 1000;      // 3 minutes when ACTIVE but waiting for orders
@@ -34,6 +35,7 @@ const geocodingCache = new Map();
  */
 export const useDriverLocationTracker = (isAvailable, isOnDelivery) => {
     const dispatch = useDispatch();
+    const { userType } = useSelector((state) => state.auth);
     const { getCurrentPosition, checkLocationService } = useLocation();
     const intervalRef = useRef(null);
     const locationDisabledRef = useRef(false); // Prevents repeated alerts
@@ -80,6 +82,11 @@ export const useDriverLocationTracker = (isAvailable, isOnDelivery) => {
     const sendLocationUpdate = useCallback(async () => {
         if (locationDisabledRef.current) return false;
 
+        // Safety check: only drivers should send location updates to this endpoint
+        if (userType !== USER_TYPES.DRIVER) {
+            return false;
+        }
+
         const coords = await getCurrentPosition();
 
         if (!coords || !coords.latitude || !coords.longitude) {
@@ -94,19 +101,19 @@ export const useDriverLocationTracker = (isAvailable, isOnDelivery) => {
         // Reverse geocode to get place name
         const cacheKey = `${coords.latitude.toFixed(4)},${coords.longitude.toFixed(4)}`;
         if (!geocodingCache.has(cacheKey)) {
-          try {
-            const addressData = await geocodingService.reverseGeocode(coords.latitude, coords.longitude);
-            const placeName = addressData?.formatted_address || `${coords.latitude.toFixed(4)}, ${coords.longitude.toFixed(4)}`;
-            geocodingCache.set(cacheKey, placeName);
-            setLastPlaceName(placeName);
-          } catch (error) {
-            console.warn('[LocationTracker] Geocoding failed:', error.message);
-            const fallback = `${coords.latitude.toFixed(4)}, ${coords.longitude.toFixed(4)}`;
-            geocodingCache.set(cacheKey, fallback);
-            setLastPlaceName(fallback);
-          }
+            try {
+                const addressData = await geocodingService.reverseGeocode(coords.latitude, coords.longitude);
+                const placeName = addressData?.formatted_address || `${coords.latitude.toFixed(4)}, ${coords.longitude.toFixed(4)}`;
+                geocodingCache.set(cacheKey, placeName);
+                setLastPlaceName(placeName);
+            } catch (error) {
+                console.warn('[LocationTracker] Geocoding failed:', error.message);
+                const fallback = `${coords.latitude.toFixed(4)}, ${coords.longitude.toFixed(4)}`;
+                geocodingCache.set(cacheKey, fallback);
+                setLastPlaceName(fallback);
+            }
         } else {
-          setLastPlaceName(geocodingCache.get(cacheKey));
+            setLastPlaceName(geocodingCache.get(cacheKey));
         }
         try {
             await driverService.updateLocation(coords.latitude, coords.longitude);
