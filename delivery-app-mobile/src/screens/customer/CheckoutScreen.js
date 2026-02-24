@@ -27,6 +27,7 @@ export default function CheckoutScreen() {
   const { subtotal, items } = useSelector((state) => state.cart);
   const { isLoading, error: orderError } = useSelector((state) => state.order);
 
+  const [addresses, setAddresses] = useState([]);
   const [addressId, setAddressId] = useState(route.params?.addressId || '');
   const [selectedAddress, setSelectedAddress] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState(PAYMENT_METHODS.CASH);
@@ -35,29 +36,45 @@ export default function CheckoutScreen() {
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
   const [detectionError, setDetectionError] = useState(null);
 
-  const [hasTriedAutoDetect, setHasTriedAutoDetect] = useState(false);
-
   const { getLocationWithPermission, checkLocationService } = useLocation();
 
-  // Load address details when addressId changes
-  useEffect(() => {
-    const fetchAddressDetails = async () => {
-      if (!addressId) return;
-      try {
-        const response = await customerService.getAddresses();
-        const addressList = response.data?.data || response.data;
-        if (Array.isArray(addressList)) {
-          const address = addressList.find(a => String(a.address_id) === String(addressId));
-          if (address) {
-            setSelectedAddress(address);
-          }
+  const filterClutter = useCallback((list) => {
+    return list.filter(a => {
+      const label = a.address_label?.toLowerCase();
+      return !['detected location', 'current location', 'one-time delivery (gps)'].includes(label);
+    });
+  }, []);
+
+  const fetchAddresses = useCallback(async () => {
+    try {
+      const response = await customerService.getAddresses();
+      const rawList = response.data?.data || response.data || [];
+      const list = filterClutter(rawList);
+      setAddresses(list);
+
+      // Default selection logic: Home > Work > School > First Available
+      if (!addressId && !route.params?.addressId) {
+        const home = list.find(a => a.address_label?.toLowerCase() === 'home');
+        const work = list.find(a => a.address_label?.toLowerCase() === 'work');
+        const school = list.find(a => a.address_label?.toLowerCase() === 'school');
+
+        const defaultAddr = home || work || school || list[0];
+        if (defaultAddr) {
+          setAddressId(defaultAddr.address_id);
+          setSelectedAddress(defaultAddr);
         }
-      } catch (err) {
-        console.error('Failed to fetch address details:', err);
+      } else if (addressId) {
+        const addr = list.find(a => String(a.address_id) === String(addressId));
+        if (addr) setSelectedAddress(addr);
       }
-    };
-    fetchAddressDetails();
-  }, [addressId]);
+    } catch (error) {
+      console.error('Failed to load addresses:', error);
+    }
+  }, [addressId, route.params?.addressId, filterClutter]);
+
+  useEffect(() => {
+    fetchAddresses();
+  }, [addressId, route.params?.addressId, fetchAddresses]);
 
   // Handle address selection from route params
   useEffect(() => {
@@ -66,74 +83,77 @@ export default function CheckoutScreen() {
     }
   }, [route.params?.addressId]);
 
-  // Auto-detect location function
-  const detectLocation = useCallback(async (isManual = false) => {
-    if ((addressId && !isManual) || isDetectingLocation) return;
-
+  const detectOneTimeLocation = useCallback(async () => {
+    if (isDetectingLocation) return;
     try {
       setIsDetectingLocation(true);
-      setDetectionError(null);
-
-      if (!(await checkLocationService())) {
-        throw new Error('Location services are disabled. Please enable GPS and try again.');
-      }
-
+      if ((await checkLocationService()) !== 'enabled') throw new Error('GPS Disabled');
       const coords = await getLocationWithPermission();
-
-      if (!coords || !coords.latitude) {
-        throw new Error('Could not get coordinates');
-      }
+      if (!coords) throw new Error('Permission denied');
 
       const addressData = await geocodingService.reverseGeocode(coords.latitude, coords.longitude);
 
-      if (!addressData) {
-        throw new Error('Could not resolve address');
-      }
-
-      const newAddressResponse = await customerService.addAddress({
-        address_label: isManual ? 'Detected Location' : 'Current Location',
-        street_address: addressData.street_address || 'Current Location',
-        sub_city: addressData.sub_city || '',
-        city: addressData.city || 'Addis Ababa',
-        landmark: addressData.landmark || '',
+      const tempAddress = {
+        address_label: 'One-time Delivery (GPS)',
+        street_address: addressData?.street_address || 'Current Location',
+        sub_city: addressData?.sub_city || '',
+        city: addressData?.city || 'Addis Ababa',
         latitude: coords.latitude,
         longitude: coords.longitude
-      });
+      };
 
-      const newAddress = newAddressResponse.data?.data || newAddressResponse.data;
-      if (newAddress && newAddress.address_id) {
-        setAddressId(newAddress.address_id);
-        setSelectedAddress(newAddress);
-      }
+      setAddressId(null); // Clear saved ID so backend knows it's a raw object
+      setSelectedAddress(tempAddress);
     } catch (err) {
-      const msg = err.message || 'Location failed';
-      setDetectionError(msg);
-      Alert.alert(
-        'Location Issue',
-        'We could not detect your location. Please check if your GPS is turned on and try again, or select an address manually.',
-        [{ text: 'OK' }]
-      );
+      Alert.alert('Location Error', 'Could not detect your location. Please check GPS settings.');
     } finally {
       setIsDetectingLocation(false);
     }
-  }, [addressId, getLocationWithPermission, isDetectingLocation, checkLocationService]);
+  }, [checkLocationService, getLocationWithPermission]);
 
-  useEffect(() => {
-    if (!addressId && !hasTriedAutoDetect) {
-      detectLocation();
-      setHasTriedAutoDetect(true);
+  const detectAndSaveAs = useCallback(async (label) => {
+    if (isDetectingLocation) return;
+    try {
+      setIsDetectingLocation(true);
+      if ((await checkLocationService()) !== 'enabled') throw new Error('GPS Disabled');
+      const coords = await getLocationWithPermission();
+      if (!coords) throw new Error('Permission denied');
+
+      const addressData = await geocodingService.reverseGeocode(coords.latitude, coords.longitude);
+
+      const payload = {
+        address_label: label,
+        street_address: addressData?.street_address || 'Current Location',
+        sub_city: addressData?.sub_city || '',
+        city: addressData?.city || 'Addis Ababa',
+        latitude: coords.latitude,
+        longitude: coords.longitude
+      };
+
+      const res = await customerService.addAddress(payload);
+      const newAddr = res.data?.data || res.data;
+
+      if (newAddr?.address_id) {
+        setAddressId(newAddr.address_id);
+        setSelectedAddress(newAddr);
+        fetchAddresses(); // Refresh list
+      }
+    } catch (err) {
+      Alert.alert('Location Error', 'Could not set your location. Please check GPS settings.');
+    } finally {
+      setIsDetectingLocation(false);
     }
-  }, [addressId, detectLocation, hasTriedAutoDetect]);
+  }, [fetchAddresses, checkLocationService, getLocationWithPermission, isDetectingLocation]);
 
   const handlePlaceOrder = async () => {
-    const numAddressId = parseInt(addressId, 10);
-    if (!numAddressId && deliveryType !== 'pickup') {
+    if (!addressId && !selectedAddress && deliveryType !== 'pickup') {
       Alert.alert('Address Required', 'Please select a delivery address');
       return;
     }
     try {
       const result = await dispatch(createOrder({
-        address_id: numAddressId || undefined,
+        address_id: addressId ? parseInt(addressId, 10) : undefined,
+        address_data: !addressId ? selectedAddress : undefined,
         payment_method: paymentMethod,
         special_instructions: specialInstructions || undefined,
         delivery_type: deliveryType,
@@ -166,9 +186,15 @@ export default function CheckoutScreen() {
     if (selectedAddress) {
       return (
         <View style={styles.addressCard}>
-          <Icon source="map-marker" size={24} color={colors.primary} />
+          <View style={styles.addressIconCircle}>
+            <Icon
+              source={selectedAddress.address_label?.toLowerCase() === 'home' ? 'home' : selectedAddress.address_label?.toLowerCase() === 'work' ? 'briefcase' : 'map-marker'}
+              size={20}
+              color={colors.primary}
+            />
+          </View>
           <View style={styles.addressInfo}>
-            <Text style={styles.addressLabel}>{selectedAddress.address_label || 'Selected Address'}</Text>
+            <Text style={styles.addressName}>{selectedAddress.address_label}</Text>
             <Text style={styles.addressText}>{selectedAddress.street_address}</Text>
             <Text style={styles.addressSubText}>{selectedAddress.sub_city}, {selectedAddress.city}</Text>
           </View>
@@ -177,16 +203,16 @@ export default function CheckoutScreen() {
     }
 
     return (
-      <View style={styles.addressCardContainer}>
-        <View style={styles.addressCard}>
-          <Icon source="map-marker-outline" size={24} color={colors.textLight} />
-          <View style={styles.addressInfo}>
-            <Text style={[styles.addressText, { color: colors.textSecondary }]}>
-              {detectionError || 'No address selected'}
-            </Text>
-          </View>
+      <TouchableOpacity
+        style={styles.detectBtnLarge}
+        onPress={detectOneTimeLocation}
+      >
+        <Icon source="crosshairs-gps" size={24} color={colors.primary} />
+        <View style={styles.addressInfo}>
+          <Text style={styles.detectBtnText}>Detect My Location</Text>
+          <Text style={styles.detectBtnSubtext}>Tap to find your current address</Text>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 
@@ -233,12 +259,6 @@ export default function CheckoutScreen() {
               </TouchableOpacity>
             </View>
             {renderAddressSection()}
-            {detectionError && (
-              <TouchableOpacity onPress={() => detectLocation(true)} style={styles.retryButton}>
-                <Icon source="refresh" size={16} color={colors.primary} />
-                <Text style={styles.retryText}>Retry GPS</Text>
-              </TouchableOpacity>
-            )}
           </View>
         )}
 
@@ -289,7 +309,7 @@ export default function CheckoutScreen() {
           title="Place Order"
           onPress={handlePlaceOrder}
           loading={isLoading}
-          disabled={!addressId || isDetectingLocation}
+          disabled={(!addressId && !selectedAddress && deliveryType !== 'pickup') || isDetectingLocation}
           style={styles.placeOrderBtn}
         />
       </View>
@@ -457,4 +477,97 @@ const styles = StyleSheet.create({
   typeTextSelected: {
     color: colors.primary,
   },
+  addressSection: {
+    backgroundColor: colors.gray[50],
+    borderRadius: 20,
+    padding: spacing.md,
+  },
+  slotsRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    marginBottom: spacing.md,
+  },
+  slot: {
+    flex: 1,
+    alignItems: 'center',
+    padding: spacing.md,
+    backgroundColor: colors.white,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: colors.gray[100],
+    position: 'relative',
+  },
+  slotSelected: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  slotEmpty: {
+    borderStyle: 'dashed',
+    borderColor: colors.gray[300],
+  },
+  slotOther: {
+    flex: 1,
+    alignItems: 'center',
+    padding: spacing.md,
+    backgroundColor: colors.gray[200],
+    borderRadius: 16,
+  },
+  slotLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: colors.textSecondary,
+    marginTop: 4,
+  },
+  slotLabelSelected: {
+    color: colors.white,
+  },
+  slotAction: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: colors.primary,
+    position: 'absolute',
+    top: 6,
+    right: 8,
+  },
+  selectedAddressDetail: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.gray[200],
+  },
+  addressIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.primary + '10',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing.md,
+  },
+  addressName: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  addressText: {
+    fontSize: 11,
+    color: colors.textSecondary,
+  },
+  addressSubText: {
+    fontSize: 10,
+    color: colors.textLight,
+  },
+  detectingOverlay: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.sm,
+    gap: 8,
+  },
+  detectingText: {
+    fontSize: 12,
+    color: colors.primary,
+    fontWeight: '600',
+  }
 });

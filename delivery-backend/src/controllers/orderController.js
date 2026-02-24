@@ -22,10 +22,11 @@ exports.createOrder = async (req, res, next) => {
             return res.status(403).json({ success: false, message: 'Only customers can place orders' });
         }
         const customerId = req.user.customer_id;
-        const { address_id, payment_method, special_instructions, delivery_type } = req.body;
+        const { address_id, address_data, payment_method, special_instructions, delivery_type } = req.body;
 
         const order = await orderService.createOrderFromCart(customerId, {
             address_id,
+            address_data,
             payment_method,
             special_instructions,
             delivery_type

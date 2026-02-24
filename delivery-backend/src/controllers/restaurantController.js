@@ -36,24 +36,27 @@ exports.getRestaurants = async (req, res, next) => {
         if (latitude && longitude) {
             const userLat = parseFloat(latitude);
             const userLng = parseFloat(longitude);
-            const searchRadius = parseFloat(radius) || 12; // 12km default radius for "near you"
+            const searchRadius = parseFloat(radius); // Only used if provided
 
             restaurants = restaurants.map(r => {
                 const restaurant = r.toJSON();
-                if (restaurant.latitude && restaurant.longitude) {
-                    restaurant.distance = getDistance(userLat, userLng, restaurant.latitude, restaurant.longitude);
+                const restLat = parseFloat(restaurant.latitude);
+                const restLng = parseFloat(restaurant.longitude);
+
+                if (!isNaN(restLat) && !isNaN(restLng)) {
+                    restaurant.distance = getDistance(userLat, userLng, restLat, restLng);
                 } else {
                     restaurant.distance = 999;
                 }
                 return restaurant;
             });
 
-            // If radius is specified, filter by it
-            if (req.query.radius) {
+            // ONLY filter by radius if the user explicitly requested a radius
+            if (radius) {
                 restaurants = restaurants.filter(r => r.distance <= searchRadius);
             }
 
-            // Sort by distance
+            // Sort by distance (closest first)
             restaurants.sort((a, b) => (a.distance || 999) - (b.distance || 999));
         }
 

@@ -229,7 +229,7 @@ async function calculateSmartDeliveryFee(restaurant, address) {
 /**
  * Create order from customer's cart. Validates cart, address, availability; creates order + order items; clears cart; records status history.
  */
-async function createOrderFromCart(customerId, { address_id, payment_method, special_instructions, delivery_type }) {
+async function createOrderFromCart(customerId, { address_id, address_data, payment_method, special_instructions, delivery_type }) {
     const { sequelize } = require('../config/database');
     const transaction = await sequelize.transaction();
 
@@ -249,13 +249,19 @@ async function createOrderFromCart(customerId, { address_id, payment_method, spe
         }
 
         let address = null;
-        if (delivery_type !== 'pickup' || address_id) {
-            address = await Address.findOne({
-                where: { address_id, customer_id: customerId },
-                transaction
-            });
-            if (!address && delivery_type !== 'pickup') {
-                const err = new Error('Delivery address not found or does not belong to you');
+        if (delivery_type !== 'pickup') {
+            if (address_id) {
+                address = await Address.findOne({
+                    where: { address_id, customer_id: customerId },
+                    transaction
+                });
+            } else if (address_data) {
+                // Use the provided raw address data for this order
+                address = address_data;
+            }
+
+            if (!address) {
+                const err = new Error('Delivery address or data required for delivery');
                 err.statusCode = 400;
                 throw err;
             }

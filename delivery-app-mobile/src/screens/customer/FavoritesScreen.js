@@ -44,6 +44,7 @@ export default function FavoritesScreen() {
               imageUrl={item.image_url}
               rating={item.rating}
               deliveryFee={item.delivery_fee}
+              distance={item.distance}
               onPress={() => navigation.navigate('RestaurantDetail', { restaurantId: item.restaurant_id })}
             />
           )}

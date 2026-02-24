@@ -29,7 +29,7 @@ export default function HomeScreen() {
   const { restaurants, isLoading, error, searchQuery, filters } = useSelector((state) => state.restaurant);
   const { user } = useSelector((state) => state.auth);
   const [refreshing, setRefreshing] = useState(false);
-  const { location, getCurrentPosition } = useLocation();
+  const { location, getCurrentPosition, hasRealLocation } = useLocation();
 
   const loadData = useCallback(async (loc = location) => {
     const params = {
@@ -38,12 +38,13 @@ export default function HomeScreen() {
         search: searchQuery
       }
     };
-    if (loc?.latitude) {
+    // Only sort by distance if we have a real GPS location
+    if (hasRealLocation && loc?.latitude) {
       params.filters.latitude = loc.latitude;
       params.filters.longitude = loc.longitude;
     }
     dispatch(fetchRestaurants(params));
-  }, [dispatch, searchQuery, filters, location]);
+  }, [dispatch, searchQuery, filters, location, hasRealLocation]);
 
   // Handle initial load and filter changes
   useEffect(() => {
@@ -110,6 +111,7 @@ export default function HomeScreen() {
         imageUrl={item.logo_url || item.cover_image_url}
         rating={restaurantRating}
         deliveryFee={item.delivery_fee || 0}
+        distance={item.distance}
         onPress={() => navigation.navigate('RestaurantDetail', { restaurantId: item.restaurant_id })}
       />
     );
@@ -171,7 +173,7 @@ export default function HomeScreen() {
 
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>
-          {location?.latitude ? 'Restaurants Near You' : 'Featured Restaurants'}
+          {hasRealLocation ? 'Restaurants Near You' : 'Featured Restaurants'}
         </Text>
         <TouchableOpacity onPress={() => navigation.navigate('RestaurantList')}>
           <Text style={styles.seeAllText}>See all</Text>

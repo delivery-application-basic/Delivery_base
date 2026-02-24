@@ -14,6 +14,8 @@ import { typography } from '../../theme/typography';
 import { layout, spacing } from '../../theme/spacing';
 import { validateRequired } from '../../utils/validators';
 import { shadows } from '../../theme/shadows';
+import { useLocation } from '../../hooks/useLocation';
+import { geocodingService } from '../../api/services/geocodingService';
 
 export default function AddressManagementScreen() {
   const navigation = useNavigation();
@@ -23,20 +25,33 @@ export default function AddressManagementScreen() {
   const [showForm, setShowForm] = useState(false);
   const [editingAddress, setEditingAddress] = useState(null);
   const [formData, setFormData] = useState({
-    address_label: '',
+    address_label: 'Home',
     street_address: '',
     sub_city: '',
-    city: '',
+    city: 'Addis Ababa',
     landmark: '',
+    latitude: null,
+    longitude: null,
   });
   const [errors, setErrors] = useState({});
+
+  const { getLocationWithPermission, checkLocationService } = useLocation();
+
+  // Centralized filter to hide technical/clutter GPS labels
+  const filterClutter = (list) => {
+    return list.filter(a => {
+      const label = a.address_label?.toLowerCase();
+      return !['detected location', 'current location', 'one-time delivery (gps)'].includes(label);
+    });
+  };
 
   useEffect(() => {
     const loadAddresses = async () => {
       try {
         setIsLoading(true);
         const response = await customerService.getAddresses();
-        setAddresses(response.data || []);
+        const rawList = response.data?.data || response.data || [];
+        setAddresses(filterClutter(rawList));
       } catch (error) {
         console.error('Failed to load addresses:', error);
         setAddresses([]);
@@ -49,31 +64,41 @@ export default function AddressManagementScreen() {
 
   const handleSave = async () => {
     const errs = {};
-    if (!validateRequired(formData.street_address)) errs.street_address = 'Street address is required';
-    if (!validateRequired(formData.city)) errs.city = 'City is required';
+    const street = formData.street_address?.trim();
+    const city = formData.city?.trim();
+    const label = formData.address_label?.trim();
+
+    if (!street) errs.street_address = 'Street address is required';
+    if (!city) errs.city = 'City is required';
+    if (!label) errs.address_label = 'Label is required (e.g. Home, Work)';
+
     setErrors(errs);
     if (Object.keys(errs).length) return;
 
     try {
+      const payload = { ...formData, street_address: street, city: city, address_label: label };
       if (editingAddress) {
-        await customerService.updateAddress(editingAddress.address_id, formData);
+        await customerService.updateAddress(editingAddress.address_id, payload);
         Alert.alert('Success', 'Address updated successfully');
       } else {
-        await customerService.addAddress(formData);
+        await customerService.addAddress(payload);
         Alert.alert('Success', 'Address saved successfully');
       }
       setShowForm(false);
       setEditingAddress(null);
       setFormData({
-        address_label: '',
+        address_label: 'Home',
         street_address: '',
         sub_city: '',
-        city: '',
+        city: 'Addis Ababa',
         landmark: '',
+        latitude: null,
+        longitude: null,
       });
-      // Reload addresses
+      // Reload addresses with filter
       const response = await customerService.getAddresses();
-      setAddresses(response.data || []);
+      const rawList = response.data?.data || response.data || [];
+      setAddresses(filterClutter(rawList));
     } catch (error) {
       Alert.alert('Error', error.message || 'Failed to save address');
     }
@@ -109,6 +134,8 @@ export default function AddressManagementScreen() {
       sub_city: address.sub_city || '',
       city: address.city || '',
       landmark: address.landmark || '',
+      latitude: address.latitude,
+      longitude: address.longitude,
     });
     setShowForm(true);
   };
@@ -147,11 +174,13 @@ export default function AddressManagementScreen() {
             setShowForm(true);
             setEditingAddress(null);
             setFormData({
-              address_label: '',
+              address_label: 'Home',
               street_address: '',
               sub_city: '',
-              city: '',
+              city: 'Addis Ababa',
               landmark: '',
+              latitude: null,
+              longitude: null,
             });
           }}
         >
@@ -159,6 +188,89 @@ export default function AddressManagementScreen() {
         </TouchableOpacity>
       )}
     </View>
+  );
+
+  const detectAndSaveAs = async (label) => {
+    try {
+      setIsLoading(true);
+      if ((await checkLocationService()) !== 'enabled') {
+        Alert.alert('Location Disabled', 'Please enable GPS');
+        return;
+      }
+      const coords = await getLocationWithPermission();
+      if (!coords) return;
+
+      const addressData = await geocodingService.reverseGeocode(coords.latitude, coords.longitude);
+      const payload = {
+        address_label: label,
+        street_address: addressData?.street_address || 'Current Location',
+        sub_city: addressData?.sub_city || '',
+        city: addressData?.city || 'Addis Ababa',
+        latitude: coords.latitude,
+        longitude: coords.longitude
+      };
+
+      await customerService.addAddress(payload);
+      const refetched = await customerService.getAddresses();
+      const rawList = refetched.data?.data || refetched.data || [];
+      setAddresses(filterClutter(rawList));
+      Alert.alert('Success', `${label} address set from GPS.`);
+    } catch (err) {
+      Alert.alert('Error', 'Failed to detect location');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const home = addresses.find(a => a.address_label?.toLowerCase() === 'home');
+  const work = addresses.find(a => a.address_label?.toLowerCase() === 'work');
+  const school = addresses.find(a => a.address_label?.toLowerCase() === 'school');
+  const otherAddresses = addresses.filter(a => !['home', 'work', 'school'].includes(a.address_label?.toLowerCase()));
+
+  const Slot = ({ type, data, icon }) => (
+    <TouchableOpacity
+      style={[
+        styles.slot,
+        !data && styles.slotEmpty
+      ]}
+      onPress={() => {
+        if (data) {
+          handleEdit(data);
+        } else {
+          detectAndSaveAs(type);
+        }
+      }}
+    >
+      <View style={styles.slotIconBox}>
+        <Icon
+          source={icon}
+          size={24}
+          color={colors.primary}
+        />
+      </View>
+      <View style={styles.slotInfo}>
+        <Text style={styles.slotLabel}>{type}</Text>
+        <Text numberOfLines={1} style={styles.slotSubtext}>
+          {data ? data.street_address : `Set your ${type.toLowerCase()}`}
+        </Text>
+      </View>
+      {!data && (
+        <View style={styles.slotSetBadge}>
+          <Text style={styles.slotSetText}>SET</Text>
+        </View>
+      )}
+      {data && (
+        <TouchableOpacity
+          style={styles.slotDelete}
+          onPress={(e) => {
+            e.stopPropagation();
+            handleDelete(data.address_id);
+          }}
+        >
+          <Icon source="close-circle" size={16} color={colors.error} />
+        </TouchableOpacity>
+      )}
+    </TouchableOpacity>
   );
 
   if (isLoading) return <Loader fullScreen />;
@@ -193,19 +305,31 @@ export default function AddressManagementScreen() {
           <View style={{ height: 100 }} />
         </ScrollView>
       ) : (
-        <FlatList
-          data={addresses}
-          keyExtractor={(item) => String(item.address_id)}
-          renderItem={renderItem}
-          contentContainerStyle={styles.list}
-          ListEmptyComponent={
-            <EmptyState
-              message="No addresses saved. Add your first address to get started."
-              icon="map-marker-plus"
-            />
-          }
-          showsVerticalScrollIndicator={false}
-        />
+        <View style={{ flex: 1 }}>
+          <View style={styles.slotsContainer}>
+            <Text style={styles.sectionTitle}>Quick Management</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.slotsScroll}>
+              <Slot type="Home" data={home} icon="home-outline" />
+              <Slot type="Work" data={work} icon="briefcase-outline" />
+              <Slot type="School" data={school} icon="school-outline" />
+            </ScrollView>
+          </View>
+
+          <FlatList
+            data={otherAddresses}
+            keyExtractor={(item) => String(item.address_id)}
+            renderItem={renderItem}
+            contentContainerStyle={styles.list}
+            ListHeaderComponent={<Text style={styles.sectionTitle}>Other Saved Addresses</Text>}
+            ListEmptyComponent={
+              <EmptyState
+                message="No other addresses saved."
+                icon="map-marker-plus"
+              />
+            }
+            showsVerticalScrollIndicator={false}
+          />
+        </View>
       )}
     </View>
   );
@@ -241,8 +365,83 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   list: {
-    padding: layout.screenPadding,
+    paddingHorizontal: layout.screenPadding,
     paddingBottom: 100,
+  },
+  sectionTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: colors.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginHorizontal: layout.screenPadding,
+    marginTop: spacing.md,
+    marginBottom: spacing.xs,
+  },
+  slotsContainer: {
+    paddingVertical: spacing.sm,
+  },
+  slotsScroll: {
+    paddingHorizontal: layout.screenPadding,
+    gap: spacing.sm,
+    paddingRight: 40,
+  },
+  slot: {
+    width: 220,
+    flexDirection: 'row',
+    backgroundColor: colors.gray[50],
+    borderRadius: 16,
+    padding: spacing.md,
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: colors.gray[100],
+    position: 'relative',
+    marginRight: spacing.sm,
+  },
+  slotEmpty: {
+    borderStyle: 'dashed',
+    borderColor: colors.gray[300],
+  },
+  slotIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.03)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing.sm,
+  },
+  slotInfo: {
+    flex: 1,
+  },
+  slotLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  slotSubtext: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  slotSetBadge: {
+    backgroundColor: colors.primary + '15',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    position: 'absolute',
+    top: 8,
+    right: 8,
+  },
+  slotSetText: {
+    fontSize: 9,
+    fontWeight: '900',
+    color: colors.primary,
+  },
+  slotDelete: {
+    position: 'absolute',
+    bottom: -5,
+    right: -5,
   },
   cardWrapper: {
     marginBottom: spacing.md,

@@ -16,15 +16,40 @@ import { EmptyState } from '../../components/common/EmptyState';
 import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
 import { layout, spacing } from '../../theme/spacing';
+import useLocation from '../../hooks/useLocation';
 
 export default function RestaurantListScreen() {
   const dispatch = useDispatch();
   const navigation = useNavigation();
   const { restaurants, isLoading, filters } = useSelector((state) => state.restaurant);
+  const { location, getCurrentPosition, hasRealLocation } = useLocation();
 
   useEffect(() => {
-    dispatch(fetchRestaurants({ filters: { cuisine: filters.cuisine, city: filters.city } }));
-  }, [dispatch, filters.cuisine, filters.city]);
+    const fetchWithLocation = async () => {
+      let activeLoc = null;
+
+      // Only use coordinates if they are "Real" GPS coordinates
+      if (hasRealLocation) {
+        activeLoc = location;
+      } else {
+        // Only try to get position if we don't have it yet, 
+        // but remember that if GPS is off, this will just return defaultCenter
+        activeLoc = await getCurrentPosition();
+      }
+
+      const params = {
+        filters: {
+          cuisine: filters.cuisine,
+          city: filters.city,
+          latitude: hasRealLocation ? activeLoc?.latitude : null,
+          longitude: hasRealLocation ? activeLoc?.longitude : null
+        }
+      };
+      dispatch(fetchRestaurants(params));
+    };
+
+    fetchWithLocation();
+  }, [dispatch, filters.cuisine, filters.city, getCurrentPosition, hasRealLocation, location]);
 
   const renderItem = ({ item }) => (
     <RestaurantCard
@@ -32,6 +57,7 @@ export default function RestaurantListScreen() {
       cuisine={item.cuisine_type}
       imageUrl={item.logo_url}
       deliveryFee={item.delivery_fee}
+      distance={item.distance}
       onPress={() => navigation.navigate('RestaurantDetail', { restaurantId: item.restaurant_id })}
     />
   );
@@ -39,7 +65,7 @@ export default function RestaurantListScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
@@ -69,8 +95,8 @@ export default function RestaurantListScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
+  container: {
+    flex: 1,
     backgroundColor: colors.backgroundDark,
   },
   header: {
@@ -95,7 +121,7 @@ const styles = StyleSheet.create({
   placeholder: {
     width: 40,
   },
-  list: { 
+  list: {
     padding: layout.screenPadding,
     paddingTop: spacing.md,
   },

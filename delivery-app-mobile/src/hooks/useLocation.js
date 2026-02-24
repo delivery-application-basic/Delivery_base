@@ -105,6 +105,7 @@ export const useLocation = () => {
 
   return {
     location: location || defaultCenter,
+    hasRealLocation: !!location,
     loading,
     error,
     locationServiceDisabled,

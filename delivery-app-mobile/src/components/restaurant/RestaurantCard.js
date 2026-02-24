@@ -20,6 +20,7 @@ export const RestaurantCard = ({
   imageUrl,
   rating,
   deliveryFee,
+  distance,
   onPress,
 }) => {
   const handlePress = () => {
@@ -29,7 +30,7 @@ export const RestaurantCard = ({
   };
 
   const deliveryTime = '25-35 min'; // Mock estimation
-  
+
   // Ensure name is always a valid string - handle all edge cases
   const displayName = (() => {
     if (!name) return 'Restaurant';
@@ -59,9 +60,9 @@ export const RestaurantCard = ({
       </View>
       <View style={styles.info}>
         <View style={styles.nameRow}>
-          <Text 
-            style={styles.name} 
-            numberOfLines={1} 
+          <Text
+            style={styles.name}
+            numberOfLines={1}
             ellipsizeMode="tail"
             allowFontScaling={false}
           >
@@ -72,9 +73,9 @@ export const RestaurantCard = ({
           </Text>
         </View>
         <View style={styles.metaRow}>
-          <Text 
-            style={styles.cuisine} 
-            numberOfLines={1} 
+          <Text
+            style={styles.cuisine}
+            numberOfLines={1}
             ellipsizeMode="tail"
             allowFontScaling={false}
           >
@@ -82,7 +83,7 @@ export const RestaurantCard = ({
           </Text>
           <View style={styles.dot} />
           <Text style={styles.time} allowFontScaling={false}>
-            {deliveryTime}
+            {distance ? `${Number(distance).toFixed(1)} km` : deliveryTime}
           </Text>
         </View>
       </View>
