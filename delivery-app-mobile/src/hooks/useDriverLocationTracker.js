@@ -7,9 +7,9 @@ import { sendDriverHeartbeat } from '../store/slices/driverSlice';
 import { geocodingService } from '../api/services/geocodingService';
 import { USER_TYPES } from '../utils/constants';
 
-// How often to send location updates in each mode
-const IDLE_INTERVAL_MS = 3 * 60 * 1000;      // 3 minutes when ACTIVE but waiting for orders
-const DELIVERY_INTERVAL_MS = 1 * 60 * 1000;  // 1 minute when actively delivering
+// How often to send location updates in each mode (Optimized for battery, no live map)
+const IDLE_INTERVAL_MS = 8 * 60 * 1000;      // 8 minutes when ACTIVE but waiting for orders
+const DELIVERY_INTERVAL_MS = 4 * 60 * 1000;  // 4 minutes when actively delivering (enough for arrival alerts)
 
 /**
  * Simple in-memory cache for geocoding results.
