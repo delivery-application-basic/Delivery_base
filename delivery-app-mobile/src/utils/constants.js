@@ -4,7 +4,7 @@
 // 3) Android emulator: use '10.0.2.2' instead of your PC IP so emulator can reach host.
 // USB dev: 'localhost' works via adb reverse (port 5000 tunneled to PC).
 // Wi-Fi dev: use your PC IP (e.g. '192.168.43.135') and ensure phone is on same network.
-const DEV_HOST = 'localhost';
+const DEV_HOST = '192.168.43.135';
 export const API_BASE_URL = __DEV__
   ? `http://${DEV_HOST}:5000/api/v1`
   : 'https://your-production-api.com/api/v1'; // Production
