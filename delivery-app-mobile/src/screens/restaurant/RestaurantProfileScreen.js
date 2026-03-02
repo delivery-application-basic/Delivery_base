@@ -19,6 +19,7 @@ export default function RestaurantProfileScreen() {
   const { user } = useSelector((state) => state.auth);
   const restaurantName = user?.restaurant_name || user?.name || 'Restaurant';
   const ownerName = user?.full_name || 'Owner';
+  const restaurantId = user?.restaurant_id ?? user?.id;
 
   const handleLogout = () => {
     Alert.alert(
@@ -122,9 +123,9 @@ export default function RestaurantProfileScreen() {
               icon="clock-outline"
               title="Operating Hours"
               subtitle="Manage opening & closing times"
-              onPress={() => navigation.navigate('SettingsBranchSelect', {
-                targetScreen: 'OperatingHours',
-                title: 'Select Restaurant'
+              onPress={() => navigation.navigate('OperatingHours', {
+                restaurantId,
+                restaurantName
               })}
             />
             <View style={styles.divider} />
@@ -132,9 +133,9 @@ export default function RestaurantProfileScreen() {
               icon="store-edit-outline"
               title="Restaurant Details"
               subtitle="Address, phone, description"
-              onPress={() => navigation.navigate('SettingsBranchSelect', {
-                targetScreen: 'EditRestaurant',
-                title: 'Select Restaurant'
+              onPress={() => navigation.navigate('EditRestaurant', {
+                restaurantId,
+                restaurantName
               })}
             />
             <View style={styles.divider} />

@@ -105,6 +105,7 @@ export default function EditRestaurantScreen() {
                         setSearchQuery(addressData.street_address);
                     }
                     if (addressData.city) setCity(addressData.city);
+                    setSuggestions([]); // Clear suggestions list
                     Alert.alert('Location Detected', 'Coordinates and address have been updated.');
                 }
             }

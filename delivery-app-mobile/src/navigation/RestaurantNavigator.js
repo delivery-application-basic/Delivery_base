@@ -7,7 +7,6 @@ import { colors } from '../theme/colors';
 // Screens
 import RestaurantDashboardScreen from '../screens/restaurant/RestaurantDashboardScreen';
 import IncomingOrdersScreen from '../screens/restaurant/IncomingOrdersScreen';
-import BranchOrdersOverviewScreen from '../screens/restaurant/BranchOrdersOverviewScreen';
 import ActiveOrdersScreen from '../screens/restaurant/ActiveOrdersScreen';
 import OrderDetailsScreen from '../screens/restaurant/OrderDetailsScreen';
 import OrderHistoryScreen from '../screens/restaurant/OrderHistoryScreen';
@@ -19,8 +18,6 @@ import OperatingHoursScreen from '../screens/restaurant/OperatingHoursScreen';
 import EditRestaurantScreen from '../screens/restaurant/EditRestaurantScreen';
 import SettingsScreen from '../screens/restaurant/SettingsScreen';
 import BranchesScreen from '../screens/restaurant/BranchesScreen';
-import RegisterBranchScreen from '../screens/restaurant/RegisterBranchScreen';
-import SettingsBranchSelectScreen from '../screens/restaurant/SettingsBranchSelectScreen';
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { shadows } from '../theme/shadows';
@@ -36,7 +33,6 @@ const DashboardStack = () => (
     }}
   >
     <Stack.Screen name="DashboardMain" component={RestaurantDashboardScreen} />
-    <Stack.Screen name="BranchOrdersOverview" component={BranchOrdersOverviewScreen} />
     <Stack.Screen name="IncomingOrders" component={IncomingOrdersScreen} />
     <Stack.Screen name="ActiveOrders" component={ActiveOrdersScreen} />
     <Stack.Screen name="OrderDetails" component={OrderDetailsScreen} />
@@ -44,7 +40,7 @@ const DashboardStack = () => (
   </Stack.Navigator>
 );
 
-// Branches/Menu Stack
+// Menu Stack
 const BranchesStack = () => (
   <Stack.Navigator
     screenOptions={{
@@ -52,7 +48,6 @@ const BranchesStack = () => (
     }}
   >
     <Stack.Screen name="BranchesMain" component={BranchesScreen} />
-    <Stack.Screen name="RegisterBranch" component={RegisterBranchScreen} />
     <Stack.Screen name="MenuManagement" component={MenuManagementScreen} />
     <Stack.Screen name="AddMenuItem" component={AddMenuItemScreen} />
     <Stack.Screen name="EditMenuItem" component={EditMenuItemScreen} />
@@ -67,7 +62,6 @@ const ProfileStack = () => (
     }}
   >
     <Stack.Screen name="ProfileMain" component={RestaurantProfileScreen} />
-    <Stack.Screen name="SettingsBranchSelect" component={SettingsBranchSelectScreen} />
     <Stack.Screen name="OperatingHours" component={OperatingHoursScreen} />
     <Stack.Screen name="EditRestaurant" component={EditRestaurantScreen} />
     <Stack.Screen name="Settings" component={SettingsScreen} />
@@ -123,9 +117,9 @@ const RestaurantNavigator = () => {
         component={BranchesStack}
         options={{
           tabBarIcon: ({ color, size }) => (
-            <Icon source="storefront" size={size} color={color} />
+            <Icon source="silverware-fork-knife" size={size} color={color} />
           ),
-          tabBarLabel: 'Restaurants',
+          tabBarLabel: 'Menu',
         }}
       />
       <Tab.Screen

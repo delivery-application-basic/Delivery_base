@@ -123,7 +123,7 @@ exports.updateStatus = async (req, res, next) => {
         }
 
         // Check if owner
-        if (targetRestaurant.phone_number !== req.user.phone_number) {
+        if (targetRestaurant.restaurant_id !== req.user.restaurant_id) {
             return res.status(403).json({ success: false, message: 'Not authorized to update this restaurant' });
         }
         const { is_active } = req.body;
@@ -153,7 +153,7 @@ exports.updateProfile = async (req, res, next) => {
         }
 
         // Check if owner
-        if (restaurant.phone_number !== req.user.phone_number) {
+        if (restaurant.restaurant_id !== req.user.restaurant_id) {
             return res.status(403).json({ success: false, message: 'Not authorized to update this restaurant' });
         }
 
@@ -182,7 +182,7 @@ exports.updateHours = async (req, res, next) => {
         }
 
         // Check if owner
-        if (restaurant.phone_number !== req.user.phone_number) {
+        if (restaurant.restaurant_id !== req.user.restaurant_id) {
             return res.status(403).json({ success: false, message: 'Not authorized to update this restaurant' });
         }
 
@@ -221,7 +221,7 @@ exports.uploadLogo = async (req, res, next) => {
         }
 
         // Check if owner
-        if (restaurant.phone_number !== req.user.phone_number) {
+        if (restaurant.restaurant_id !== req.user.restaurant_id) {
             return res.status(403).json({ success: false, message: 'Not authorized' });
         }
 

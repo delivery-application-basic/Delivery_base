@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity, Image, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity, Image, Alert, ActivityIndicator } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { Icon } from 'react-native-paper';
 import { register, clearError } from '../../store/slices/authSlice';
@@ -13,8 +13,9 @@ import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
 import { USER_TYPES } from '../../utils/constants';
 import { colors } from '../../theme/colors';
-import { typography } from '../../theme/typography';
-import { spacing } from '../../theme/spacing';
+import { layout, spacing } from '../../theme/spacing';
+import { geocodingService } from '../../api/services/geocodingService';
+import { useLocation } from '../../hooks/useLocation';
 import { validateRequired, validatePhone, validatePassword, validateEmail, validateLatitude, validateLongitude } from '../../utils/validators';
 
 const FOCUS_SCROLL_OFFSET = 100;
@@ -31,11 +32,15 @@ export default function RestaurantRegisterScreen() {
   const [latitude, setLatitude] = useState('');
   const [longitude, setLongitude] = useState('');
   const [cuisine_type, setCuisineType] = useState('');
-  const [logoBase64, setLogoBase64] = useState(null);
   const [logoUri, setLogoUri] = useState(null);
   const [errors, setErrors] = useState({});
+  const [isDetecting, setIsDetecting] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [suggestions, setSuggestions] = useState([]);
+
   const scrollRef = useRef(null);
   const fieldLayouts = useRef({});
+  const { getLocationWithPermission, checkLocationService } = useLocation();
 
   const { isLoading, error } = useSelector((state) => state.auth);
 
@@ -56,13 +61,65 @@ export default function RestaurantRegisterScreen() {
     }, SCROLL_DELAY_MS);
   }, []);
 
+  const handleDetectLocation = async () => {
+    try {
+      setIsDetecting(true);
+      const serviceStatus = await checkLocationService();
+      if (serviceStatus !== 'enabled') {
+        Alert.alert('Location Disabled', 'Please enable GPS/Location services on your device.');
+        return;
+      }
+
+      const coords = await getLocationWithPermission();
+      if (coords) {
+        setLatitude(coords.latitude.toString());
+        setLongitude(coords.longitude.toString());
+
+        // Auto-fill address using reverse geocoding
+        const addressData = await geocodingService.reverseGeocode(coords.latitude, coords.longitude);
+        if (addressData) {
+          if (addressData.street_address) {
+            setStreetAddress(addressData.street_address);
+            setSearchQuery(addressData.street_address);
+          }
+          if (addressData.city) setCity(addressData.city);
+          setSuggestions([]); // Clear suggestions list
+          Alert.alert('Location Detected', 'Coordinates and address have been updated.');
+        }
+      }
+    } catch (err) {
+      Alert.alert('Error', 'Could not detect your current location.');
+    } finally {
+      setIsDetecting(false);
+    }
+  };
+
+  const handleSearchChange = async (text) => {
+    setSearchQuery(text);
+    if (text.length > 2) {
+      const results = await geocodingService.autocomplete(text);
+      setSuggestions(results);
+    } else {
+      setSuggestions([]);
+    }
+  };
+
+  const handleSelectSuggestion = (item) => {
+    setStreetAddress(item.street_address);
+    setCity(item.city);
+    setLatitude(item.latitude.toString());
+    setLongitude(item.longitude.toString());
+    setSearchQuery(item.formatted_address || item.street_address);
+    setSuggestions([]);
+  };
+
   const handleRegister = async () => {
     const errs = {};
     if (!validateRequired(restaurant_name, 'Restaurant name').valid) errs.restaurant_name = 'Restaurant name is required';
     const phoneCheck = validatePhone(phone_number);
     if (!phoneCheck.valid) errs.phone_number = phoneCheck.message;
     if (email && !validateEmail(email).valid) errs.email = 'Invalid email';
-    if (!validateRequired(street_address, 'Street address').valid) errs.street_address = 'Street address is required';
+    if (!validateRequired(street_address, 'Location').valid) errs.street_address = 'Location is required';
     if (!validateRequired(city, 'City').valid) errs.city = 'City is required';
     const latCheck = validateLatitude(latitude);
     if (!latCheck.valid) errs.latitude = latCheck.message;
@@ -146,32 +203,85 @@ export default function RestaurantRegisterScreen() {
         <Input label="Cuisine Type" value={cuisine_type} onChangeText={setCuisineType} placeholder="e.g. Pizza, Ethiopian, Burgers" />
         <Input label="Phone number" value={phone_number} onChangeText={setPhone} error={errors.phone_number} placeholder="+251911234567" keyboardType="phone-pad" />
         <Input label="Email (optional)" value={email} onChangeText={setEmail} error={errors.email} keyboardType="email-address" />
-        <Input label="Street address" value={street_address} onChangeText={setStreetAddress} error={errors.street_address} />
-        <View onLayout={handleFieldLayout('city')} collapsable={false}>
-          <Input label="City" value={city} onChangeText={setCity} error={errors.city} onFocus={scrollToFocusedInput('city')} />
+
+        <View style={styles.sectionDivider} />
+
+        <View style={styles.locationHeader}>
+          <Text style={styles.label}>Location Details</Text>
+          <TouchableOpacity
+            style={styles.detectBtn}
+            onPress={handleDetectLocation}
+            disabled={isDetecting}
+          >
+            {isDetecting ? (
+              <ActivityIndicator size={14} color={colors.primary} />
+            ) : (
+              <Icon source="target" size={16} color={colors.primary} />
+            )}
+            <Text style={styles.detectText}>Detect Current</Text>
+          </TouchableOpacity>
         </View>
-        <Text style={styles.hint}>Get coordinates from Google Maps: long-press your location → tap the coordinates to copy.</Text>
-        <View onLayout={handleFieldLayout('latitude')} collapsable={false}>
+
+        <View style={styles.searchContainer} onLayout={handleFieldLayout('location')} collapsable={false}>
           <Input
-            label="Latitude"
-            value={latitude}
-            onChangeText={setLatitude}
-            error={errors.latitude}
-            placeholder="e.g. 8.7525"
-            keyboardType="decimal-pad"
-            onFocus={scrollToFocusedInput('latitude')}
+            label="Location"
+            value={searchQuery}
+            onChangeText={(text) => {
+              handleSearchChange(text);
+              setStreetAddress(text);
+            }}
+            placeholder="Search for your restaurant location..."
+            leftIcon="map-marker"
+            error={errors.street_address}
+            onFocus={scrollToFocusedInput('location')}
           />
+          {suggestions.length > 0 && (
+            <View style={styles.suggestionsContainer}>
+              {suggestions.map((item) => (
+                <TouchableOpacity
+                  key={item.id}
+                  style={styles.suggestionItem}
+                  onPress={() => handleSelectSuggestion(item)}
+                >
+                  <Icon source="map-marker-outline" size={20} color={colors.primary} />
+                  <View style={styles.suggestionContent}>
+                    <Text style={styles.suggestionTitle} numberOfLines={1}>{item.street_address}</Text>
+                    <Text style={styles.suggestionSub} numberOfLines={1}>{item.city}{item.sub_city ? `, ${item.sub_city}` : ''}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
         </View>
-        <View onLayout={handleFieldLayout('longitude')} collapsable={false}>
-          <Input
-            label="Longitude"
-            value={longitude}
-            onChangeText={setLongitude}
-            error={errors.longitude}
-            placeholder="e.g. 38.9785"
-            keyboardType="decimal-pad"
-            onFocus={scrollToFocusedInput('longitude')}
-          />
+
+        <View style={styles.row}>
+          <View style={{ flex: 1 }} onLayout={handleFieldLayout('latitude')} collapsable={false}>
+            <Input
+              label="Latitude"
+              value={latitude?.toString()}
+              onChangeText={(v) => {
+                setLatitude(v);
+                setStreetAddress(searchQuery);
+              }}
+              error={errors.latitude}
+              keyboardType="decimal-pad"
+              onFocus={scrollToFocusedInput('latitude')}
+            />
+          </View>
+          <View style={{ width: spacing.md }} />
+          <View style={{ flex: 1 }} onLayout={handleFieldLayout('longitude')} collapsable={false}>
+            <Input
+              label="Longitude"
+              value={longitude?.toString()}
+              onChangeText={(v) => {
+                setLongitude(v);
+                setStreetAddress(searchQuery);
+              }}
+              error={errors.longitude}
+              keyboardType="decimal-pad"
+              onFocus={scrollToFocusedInput('longitude')}
+            />
+          </View>
         </View>
         <View onLayout={handleFieldLayout('password')} collapsable={false}>
           <Input label="Password" value={password} onChangeText={setPassword} error={errors.password} secureTextEntry onFocus={scrollToFocusedInput('password')} />
@@ -230,4 +340,77 @@ const styles = StyleSheet.create({
   hint: { fontSize: 12, color: colors.textSecondary, marginBottom: spacing.sm },
   formError: { color: colors.error, fontSize: 12, marginBottom: spacing.sm },
   btn: { marginTop: spacing.sm },
+  label: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: colors.text,
+  },
+  locationHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+    marginTop: spacing.md,
+  },
+  detectBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary + '10',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 6,
+  },
+  detectText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  row: {
+    flexDirection: 'row',
+  },
+  sectionDivider: {
+    height: 1,
+    backgroundColor: colors.gray[100],
+    marginVertical: spacing.lg,
+  },
+  searchContainer: {
+    marginBottom: spacing.md,
+    zIndex: 10,
+  },
+  suggestionsContainer: {
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    marginTop: -spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.gray[200],
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    maxHeight: 250,
+    overflow: 'hidden',
+  },
+  suggestionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.gray[100],
+    gap: 12,
+  },
+  suggestionContent: {
+    flex: 1,
+  },
+  suggestionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  suggestionSub: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
 });

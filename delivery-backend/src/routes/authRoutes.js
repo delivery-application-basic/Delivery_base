@@ -10,9 +10,7 @@ const {
     forgotPassword,
     resetPassword,
     changePassword,
-    switchRole,
-    getMyBranches,
-    switchBranch
+    switchRole
 } = require('../controllers/authController');
 const { validateRegistration, validateLogin } = require('../middleware/validators/authValidator');
 const { protect } = require('../middleware/auth');
@@ -27,7 +25,5 @@ router.post('/forgot-password', forgotPassword);
 router.post('/reset-password', resetPassword);
 router.post('/change-password', protect, changePassword);
 router.post('/switch-role', protect, switchRole);
-router.get('/my-branches', protect, getMyBranches);
-router.post('/switch-branch', protect, switchBranch);
 
 module.exports = router;

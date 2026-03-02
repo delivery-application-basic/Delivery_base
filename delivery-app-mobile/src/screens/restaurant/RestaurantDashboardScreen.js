@@ -81,7 +81,7 @@ export default function RestaurantDashboardScreen() {
       <View style={styles.header}>
         <View>
           <Text style={styles.headerSubtitle}>Owner Dashboard</Text>
-          <Text style={styles.headerTitle}>{user?.full_name || 'My Restaurants'}</Text>
+          <Text style={styles.headerTitle}>{user?.restaurant_name || 'My Restaurant'}</Text>
         </View>
         <TouchableOpacity
           style={styles.profileButton}
@@ -101,33 +101,21 @@ export default function RestaurantDashboardScreen() {
             value={pendingCount}
             icon="clock-alert-outline"
             color={colors.warning}
-            onPress={() => navigation.navigate('BranchOrdersOverview', {
-              orders: pendingOrders,
-              category: 'To Confirm',
-              color: colors.warning
-            })}
+            onPress={() => navigation.navigate('IncomingOrders')}
           />
           <DashboardCard
             title="Orders in Progress"
             value={activeCount}
             icon="bowl-mix-outline"
             color={colors.primary}
-            onPress={() => navigation.navigate('BranchOrdersOverview', {
-              orders: activeOrders,
-              category: 'In Progress',
-              color: colors.primary
-            })}
+            onPress={() => navigation.navigate('ActiveOrders')}
           />
           <DashboardCard
             title="Completed Today"
             value={completedCount}
             icon="check-circle-outline"
             color={colors.secondary}
-            onPress={() => navigation.navigate('BranchOrdersOverview', {
-              orders: completedOrders,
-              category: 'Completed Today',
-              color: colors.secondary
-            })}
+            onPress={() => navigation.navigate('OrderHistory')}
           />
         </View>
 
