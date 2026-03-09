@@ -20,8 +20,8 @@ export const AddressForm = ({ value, onChange, errors }) => {
   const handleDetect = async () => {
     try {
       setIsDetecting(true);
-      if ((await checkLocationService()) !== 'enabled') {
-        Alert.alert('Location Disabled', 'Please enable GPS to detect your location.');
+      if ((await checkLocationService()) === 'disabled') {
+        Alert.alert('GPS Disabled', 'Please enable GPS/Location services on your device.');
         return;
       }
       const coords = await getLocationWithPermission();

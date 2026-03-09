@@ -91,8 +91,8 @@ export default function SelectAddressScreen() {
   const detectAndSaveAs = async (label) => {
     try {
       setIsLoading(true);
-      if ((await checkLocationService()) !== 'enabled') {
-        Alert.alert('Location Disabled', 'Please enable GPS');
+      if ((await checkLocationService()) === 'disabled') {
+        Alert.alert('GPS Disabled', 'Please enable GPS/Location services on your device.');
         return;
       }
       const coords = await getLocationWithPermission();

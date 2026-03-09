@@ -65,8 +65,8 @@ export default function RestaurantRegisterScreen() {
     try {
       setIsDetecting(true);
       const serviceStatus = await checkLocationService();
-      if (serviceStatus !== 'enabled') {
-        Alert.alert('Location Disabled', 'Please enable GPS/Location services on your device.');
+      if (serviceStatus === 'disabled') {
+        Alert.alert('GPS Disabled', 'Please enable GPS/Location services on your device.');
         return;
       }
 

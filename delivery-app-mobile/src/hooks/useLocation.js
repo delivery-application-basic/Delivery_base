@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { NativeModules, PermissionsAndroid, Platform, Alert } from 'react-native';
+import { NativeModules, PermissionsAndroid, Platform, Alert, Linking } from 'react-native';
 import { MAP_CONFIG } from '../utils/constants';
 
 const { SimpleLocation } = NativeModules;
@@ -37,7 +37,20 @@ export const useLocation = () => {
             buttonNegative: 'Deny',
           }
         );
-        return granted === PermissionsAndroid.RESULTS.GRANTED;
+        if (granted === PermissionsAndroid.RESULTS.GRANTED) return true;
+
+        // User permanently denied - guide them to Settings
+        if (granted === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN) {
+          Alert.alert(
+            'Permission Blocked',
+            'Location permission was permanently denied. Please enable it in your phone Settings.',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Open Settings', onPress: () => Linking.openSettings() },
+            ]
+          );
+        }
+        return false;
       } catch (err) {
         return false;
       }

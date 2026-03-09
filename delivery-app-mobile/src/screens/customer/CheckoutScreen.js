@@ -33,7 +33,7 @@ export default function CheckoutScreen() {
   const [paymentMethod, setPaymentMethod] = useState(PAYMENT_METHODS.CASH);
   const [deliveryType, setDeliveryType] = useState('delivery'); // 'delivery' or 'pickup'
   const [specialInstructions, setSpecialInstructions] = useState('');
-  const [isDetectingLocation, setIsDetectingLocation] = useState(false);
+  const [isDetectingLocation, setIsDetectingLocation] = useState(!route.params?.addressId);
   const [detectionError, setDetectionError] = useState(null);
 
   const { getLocationWithPermission, checkLocationService } = useLocation();
@@ -53,7 +53,8 @@ export default function CheckoutScreen() {
       setAddresses(list);
 
       // Default selection logic: Home > Work > School > First Available
-      if (!addressId && !route.params?.addressId) {
+      // Only run if no param, no current selection, and NOT currently detecting
+      if (!addressId && !route.params?.addressId && !selectedAddress && !isDetectingLocation) {
         const home = list.find(a => a.address_label?.toLowerCase() === 'home');
         const work = list.find(a => a.address_label?.toLowerCase() === 'work');
         const school = list.find(a => a.address_label?.toLowerCase() === 'school');
@@ -70,11 +71,18 @@ export default function CheckoutScreen() {
     } catch (error) {
       console.error('Failed to load addresses:', error);
     }
-  }, [addressId, route.params?.addressId, filterClutter]);
+  }, [addressId, route.params?.addressId, filterClutter, isDetectingLocation, selectedAddress]);
 
   useEffect(() => {
     fetchAddresses();
   }, [addressId, route.params?.addressId, fetchAddresses]);
+
+  // Auto-detect location on mount if no address is passed
+  useEffect(() => {
+    if (!route.params?.addressId && !addressId) {
+      detectOneTimeLocation();
+    }
+  }, []);
 
   // Handle address selection from route params
   useEffect(() => {
@@ -87,7 +95,11 @@ export default function CheckoutScreen() {
     if (isDetectingLocation) return;
     try {
       setIsDetectingLocation(true);
-      if ((await checkLocationService()) !== 'enabled') throw new Error('GPS Disabled');
+      const status = await checkLocationService();
+      if (status === 'disabled') {
+        Alert.alert('GPS Disabled', 'Please enable GPS/Location services on your device.');
+        throw new Error('GPS Disabled');
+      }
       const coords = await getLocationWithPermission();
       if (!coords) throw new Error('Permission denied');
 
@@ -115,7 +127,11 @@ export default function CheckoutScreen() {
     if (isDetectingLocation) return;
     try {
       setIsDetectingLocation(true);
-      if ((await checkLocationService()) !== 'enabled') throw new Error('GPS Disabled');
+      const status2 = await checkLocationService();
+      if (status2 === 'disabled') {
+        Alert.alert('GPS Disabled', 'Please enable GPS/Location services on your device.');
+        throw new Error('GPS Disabled');
+      }
       const coords = await getLocationWithPermission();
       if (!coords) throw new Error('Permission denied');
 
