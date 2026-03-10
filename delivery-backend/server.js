@@ -1,9 +1,13 @@
-const app = require('./src/app');
+const cors = require('cors');
+require('dotenv').config();
+const app = require('./src/app'); // app is imported/defined here
 const http = require('http');
 const { connectDB } = require('./src/config/database');
 const { initSocket } = require('./src/config/socket');
 const { startHeartbeatMonitor, stopHeartbeatMonitor } = require('./src/services/driverHeartbeatService');
-require('dotenv').config();
+
+// Middleware - Must come AFTER app is required
+app.use(cors()); 
 
 const server = http.createServer(app);
 

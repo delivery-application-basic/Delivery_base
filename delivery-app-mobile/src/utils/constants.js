@@ -1,18 +1,9 @@
-// API Configuration — must match your backend server
-// 1) Backend must be running (e.g. npm start in delivery-backend) and DB connected.
-// 2) Physical device: use your PC's Wi-Fi IPv4 (ipconfig / ifconfig). Phone and PC on same Wi-Fi.
-// 3) Android emulator: use '10.0.2.2' instead of your PC IP so emulator can reach host.
-// USB dev: 'localhost' works via adb reverse (port 5000 tunneled to PC).
-// Wi-Fi dev: use your PC IP (e.g. '192.168.43.135') and ensure phone is on same network.
-const DEV_HOST = '192.168.100.5';
-export const API_BASE_URL = __DEV__
-  ? `http://${DEV_HOST}:5000/api/v1`
-  : 'https://your-production-api.com/api/v1'; // Production
+// API Configuration — Backend is hosted on VPS
+// Both development and production use the same VPS backend
+export const API_BASE_URL = 'https://d3l1v3ry.duckdns.org/api/v1';
 
-// Socket URL must match the same host:port as the API server.
-export const SOCKET_URL = __DEV__
-  ? `http://${DEV_HOST}:5000`
-  : 'https://your-production-api.com'; // Production
+// Socket URL must match the same host as the API server
+export const SOCKET_URL = 'https://d3l1v3ry.duckdns.org';
 
 // App Constants
 export const APP_NAME = 'Delivery App';
