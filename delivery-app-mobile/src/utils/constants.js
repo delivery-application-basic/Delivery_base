@@ -1,9 +1,17 @@
 // API Configuration — Backend is hosted on VPS
-// Both development and production use the same VPS backend
-export const API_BASE_URL = 'https://d3l1v3ry.duckdns.org/api/v1';
+// for server development
+//export const API_BASE_URL = 'https://d3l1v3ry.duckdns.org/api/v1';
 
 // Socket URL must match the same host as the API server
-export const SOCKET_URL = 'https://d3l1v3ry.duckdns.org';
+//export const SOCKET_URL = 'https://d3l1v3ry.duckdns.org';
+
+// for local development
+
+export const API_BASE_URL = 'http://192.168.43.135:5000/api/v1';
+
+// Socket URL must match the same host as the API server
+export const SOCKET_URL = 'http://192.168.43.135:5000';
+
 
 // App Constants
 export const APP_NAME = 'Delivery App';
